@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
+import { getChannelCategories } from "../../lib/demo-data";
 import { LogoMark } from "../ui";
 import { AppIcon, IconButton, PersonAvatar, PreviewNote } from "./primitives";
 import { AppDialogs } from "./app-dialogs";
@@ -189,6 +190,19 @@ export function AppShell() {
                       >
                         <AppIcon name="plus" size={17} /> Create a channel
                       </button>
+                      <button
+                        onClick={(event) => {
+                          event.currentTarget
+                            .closest("details")
+                            ?.removeAttribute("open");
+                          setModal({
+                            type: "create-category",
+                            communityId: community.id,
+                          });
+                        }}
+                      >
+                        <AppIcon name="folder" size={17} /> Create category
+                      </button>
                       <Link
                         to="/app/community/$communityId/settings"
                         params={{ communityId: community.id }}
@@ -253,14 +267,32 @@ export function AppShell() {
                 </nav>
                 {community && (
                   <div className="a-channel-groups">
-                    {[...new Set(community.channels.map((c) => c.group))].map(
-                      (group) => (
-                        <div key={group}>
-                          <div className="a-sidebar-label">
-                            <span>{group}</span>
+                    {getChannelCategories(community).map((group) => (
+                      <div key={group}>
+                        <div className="a-sidebar-label">
+                          <span className="a-category-name" title={group}>
+                            {group}
+                          </span>
+                          <button
+                            aria-label={`Create channel in ${group}`}
+                            title="Create a channel"
+                            onClick={() =>
+                              setModal({
+                                type: "create-channel",
+                                communityId: community.id,
+                                group,
+                              })
+                            }
+                          >
+                            <AppIcon name="plus" size={14} />
+                          </button>
+                        </div>
+                        <nav aria-label={group}>
+                          {!community.channels.some(
+                            (c) => c.group === group,
+                          ) && (
                             <button
-                              aria-label={`Create channel in ${community.name}`}
-                              title="Create a channel"
+                              className="a-empty-category"
                               onClick={() =>
                                 setModal({
                                   type: "create-channel",
@@ -269,58 +301,67 @@ export function AppShell() {
                                 })
                               }
                             >
-                              <AppIcon name="plus" size={14} />
+                              <AppIcon name="plus" size={14} /> Add a channel
                             </button>
-                          </div>
-                          <nav aria-label={group}>
-                            {community.channels
-                              .filter((c) => c.group === group)
-                              .map((channel) => (
-                                <Link
-                                  key={channel.id}
-                                  to="/app/community/$communityId/$channelId"
-                                  params={{
-                                    communityId: community.id,
-                                    channelId: channel.id,
-                                  }}
-                                  onClick={() => {
-                                    if (channel.unread)
-                                      setState((previous) => ({
-                                        ...previous,
-                                        communities: previous.communities.map(
-                                          (c) =>
-                                            c.id === community.id
-                                              ? {
-                                                  ...c,
-                                                  channels: c.channels.map(
-                                                    (ch) =>
-                                                      ch.id === channel.id
-                                                        ? { ...ch, unread: 0 }
-                                                        : ch,
-                                                  ),
-                                                }
-                                              : c,
-                                        ),
-                                      }));
-                                  }}
-                                  className={`a-channel-link ${pathname === `/app/community/${community.id}/${channel.id}` ? "active" : ""}`}
-                                >
-                                  <AppIcon
-                                    name={channel.private ? "lock" : "hash"}
-                                    size={19}
-                                  />
-                                  <span>{channel.name}</span>
-                                  {!!channel.unread && (
-                                    <span className="a-count">
-                                      {channel.unread}
-                                    </span>
-                                  )}
-                                </Link>
-                              ))}
-                          </nav>
-                        </div>
-                      ),
-                    )}
+                          )}
+                          {community.channels
+                            .filter((c) => c.group === group)
+                            .map((channel) => (
+                              <Link
+                                key={channel.id}
+                                to="/app/community/$communityId/$channelId"
+                                params={{
+                                  communityId: community.id,
+                                  channelId: channel.id,
+                                }}
+                                onClick={() => {
+                                  if (channel.unread)
+                                    setState((previous) => ({
+                                      ...previous,
+                                      communities: previous.communities.map(
+                                        (c) =>
+                                          c.id === community.id
+                                            ? {
+                                                ...c,
+                                                channels: c.channels.map(
+                                                  (ch) =>
+                                                    ch.id === channel.id
+                                                      ? { ...ch, unread: 0 }
+                                                      : ch,
+                                                ),
+                                              }
+                                            : c,
+                                      ),
+                                    }));
+                                }}
+                                className={`a-channel-link ${pathname === `/app/community/${community.id}/${channel.id}` ? "active" : ""}`}
+                              >
+                                <AppIcon
+                                  name={channel.private ? "lock" : "hash"}
+                                  size={19}
+                                />
+                                <span>{channel.name}</span>
+                                {!!channel.unread && (
+                                  <span className="a-count">
+                                    {channel.unread}
+                                  </span>
+                                )}
+                              </Link>
+                            ))}
+                        </nav>
+                      </div>
+                    ))}
+                    <button
+                      className="a-create-category"
+                      onClick={() =>
+                        setModal({
+                          type: "create-category",
+                          communityId: community.id,
+                        })
+                      }
+                    >
+                      <AppIcon name="folder" size={15} /> Create category
+                    </button>
                   </div>
                 )}
                 <div className="a-sidebar-label a-dm-label">
