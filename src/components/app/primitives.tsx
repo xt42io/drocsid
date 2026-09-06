@@ -51,6 +51,8 @@ import {
   MusicNote01Icon,
   ReplyIcon,
   InformationCircleIcon,
+  Folder01Icon,
+  Flag01Icon,
 } from "@hugeicons/core-free-icons";
 export const icons = {
   home: Home01Icon,
@@ -101,6 +103,8 @@ export const icons = {
   music: MusicNote01Icon,
   reply: ReplyIcon,
   info: InformationCircleIcon,
+  folder: Folder01Icon,
+  flag: Flag01Icon,
 };
 export type IconName = keyof typeof icons;
 export function AppIcon({
