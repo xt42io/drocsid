@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
+import { getChannelCategories } from "../../lib/demo-data";
 import {
   AppIcon,
   EmptyState,
@@ -198,75 +199,127 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
           <div className="a-settings-section-bar">
             <div>
               <h2>A room for every conversation.</h2>
-              <p>{community.channels.length} text channels in your corner.</p>
+              <p>
+                {community.channels.length} text channels ·{" "}
+                {getChannelCategories(community).length} categories
+              </p>
             </div>
-            <button
-              className="a-button primary"
-              onClick={() => setModal({ type: "create-channel", communityId })}
-            >
-              <AppIcon name="plus" size={17} />
-              Create channel
-            </button>
+            <div className="a-channel-settings-actions">
+              <button
+                className="a-button secondary"
+                onClick={() =>
+                  setModal({ type: "create-category", communityId })
+                }
+              >
+                <AppIcon name="folder" size={17} />
+                Create category
+              </button>
+              <button
+                className="a-button primary"
+                onClick={() =>
+                  setModal({ type: "create-channel", communityId })
+                }
+              >
+                <AppIcon name="plus" size={17} />
+                Create channel
+              </button>
+            </div>
           </div>
-          <div className="a-managed-channels">
-            {community.channels.map((channel) => (
-              <div key={channel.id}>
-                <span className="a-channel-square">
-                  <AppIcon name="hash" size={22} />
-                </span>
-                <span>
-                  <strong>
-                    {channel.name}
-                    <small>{channel.group.toLowerCase()}</small>
-                  </strong>
-                  <p>{channel.description}</p>
-                </span>
-                <Link
-                  to="/app/community/$communityId/$channelId"
-                  params={{ communityId, channelId: channel.id }}
-                  className="a-icon-button"
-                  aria-label={`Open ${channel.name}`}
-                  title="Open channel"
-                >
-                  <AppIcon name="external" size={18} />
-                </Link>
+          {getChannelCategories(community).map((group) => (
+            <section
+              className="a-managed-category"
+              key={group}
+              aria-label={group}
+            >
+              <header className="a-managed-category-header">
+                <AppIcon name="folder" size={18} />
+                <h3>{group}</h3>
                 <IconButton
-                  name="trash"
-                  label={`Delete ${channel.name}`}
-                  disabled={community.channels.length === 1}
+                  name="plus"
+                  label={`Create channel in ${group}`}
                   onClick={() =>
-                    setModal({
-                      type: "confirm",
-                      title: `Delete #${channel.name}?`,
-                      description:
-                        "This channel and its local messages will be removed from the preview. This can’t be undone.",
-                      label: "Delete channel",
-                      action: () => {
-                        setState((previous) => ({
-                          ...previous,
-                          communities: previous.communities.map((c) =>
-                            c.id === communityId
-                              ? {
-                                  ...c,
-                                  channels: c.channels.filter(
-                                    (ch) => ch.id !== channel.id,
-                                  ),
-                                }
-                              : c,
-                          ),
-                          messages: previous.messages.filter(
-                            (m) =>
-                              m.conversation !== `${communityId}:${channel.id}`,
-                          ),
-                        }));
-                        notify("Channel deleted.");
-                      },
-                    })
+                    setModal({ type: "create-channel", communityId, group })
                   }
                 />
+              </header>
+              {!community.channels.some(
+                (channel) => channel.group === group,
+              ) && (
+                <div className="a-managed-category-empty">
+                  <p>No channels yet.</p>
+                  <button
+                    className="a-text-link"
+                    onClick={() =>
+                      setModal({ type: "create-channel", communityId, group })
+                    }
+                  >
+                    Add a channel <AppIcon name="plus" size={15} />
+                  </button>
+                </div>
+              )}
+              <div className="a-managed-channels">
+                {community.channels
+                  .filter((channel) => channel.group === group)
+                  .map((channel) => (
+                    <div key={channel.id}>
+                      <span className="a-channel-square">
+                        <AppIcon name="hash" size={22} />
+                      </span>
+                      <span>
+                        <strong>{channel.name}</strong>
+                        <p>{channel.description}</p>
+                      </span>
+                      <Link
+                        to="/app/community/$communityId/$channelId"
+                        params={{ communityId, channelId: channel.id }}
+                        className="a-icon-button"
+                        aria-label={`Open ${channel.name}`}
+                        title="Open channel"
+                      >
+                        <AppIcon name="external" size={18} />
+                      </Link>
+                      <IconButton
+                        name="trash"
+                        label={`Delete ${channel.name}`}
+                        disabled={community.channels.length === 1}
+                        onClick={() =>
+                          setModal({
+                            type: "confirm",
+                            title: `Delete #${channel.name}?`,
+                            description:
+                              "This channel and its local messages will be removed from the preview. This can’t be undone.",
+                            label: "Delete channel",
+                            action: () => {
+                              setState((previous) => ({
+                                ...previous,
+                                communities: previous.communities.map((c) =>
+                                  c.id === communityId
+                                    ? {
+                                        ...c,
+                                        channelCategories:
+                                          getChannelCategories(c),
+                                        channels: c.channels.filter(
+                                          (ch) => ch.id !== channel.id,
+                                        ),
+                                      }
+                                    : c,
+                                ),
+                                messages: previous.messages.filter(
+                                  (m) =>
+                                    m.conversation !==
+                                    `${communityId}:${channel.id}`,
+                                ),
+                              }));
+                              notify("Channel deleted.");
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
               </div>
-            ))}
-          </div>
+            </section>
+          ))}
         </>
       )}
       {tab === "members" && (
