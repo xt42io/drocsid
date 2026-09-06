@@ -7,6 +7,7 @@ const STORAGE_KEY = "drocsid-design-preview-v1";
 export type ModalState =
   | { type: "create-community" | "new-message" | "add-friend" | "help" }
   | { type: "create-channel"; communityId: string; group?: string }
+  | { type: "create-category"; communityId: string }
   | { type: "invite"; communityId: string }
   | { type: "profile"; personId: string }
   | {
