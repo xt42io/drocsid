@@ -41,9 +41,12 @@ pnpm build
 
 ## Working local interactions
 
-- Create communities and channels; update community details and channel topics; delete channels with confirmation.
+- Create communities, categories, and channels; update community details and channel topics; delete channels with confirmation. Create categories from the community menu, the channel sidebar, or Community settings → Channels. Empty categories stay visible, and new channels can be placed in any category.
 - Compose messages, insert emoji or formatted text, edit/delete your messages, react, and pin or save messages.
 - Open reply threads, send replies, search messages, and jump to individual results.
+- Pick from five quick reactions, then use the More button for the full searchable emoji panel with categories, skin tones, and recently used emoji. The message composer opens the full panel directly.
+- Type `@` to find people by username or display name; use arrow keys and Enter/Tab to choose, or Escape to dismiss. Hover, focus, or tap a message mention for a profile preview. Community channels and threads also support `@everyone` (all members) and `@admin` (owners and admins).
+- Type `#` in a community message to search its channels. Selected channel mentions become links, with a channel preview on hover or focus. Unmatched `@` and `#` searches close quietly so you can keep typing normally.
 - Start direct conversations, accept/decline/cancel friend requests, remove friends, and block/unblock people.
 - Mark inbox items read or unread; filter friends, communities, and search results.
 - Edit your profile, status, and avatar color. Switch between daylight and after-hours themes, change density and message size, and save notification/privacy preferences.
