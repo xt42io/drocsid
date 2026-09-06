@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import { starterChannels } from "../../lib/demo-data";
+import { getChannelCategories, starterChannels } from "../../lib/demo-data";
 import type { Community, Person } from "../../lib/demo-data";
 import { AppIcon, Dialog, EmptyState, PersonAvatar } from "./primitives";
 
@@ -11,6 +11,8 @@ export function AppDialogs() {
   if (!app.modal) return null;
   const modal = app.modal;
   if (modal.type === "create-community") return <CreateCommunity />;
+  if (modal.type === "create-category")
+    return <CreateCategory communityId={modal.communityId} />;
   if (modal.type === "create-channel")
     return (
       <CreateChannel
@@ -221,20 +223,99 @@ function CreateCommunity() {
     </Dialog>
   );
 }
+function CreateCategory({ communityId }: { communityId: string }) {
+  const { state, setState, setModal, notify } = useApp();
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const community = state.communities.find((c) => c.id === communityId);
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    const normalized = name.trim().replace(/\s+/g, " ");
+    if (!normalized) {
+      setError("Give your category a name.");
+      return;
+    }
+    if (!community) return;
+    if (
+      getChannelCategories(community).some(
+        (category) => category.toLowerCase() === normalized.toLowerCase(),
+      )
+    ) {
+      setError("There’s already a category with that name.");
+      return;
+    }
+    setState((previous) => ({
+      ...previous,
+      communities: previous.communities.map((c) =>
+        c.id === communityId
+          ? {
+              ...c,
+              channelCategories: [...getChannelCategories(c), normalized],
+            }
+          : c,
+      ),
+    }));
+    setModal(null);
+    notify(`${normalized} is ready. Add a channel to get started.`);
+  }
+  return (
+    <Dialog
+      title="Create a category"
+      description={`Keep related channels together in ${community?.name ?? "your community"}.`}
+      onClose={() => setModal(null)}
+    >
+      <form className="a-form" onSubmit={submit}>
+        <label>
+          Category name
+          <input
+            autoFocus
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value);
+              setError("");
+            }}
+            placeholder="Projects, hobbies, or something else"
+            maxLength={40}
+            required
+            aria-invalid={!!error}
+            aria-describedby={error ? "category-error" : undefined}
+          />
+        </label>
+        {error && (
+          <p id="category-error" className="a-form-error" role="alert">
+            {error}
+          </p>
+        )}
+        <p className="a-form-footnote">
+          You can add channels after creating your category.
+        </p>
+        <button type="submit" className="a-button primary full">
+          Create category <AppIcon name="plus" size={18} />
+        </button>
+      </form>
+    </Dialog>
+  );
+}
 function CreateChannel({
   communityId,
-  initialGroup = "THE COMMON ROOM",
+  initialGroup,
 }: {
   communityId: string;
   initialGroup?: string;
 }) {
   const { state, setState, setModal, notify } = useApp();
   const navigate = useNavigate();
+  const community = state.communities.find((c) => c.id === communityId);
+  const categories = community ? getChannelCategories(community) : [];
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [group, setGroup] = useState(initialGroup);
+  const [group, setGroup] = useState(
+    initialGroup ??
+      (categories.includes("THE COMMON ROOM")
+        ? "THE COMMON ROOM"
+        : (categories[0] ?? "")),
+  );
   const [error, setError] = useState("");
-  const community = state.communities.find((c) => c.id === communityId);
   function submit(event: FormEvent) {
     event.preventDefault();
     const normalized = name
@@ -324,13 +405,7 @@ function CreateChannel({
             value={group}
             onChange={(event) => setGroup(event.target.value)}
           >
-            {[
-              ...new Set([
-                ...(community?.channels.map((c) => c.group) ?? []),
-                "THE COMMON ROOM",
-                "MAKING THINGS",
-              ]),
-            ].map((item) => (
+            {categories.map((item) => (
               <option key={item}>{item}</option>
             ))}
           </select>
