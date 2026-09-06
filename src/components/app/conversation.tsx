@@ -5,6 +5,16 @@ import { useApp } from "../../lib/app-state";
 import type { Message, Community, Person } from "../../lib/demo-data";
 import { personName } from "../../lib/demo-data";
 import {
+  conversationChannels,
+  isMentioned,
+  mentionTargets,
+  resolveChannel,
+  resolveMention,
+} from "../../lib/mentions";
+import { EmojiPanel } from "./emoji-panel";
+import { ChannelMention, Mention } from "./mention";
+import { MentionTextarea } from "./mention-textarea";
+import {
   AppIcon,
   Dialog,
   EmptyState,
@@ -12,20 +22,6 @@ import {
   PersonAvatar,
 } from "./primitives";
 
-const emojis = [
-  "🧡",
-  "🎉",
-  "👋",
-  "✨",
-  "😂",
-  "🌱",
-  "☕",
-  "🤝",
-  "👀",
-  "💡",
-  "🙌",
-  "👍",
-];
 export function ConversationLink({
   conversation,
   messageId,
@@ -413,40 +409,67 @@ export function Conversation({
     </div>
   );
 }
-function MessageText({ text }: { text: string }) {
-  const blocks = text.split(/(```[\s\S]*?```)/g);
+function MessageText({
+  text,
+  conversation,
+}: {
+  text: string;
+  conversation: string;
+}) {
+  const { state } = useApp();
+  const targets = mentionTargets(state, conversation);
+  const channels = conversationChannels(state, conversation);
+  const communityId = conversation.startsWith("dm:")
+    ? null
+    : conversation.split(":")[0];
+  function inline(content: string): ReactNode {
+    return content
+      .split(
+        /(https?:\/\/[^\s]+|`[^`]+`|\*\*[^*]+\*\*|(?<![\p{L}\p{N}_@])@[\p{L}\p{N}_-]+|(?<![\p{L}\p{N}_#])#[\p{L}\p{N}_-]+)/gu,
+      )
+      .map((part, index) => {
+        if (/^https?:\/\//.test(part))
+          return (
+            <a
+              key={index}
+              href={part}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {part}
+            </a>
+          );
+        if (part.startsWith("`"))
+          return <code key={index}>{part.slice(1, -1)}</code>;
+        if (part.startsWith("**"))
+          return <strong key={index}>{inline(part.slice(2, -2))}</strong>;
+        if (part.startsWith("@")) {
+          const target = resolveMention(part.slice(1), targets);
+          if (target) return <Mention key={index} target={target} />;
+        }
+        if (part.startsWith("#") && communityId) {
+          const channel = resolveChannel(part.slice(1), channels);
+          if (channel)
+            return (
+              <ChannelMention
+                key={index}
+                channel={channel}
+                communityId={communityId}
+              />
+            );
+        }
+        return part;
+      });
+  }
   return (
     <div className="a-message-text">
-      {blocks.map((block, index) =>
+      {text.split(/(```[\s\S]*?```)/g).map((block, index) =>
         block.startsWith("```") ? (
           <pre key={index}>
             <code>{block.slice(3, -3).replace(/^\n/, "")}</code>
           </pre>
         ) : (
-          <span key={index}>
-            {block
-              .split(/(https?:\/\/[^\s]+|@[\w-]+|\*\*[^*]+\*\*|`[^`]+`)/g)
-              .map((part, i) =>
-                /^https?:\/\//.test(part) ? (
-                  <a
-                    key={i}
-                    href={part}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                  >
-                    {part}
-                  </a>
-                ) : part.startsWith("@") ? (
-                  <mark key={i}>{part}</mark>
-                ) : part.startsWith("**") ? (
-                  <strong key={i}>{part.slice(2, -2)}</strong>
-                ) : part.startsWith("`") ? (
-                  <code key={i}>{part.slice(1, -1)}</code>
-                ) : (
-                  part
-                ),
-              )}
-          </span>
+          <span key={index}>{inline(block)}</span>
         ),
       )}
     </div>
@@ -492,7 +515,7 @@ export function MessageCard({
   return (
     <article
       id={`${compact ? "thread-message" : "message"}-${message.id}`}
-      className={`a-message ${compact ? "compact-message" : ""} ${highlighted ? "highlighted" : ""} ${message.text.includes("@you") ? "mentioned" : ""}`}
+      className={`a-message ${compact ? "compact-message" : ""} ${highlighted ? "highlighted" : ""} ${isMentioned(message.text, mentionTargets(state, message.conversation)) ? "mentioned" : ""}`}
     >
       <button
         className="a-avatar-button"
@@ -531,12 +554,13 @@ export function MessageCard({
               }
             }}
           >
-            <textarea
+            <MentionTextarea
+              conversation={message.conversation}
               aria-label="Edit message"
               autoFocus
               value={text}
               maxLength={4000}
-              onChange={(event) => setText(event.target.value)}
+              onValueChange={setText}
               required
               onKeyDown={(event) => {
                 if (event.key === "Escape") {
@@ -566,7 +590,10 @@ export function MessageCard({
             </div>
           </form>
         ) : (
-          <MessageText text={message.text} />
+          <MessageText
+            text={message.text}
+            conversation={message.conversation}
+          />
         )}
         {message.reactions.length > 0 && (
           <div className="a-reactions">
@@ -606,26 +633,7 @@ export function MessageCard({
       </div>
       {!editing && (
         <div className="a-message-toolbar">
-          <details className="a-emoji-menu">
-            <summary aria-label="Add a reaction" title="Add a reaction">
-              <AppIcon name="smile" size={17} />
-            </summary>
-            <div className="a-emoji-grid">
-              {emojis.map((emoji) => (
-                <button
-                  key={emoji}
-                  title={`React ${emoji}`}
-                  aria-label={`React ${emoji}`}
-                  onClick={(event) => {
-                    react(message.id, emoji);
-                    closeMenu(event);
-                  }}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </details>
+          <EmojiPanel reaction onSelect={(emoji) => react(message.id, emoji)} />
           {!compact && (
             <IconButton
               name="reply"
@@ -741,7 +749,7 @@ function Composer({
   placeholder: string;
   threadOf?: string;
 }) {
-  const { state, setState, sendMessage } = useApp();
+  const { state, setState, sendMessage, notify } = useApp();
   const draftKey = threadOf ? `thread:${threadOf}` : conversation;
   const draft = state.drafts[draftKey] ?? "";
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -767,6 +775,10 @@ function Composer({
     const node = textarea.current;
     const start = node?.selectionStart ?? draft.length;
     const end = node?.selectionEnd ?? draft.length;
+    if (draft.length - (end - start) + text.length > 4000) {
+      notify("This message has reached the 4,000-character limit.");
+      return;
+    }
     setDraft(draft.slice(0, start) + text + draft.slice(end));
     requestAnimationFrame(() => {
       node?.focus();
@@ -779,14 +791,15 @@ function Composer({
       onSubmit={submit}
     >
       <div className="a-composer">
-        <textarea
-          ref={textarea}
+        <MentionTextarea
+          conversation={conversation}
+          textareaRef={textarea}
           rows={1}
           aria-label={placeholder}
           placeholder={placeholder}
           maxLength={4000}
           value={draft}
-          onChange={(event) => setDraft(event.target.value)}
+          onValueChange={setDraft}
           onKeyDown={(event) => {
             if (
               event.key === "Enter" &&
@@ -831,28 +844,7 @@ function Composer({
                 </button>
               </div>
             </details>
-            <details className="a-emoji-menu composer-emojis">
-              <summary title="Add an emoji" aria-label="Add an emoji">
-                <AppIcon name="smile" size={20} />
-              </summary>
-              <div className="a-emoji-grid">
-                {emojis.map((emoji) => (
-                  <button
-                    type="button"
-                    key={emoji}
-                    title={emoji}
-                    onClick={(event) => {
-                      insert(emoji);
-                      event.currentTarget
-                        .closest("details")
-                        ?.removeAttribute("open");
-                    }}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </details>
+            <EmojiPanel onSelect={insert} />
             {!threadOf && (
               <span className="a-composer-hint">
                 A little thought goes a long way.
