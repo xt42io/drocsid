@@ -7,7 +7,7 @@ export type Person = {
   status: Presence;
   bio: string;
   activity: string;
-  role: "Owner" | "Moderator" | "Member";
+  role: "Owner" | "Admin" | "Moderator" | "Member";
 };
 export type Channel = {
   id: string;
@@ -29,7 +29,16 @@ export type Community = {
   memberIds?: string[];
   joined: boolean;
   channels: Channel[];
+  channelCategories?: string[];
 };
+export function getChannelCategories(community: Community): string[] {
+  return [
+    ...new Set([
+      ...(community.channelCategories ?? []),
+      ...community.channels.map((channel) => channel.group),
+    ]),
+  ];
+}
 export type Reaction = { emoji: string; count: number; mine?: boolean };
 export type Message = {
   id: string;
