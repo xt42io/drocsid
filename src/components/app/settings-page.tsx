@@ -111,6 +111,15 @@ export function SettingsPage({ section }: { section: string }) {
                     );
                     return;
                   }
+                  if (
+                    ["everyone", "admin", "you"].includes(handle) ||
+                    state.people.some((person) => person.handle === handle)
+                  ) {
+                    setError(
+                      "That username is reserved or already taken. Try another one.",
+                    );
+                    return;
+                  }
                   setState((previous) => ({
                     ...previous,
                     profile: {
