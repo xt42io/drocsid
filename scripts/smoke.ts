@@ -1,6 +1,6 @@
+import { createAuthFixture } from "./auth-fixture";
 // Explicit smoke check against configured services. Creates and removes only its own fixtures.
 import assert from "node:assert/strict";
-import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "../src/server/db";
 import * as s from "../src/server/db/schema";
@@ -38,15 +38,12 @@ async function data(path: string, body?: unknown) {
 }
 try {
   assert.equal((await request("/api/app", undefined, false)).status, 401);
-  const signup = await request("/api/auth/sign-up/email", {
-    email: `smoke-${communityId}@example.test`,
-    name: "Upload verification",
-    password: randomBytes(24).toString("hex"),
-  });
-  assert.equal(signup.status, 200);
-  const authData = await signup.json();
-  userId = authData.user.id;
-  cookie = signup.headers.get("set-cookie")!.split(";")[0];
+  const fixture = await createAuthFixture(
+    `smoke-${communityId}@example.test`,
+    "Upload verification",
+  );
+  userId = fixture.user.id;
+  cookie = fixture.cookie;
   assert.equal((await data("/api/app")).profile.name, "Upload verification");
   await data("/api/app", [
     {
