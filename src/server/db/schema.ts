@@ -144,6 +144,12 @@ export const conversations = pgTable(
   {
     id: text("id").primaryKey(),
     kind: text("kind", { enum: ["channel", "dm"] }).notNull(),
+    dmInitiatorId: text("dm_initiator_id").references(() => user.id, {
+      onDelete: "cascade",
+    }),
+    dmStatus: text("dm_status", { enum: ["pending", "accepted", "declined"] })
+      .notNull()
+      .default("accepted"),
     communityId: text("community_id").references(() => communities.id, {
       onDelete: "cascade",
     }),
