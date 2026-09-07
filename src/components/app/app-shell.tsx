@@ -4,6 +4,10 @@ import { useApp } from "../../lib/app-state";
 import { getChannelCategories } from "../../lib/channels";
 import { LogoMark } from "../ui";
 import { AppIcon, IconButton, PersonAvatar, PreviewNote } from "./primitives";
+import {
+  incomingMessageRequests,
+  normalDirectMessages,
+} from "../../lib/direct-messages";
 import { AppDialogs } from "./app-dialogs";
 
 export function AppShell() {
@@ -18,12 +22,8 @@ export function AppShell() {
   const standalone =
     pathname === "/app/welcome" || pathname.startsWith("/app/invite/");
   const unread = state.activities.filter((a) => !a.read).length;
-  const dmPeople = state.people.filter(
-    (person) =>
-      state.messages.some(
-        (message) => message.conversation === `dm:${person.id}`,
-      ) && !state.blocked.includes(person.id),
-  );
+  const dmPeople = normalDirectMessages(state);
+  const requestCount = incomingMessageRequests(state).length;
   useEffect(() => setDrawer(false), [pathname]);
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -302,6 +302,21 @@ export function AppShell() {
                         className="flex-none! inline-flex items-center justify-center bg-[#dde3d1] text-[#7c8b66] h-4.5 min-w-4.5 py-0 px-1 text-[10px] rounded-sm data-[ui~=orange]:bg-[#f4d5c4] data-[ui~=orange]:text-[#ad6340] in-data-[ui~=theme-dark]:bg-(--a-selected) in-data-[ui~=theme-dark]:text-(--a-text) [[data-ui~=theme-dark]_&[data-ui~=orange]]:bg-[#f45e3826] [[data-ui~=theme-dark]_&[data-ui~=orange]]:text-[#ff9a7e]"
                       >
                         {unread}
+                      </span>
+                    )}
+                  </Link>
+                  <Link
+                    to="/app/requests"
+                    data-ui={pathname === "/app/requests" ? "active" : ""}
+                  >
+                    <AppIcon name="mail" size={19} />
+                    <span>Message requests</span>
+                    {requestCount > 0 && (
+                      <span
+                        className="flex-none! rounded bg-(--a-orange) px-1.5 py-0.5 text-xs font-semibold text-[#462419]"
+                        aria-label={`${requestCount} message requests`}
+                      >
+                        {requestCount}
                       </span>
                     )}
                   </Link>
