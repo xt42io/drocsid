@@ -11,6 +11,7 @@ import {
 } from "../server/http";
 import { actionSchema } from "../lib/contracts";
 import { sendMessage } from "../server/send-message";
+import { getPostHogClient } from "../lib/posthog-server";
 export const Route = createFileRoute("/api/messages")({
   server: {
     handlers: {
@@ -29,6 +30,26 @@ export const Route = createFileRoute("/api/messages")({
             "Server-Timing",
             `auth;dur=${(authenticated - start).toFixed(1)}, write;dur=${(performance.now() - authenticated).toFixed(1)}`,
           );
+          const posthog = getPostHogClient();
+          if (posthog) {
+            const sessionId = request.headers.get("X-PostHog-Session-Id");
+            const conversationType = input.conversation.startsWith("dm:")
+              ? "dm"
+              : "channel";
+            posthog.capture({
+              distinctId: viewer.id,
+              event: "message_sent",
+              properties: {
+                $session_id: sessionId || undefined,
+                conversation_type: conversationType,
+                has_attachments: input.attachments.length > 0,
+                attachment_count: input.attachments.length,
+                is_thread_reply: !!input.threadOf,
+                text_length: input.text.length,
+              },
+            });
+            await posthog.flush();
+          }
           return response;
         }),
       GET: ({ request }) =>
