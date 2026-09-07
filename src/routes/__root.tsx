@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
+import { PostHogProvider } from "@posthog/react";
 import stylesheet from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -58,14 +59,27 @@ function Root() {
         <HeadContent />
       </head>
       <body>
-        <a
-          href="#main"
-          data-ui="skip-link"
-          className="fixed z-100 -top-25 left-5 py-3 px-5 bg-ink text-white rounded-lg focus:top-2.5"
+        <PostHogProvider
+          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ?? ""}
+          options={{
+            api_host: "/ingest",
+            ui_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.posthog.com",
+            defaults: "2025-05-24",
+            capture_exceptions: true,
+            debug: import.meta.env.DEV,
+            tracing_headers:
+              typeof window !== "undefined" ? [window.location.hostname] : [],
+          }}
         >
-          Skip to content
-        </a>
-        <Outlet />
+          <a
+            href="#main"
+            data-ui="skip-link"
+            className="fixed z-100 -top-25 left-5 py-3 px-5 bg-ink text-white rounded-lg focus:top-2.5"
+          >
+            Skip to content
+          </a>
+          <Outlet />
+        </PostHogProvider>
         <Scripts />
       </body>
     </html>
