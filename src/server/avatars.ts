@@ -1,3 +1,4 @@
+import { invalidateProfile } from "./invalidation";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "./db";
@@ -5,7 +6,11 @@ import { avatars, events, user } from "./db/schema";
 import { HttpError } from "./http";
 import { getStorage, verifyStoredUpload } from "./uploads";
 import type { ImageVariant } from "../lib/media-images";
-import { storedImage } from "./media-images";
+import {
+  storedImage,
+  mediaCacheHeaders,
+  mediaNotModified,
+} from "./media-images";
 
 export const avatarSchema = z.object({
   byteSize: z
@@ -16,12 +21,8 @@ export const avatarSchema = z.object({
   contentType: z.enum(["image/png", "image/jpeg", "image/webp", "image/gif"]),
 });
 
-async function invalidate(db: Database) {
-  const users = await db.select({ id: user.id }).from(user);
-  if (users.length)
-    await db
-      .insert(events)
-      .values(users.map(({ id }) => ({ id: crypto.randomUUID(), userId: id })));
+async function invalidate(db: Database, userId: string) {
+  await invalidateProfile(db, userId);
 }
 
 export async function prepareAvatar(
@@ -131,7 +132,7 @@ export async function completeAvatar(
       .update(user)
       .set({ image: `/api/avatars/${id}`, updatedAt: new Date() })
       .where(eq(user.id, userId));
-    await invalidate(tx as unknown as Database);
+    await invalidate(tx as unknown as Database, userId);
   });
   return { url: `/api/avatars/${id}` };
 }
@@ -149,7 +150,7 @@ export async function removeAvatar(db: Database, userId: string) {
       .update(user)
       .set({ image: null, updatedAt: new Date() })
       .where(eq(user.id, userId));
-    await invalidate(tx as unknown as Database);
+    await invalidate(tx as unknown as Database, userId);
   });
   return { ok: true };
 }
@@ -160,12 +161,16 @@ export async function avatarResponse(
   id: string,
   storage = getStorage(),
   variant?: ImageVariant,
+  request?: Request,
 ) {
   const [file] = await db
     .select()
     .from(avatars)
     .where(and(eq(avatars.id, id), eq(avatars.status, "active")));
   if (!file) throw new HttpError(404, "Photo not found.");
+  const cacheHeaders = mediaCacheHeaders(id, variant);
+  if (mediaNotModified(request, cacheHeaders))
+    return new Response(null, { status: 304, headers: cacheHeaders });
   const { response, contentType, byteSize } = await storedImage(
     storage,
     file,
@@ -176,7 +181,10 @@ export async function avatarResponse(
       "Content-Type": contentType,
       ...(byteSize === undefined ? {} : { "Content-Length": String(byteSize) }),
       "Content-Disposition": "inline",
-      "Cache-Control": "private, no-cache",
+      ...cacheHeaders,
+      ...(variant && contentType !== "image/webp"
+        ? { "Cache-Control": "private, no-store", ETag: "" }
+        : {}),
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; sandbox",
     },
