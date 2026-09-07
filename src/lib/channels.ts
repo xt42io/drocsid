@@ -1,4 +1,24 @@
-import type { AppState, Channel, Community } from "../types/app";
+import type { AppState, Channel, Community, Message } from "../types/app";
+
+export function showChannelWelcome(
+  community: Community,
+  channel: Channel,
+  messages: Message[],
+) {
+  const role = community.memberRoles?.you;
+  return (
+    community.joined &&
+    channel.name === "general" &&
+    (role === "Owner" || role === "Admin") &&
+    !channel.hasMessages &&
+    !messages.some(
+      (message) =>
+        message.conversation === `${community.id}:${channel.id}` &&
+        !message.sending &&
+        !message.sendError,
+    )
+  );
+}
 
 export function getChannelCategories(community: Community): string[] {
   return [
@@ -24,6 +44,7 @@ export function createDefaultChannels(): Channel[] {
     },
     {
       id: "general",
+      hasMessages: false,
       name: "general",
       group: "THE COMMON ROOM",
       description: "A place for a little bit of everything.",
