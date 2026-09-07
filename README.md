@@ -24,18 +24,47 @@ Optional development fixtures: supply `SEED_EMAIL` and `SEED_PASSWORD` and run `
 - Profiles, unique usernames, appearance settings, notification preferences, activity visibility, and incoming-DM preferences.
 - Public communities, public invitation links, memberships, categories, channels, member roles, and removal.
 - Private-channel access is enforced on the server. Owners/admins can access private channels and grant explicit membership through the `channel.access` command.
-- Channel messages and DMs, edits, soft deletion, threads, reactions, pins, personal saves, read state, mentions, and search.
+- Channel messages and DMs, edits, soft deletion, threads, reactions, pins, personal saves, read state, mentions, and search. Messages render immediately with a faded pending state and clear the composer for the next message. Confirmation restores their normal color; failed messages remain in the list with a retry button.
 - Cursor-based message history and links to search results.
-- SSE invalidations refresh clients after committed changes, with reconnects and a polling fallback.
+- WebSocket message delivery, typing indicators in channels/DMs/threads, connection presence, and automatic reconnect recovery.
 - Optional community selection during onboarding, with skip and create-your-own paths.
 - Byteship profile photos in onboarding and settings, shown throughout chat, mentions, friends, and member lists.
-- Private Byteship message attachments, file picker, drag/drop, clipboard images, progress, retry/cancel, image viewing, and downloads.
+- Private Byteship message attachments, file picker, drag/drop, clipboard images, progress, retry/cancel, image viewing, and downloads. Sent images keep their local preview until the stored image has loaded; other images show a loading placeholder, with retry on failure.
 
 The browser's former `drocsid-design-preview-v1` data is no longer loaded or synchronized. Unsent drafts live only in the current tab. Existing UI state edits are translated into validated resource commands; the server never accepts arbitrary client state, membership, roles, or authorship.
 
+## Realtime and production server
+
+Run `pnpm db:migrate` after pulling these changes. Restart your terminal dev server with `npm run dev` (or `pnpm dev`) to load the WebSocket gateway on the same port, **1515**, at `/api/ws`. No separate chat server or Redis setup is needed.
+
+Messages use the socket while connected and the authenticated HTTP endpoint during reconnects. A lost acknowledgement retries the same message ID, so it cannot create duplicates. Database triggers notify only after commit; each recipient gets a fresh permission-checked message projection, including edits, reactions, attachments and deletions. There is no interval polling for messages or full snapshot fetch after every send. Bootstrap, reconnects and changes to communities/profiles still fetch authorized state. Reconnect recovery covers the loaded history window.
+
+Typing is temporary: scoped to the selected channel or thread, throttled to one update per two seconds and expired after five seconds. It clears on send, blur, leaving a room or disconnect. Invisible users do not announce typing. Presence uses expiring connection leases, so closing one of several tabs does not mark someone offline. Heartbeats check socket health and sessions every 25 seconds; they do not poll messages. Permission changes force subscriptions to reauthorize.
+
+`LISTEN/NOTIFY` uses a dedicated Postgres connection. If `DATABASE_URL` goes through a transaction-mode pooler, set `DATABASE_LISTEN_URL` to the direct database URL (or a session-mode pooler). The listener reconnects after database interruptions and clients recover missed messages from Postgres. Notifications also carry ephemeral typing/presence between Node processes; no typing text is stored.
+
+For a production Node deployment:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm db:migrate
+pnpm build
+pnpm start
+```
+
+The runner serves built assets, TanStack HTTP routes and WebSocket upgrades together. Set `BETTER_AUTH_URL` to your public HTTPS origin; forward HTTP/1.1 WebSocket upgrades for `/api/ws` through your reverse proxy and use an idle timeout over 60 seconds. Use a persistent Node host; a static host or a request-only serverless deployment will not run this gateway. `PORT` optionally overrides the production port.
+
+To check the already-running server against the configured database:
+
+```sh
+node --env-file=.env --import tsx scripts/smoke-realtime.ts
+```
+
+This creates two disposable users and a community, verifies real socket delivery/typing and reconnect history, reports latency, then removes its fixtures. It never starts or stops your dev server.
+
 ## Authentication configuration
 
-Better Auth stores its users, sessions, accounts, and verification records in Postgres. Every app endpoint checks the session. Mutations also enforce same-origin requests and validate input.
+Better Auth stores its users, sessions, accounts, and verification records in Postgres. Every app endpoint checks the session. WebSocket upgrades check the same Better Auth cookie and exact origin, with session expiry, revocation and periodic validation. Mutations also enforce same-origin requests and validate input.
 
 - `BETTER_AUTH_URL`: public origin, locally `http://localhost:1515`.
 - `BETTER_AUTH_SECRET`: random secret, at least 32 characters.
@@ -69,7 +98,7 @@ Community roles are scoped to each community. Owners/admins manage channels, cat
 
 Individual mentions are resolved from current membership. `@everyone` and `@admin` require an owner/admin, and notifications only reach users who can read the channel. Blocks prevent direct messages and suppress mention notifications. Existing DMs remain available when the incoming-DM preference is switched off; that preference controls new conversations.
 
-This is an initial connected release. SSE uses Postgres-backed, payload-free invalidation events and re-fetches authorized state rather than a dedicated realtime broker. Presence uses a recent connection heartbeat; typing indicators and push/email message notifications are not implemented. Search returns up to 100 matching messages. The bootstrap loads 500 recent messages and can expand to 5,000 while browsing history; very large communities will need dedicated per-conversation caches. File quotas and signature checks are implemented; antivirus scanning, video processing, and uploaded community icons are not.
+This is an initial connected release. Push/email message notifications are not implemented. Search returns up to 100 matching messages. The bootstrap loads 500 recent messages and can expand to 5,000 while browsing history; very large communities will need dedicated per-conversation caches. File quotas and signature checks are implemented; antivirus scanning, video processing, and uploaded community icons are not.
 
 ## Verification
 
@@ -79,7 +108,7 @@ pnpm test
 pnpm build
 ```
 
-Tests use an isolated PGlite PostgreSQL engine and apply the committed migrations. They cover real Better Auth sessions, ownership/role checks, private-channel isolation, messages, reactions, saves, threads, mentions, blocks, pagination, CSRF, limits, attachment binding, avatar lifecycle, and optional onboarding. Byteship is mocked in the automated suite.
+Tests use an isolated PGlite PostgreSQL engine and apply the committed migrations. They cover real Better Auth sessions, ownership/role checks, private-channel isolation, messages, reactions, saves, threads, mentions, blocks, pagination, CSRF, limits, attachment binding, avatar lifecycle, optional onboarding, commit-only notifications, authorized realtime projections, WebSocket authentication, typing isolation/expiry, presence and revocation. Byteship is mocked in the automated suite.
 
 For an explicit integration check against the configured database and Byteship project, build first and run:
 
@@ -89,13 +118,18 @@ pnpm exec tsx --env-file=.env scripts/smoke.ts
 
 The smoke script calls the production route handlers without starting a server. It creates a disposable account/community/file, checks authorization and delivery, then removes its fixtures. It does not send emails. Run only against an environment where you want this check performed.
 
+To measure message latency against the configured database, run `pnpm exec tsx --env-file=.env scripts/benchmark-messages.ts` after a build. This uses a disposable account and community, prints three send timings and a snapshot timing, and removes its fixtures. The send endpoint exposes `auth` and `write` timings in the `Server-Timing` response header. Plain messages commit permissions, rate limits, persistence and commit notifications in one database statement; mentions, replies and attachments use the full transactional path.
+
 ## Source layout
 
 - `src/server/db/` and `drizzle/`: schema, connection, and migrations.
 - `src/server/auth.ts`: Better Auth and optional email/OAuth configuration.
 - `src/server/access.ts`, `actions.ts`, and `queries.ts`: permissions, mutations, and authorized reads.
 - `src/server/uploads.ts`: private Byteship upload and delivery lifecycle.
-- `src/routes/api.*`: authenticated HTTP and SSE handlers.
+- `src/routes/api.*`: authenticated HTTP handlers.
+- `src/server/realtime/`: WebSocket gateway, Postgres notification bus, authorized message projections and Vite integration.
+- `src/lib/realtime-client.ts`: browser connection, acknowledgement handling, subscriptions and reconnects.
+- `src/types/app.ts`: shared application types used by the UI and server.
 - `src/lib/contracts.ts`: validated command contracts.
 - `src/lib/app-state.tsx` and `state-actions.ts`: connected UI state and command adapter.
 - `src/components/app/`: workspace, conversations, uploads, settings, and dialogs.
