@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { actionSchema } from "./contracts";
-import type { Message, Person, Presence } from "../types/app";
+import type {
+  Message,
+  Person,
+  Presence,
+  DirectConversation,
+} from "../types/app";
 
 export const TYPING_TTL = 5000;
 export const TYPING_INTERVAL = 2000;
@@ -32,6 +37,7 @@ export type MessageUpdate = {
   person?: Person;
   conversation?: string;
   unread?: number;
+  dmConversation?: DirectConversation;
 };
 export type ServerFrame =
   | { type: "ready" }
