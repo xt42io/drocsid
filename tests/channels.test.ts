@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { applyChannel, getChannelCategories } from "../src/lib/channels";
-import type { AppState } from "../src/types/app";
+import {
+  applyChannel,
+  getChannelCategories,
+  showChannelWelcome,
+} from "../src/lib/channels";
+import type { AppState, Community, Channel, Message } from "../src/types/app";
 
 test("confirmed channels are immediately navigable without a refresh and retries preserve current state", () => {
   const existing = {
@@ -48,4 +52,59 @@ test("confirmed channels are immediately navigable without a refresh and retries
   assert.equal(edited.communities[0].channels[0].description, "Changed");
   assert.equal(edited.communities[0].channels[0].unread, 4);
   assert.equal(state.communities[0].channels.length, 1);
+});
+
+test("welcome is only for owners/admins in an unstarted general channel", () => {
+  const community = {
+    id: "room",
+    joined: true,
+    memberRoles: { you: "Owner" },
+  } as Community;
+  const channel = {
+    id: "general",
+    name: "general",
+    hasMessages: false,
+  } as Channel;
+  assert.equal(showChannelWelcome(community, channel, []), true);
+  for (const role of ["Member", "Moderator"] as const)
+    assert.equal(
+      showChannelWelcome(
+        { ...community, memberRoles: { you: role } },
+        channel,
+        [],
+      ),
+      false,
+    );
+  assert.equal(
+    showChannelWelcome(
+      { ...community, memberRoles: { you: "Admin" } },
+      channel,
+      [],
+    ),
+    true,
+  );
+  assert.equal(
+    showChannelWelcome(community, { ...channel, name: "projects" }, []),
+    false,
+  );
+  assert.equal(
+    showChannelWelcome({ ...community, joined: false }, channel, []),
+    false,
+  );
+  const message = { id: "first", conversation: "room:general" } as Message;
+  assert.equal(
+    showChannelWelcome(community, channel, [{ ...message, sending: true }]),
+    true,
+  );
+  assert.equal(
+    showChannelWelcome(community, channel, [
+      { ...message, sendError: "Failed" },
+    ]),
+    true,
+  );
+  assert.equal(showChannelWelcome(community, channel, [message]), false);
+  assert.equal(
+    showChannelWelcome(community, { ...channel, hasMessages: true }, []),
+    false,
+  );
 });
