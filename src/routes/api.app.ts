@@ -5,6 +5,7 @@ import { getDb, type Database } from "../server/db";
 import { events, user } from "../server/db/schema";
 import { actionSchema } from "../lib/contracts";
 import { mutate } from "../server/actions";
+import { putChannel } from "../server/channels";
 import { snapshot } from "../server/queries";
 import { ensureProfile, takeLimit } from "../server/access";
 import {
@@ -31,13 +32,24 @@ export const Route = createFileRoute("/api/app")({
       POST: ({ request }) =>
         endpoint(async () => {
           requireOrigin(request);
+          const start = performance.now();
           const viewer = await requireUser(request);
+          const authenticated = performance.now();
           const actions = z
             .array(actionSchema)
             .min(1)
             .max(50)
             .parse(await readJson(request));
           const db = getDb();
+          if (actions.length === 1 && actions[0].type === "channel.put") {
+            const result = await putChannel(db, viewer.id, actions[0]);
+            const response = json({ ok: true, ...result });
+            response.headers.set(
+              "Server-Timing",
+              `auth;dur=${(authenticated - start).toFixed(1)}, write;dur=${(performance.now() - authenticated).toFixed(1)}`,
+            );
+            return response;
+          }
           await ensureProfile(db, viewer);
           await takeLimit(db, viewer.id, "actions", 120);
           await db.transaction(async (tx) => {
