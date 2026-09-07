@@ -147,6 +147,7 @@ export async function snapshot(
     blocked,
     readStates,
     notices,
+    directRows,
   ] = await Promise.all([
     db
       .select({
@@ -189,6 +190,26 @@ export async function snapshot(
       )
       .orderBy(desc(s.notifications.createdAt))
       .limit(500),
+    db
+      .select({
+        conversation: s.conversations,
+        personId: s.participants.userId,
+        hasMessages: sql<boolean>`exists (select 1 from messages m where m.conversation_id = ${s.conversations.id} and m.deleted_at is null)`,
+      })
+      .from(s.conversations)
+      .innerJoin(
+        s.participants,
+        and(
+          eq(s.participants.conversationId, s.conversations.id),
+          sql`${s.participants.userId} <> ${userId}`,
+        ),
+      )
+      .where(
+        and(
+          eq(s.conversations.kind, "dm"),
+          sql`exists (select 1 from conversation_members own where own.conversation_id = ${s.conversations.id} and own.user_id = ${userId})`,
+        ),
+      ),
   ]);
   const own = profileRows.find((p) => p.profile.userId === userId)!;
   const person = (p: typeof own): Person => ({
@@ -305,6 +326,14 @@ export async function snapshot(
       };
     }),
     messages: await serializeMessages(db, userId, messageRows, allowed),
+    dmConversations: directRows.map(
+      ({ conversation: c, personId, hasMessages }) => ({
+        hasMessages,
+        personId,
+        status: c.dmStatus,
+        incoming: c.dmInitiatorId !== userId,
+      }),
+    ),
     friends: friendships
       .filter((f) => f.accepted)
       .map((f) => (f.senderId === userId ? f.recipientId : f.senderId)),
@@ -316,7 +345,13 @@ export async function snapshot(
       .map((f) => f.recipientId),
     blocked: blocked.map((b) => b.targetId),
     activities: notices
-      .filter((n) => allowedIds.includes(n.message.conversationId))
+      .filter((n) =>
+        allowed.some(
+          (c) =>
+            c.id === n.message.conversationId &&
+            (c.kind !== "dm" || c.dmStatus === "accepted"),
+        ),
+      )
       .map(({ notice: n, message: m }) => ({
         id: n.id,
         person: n.actorId === userId ? "you" : n.actorId,
