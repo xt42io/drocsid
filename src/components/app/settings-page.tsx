@@ -611,14 +611,9 @@ export function SettingsPage({ section }: { section: string }) {
                 data-ui="a-settings-divider"
                 className="h-px bg-(--a-border) my-6.75"
               />
-              <Link
-                to="/forgot-password"
-                data-ui="a-text-link"
-                className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
-              >
-                Need to reset your password?{" "}
-                <AppIcon name="external" size={16} />
-              </Link>
+              <p className="text-xs text-(--a-muted)">
+                Sign in with a one-time code sent to your email.
+              </p>
             </>
           )}
           {section === "data" && (
