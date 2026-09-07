@@ -20,7 +20,10 @@ export const fileSize = (bytes: number) =>
     ? `${Math.max(1, Math.round(bytes / 1024))} KB`
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 export function useAttachments(conversation: string) {
-  const { notify, attachmentPreviews } = useApp();
+  const { notify, attachmentPreviews } = useApp((app) => ({
+    notify: app.notify,
+    attachmentPreviews: app.attachmentPreviews,
+  }));
   const [uploads, setUploads] = useState<Upload[]>([]);
   const current = useRef<Upload[]>([]);
   const controllers = useRef(new Map<string, AbortController>());
@@ -215,7 +218,9 @@ export function UploadTray({
   );
 }
 export function MessageAttachments({ files }: { files: Attachment[] }) {
-  const { attachmentPreviews } = useApp();
+  const { attachmentPreviews } = useApp((app) => ({
+    attachmentPreviews: app.attachmentPreviews,
+  }));
   const [viewing, setViewing] = useState<Attachment | null>(null);
   return (
     <>
