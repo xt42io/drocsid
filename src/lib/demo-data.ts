@@ -1,5 +1,6 @@
 export type Presence = "online" | "away" | "offline";
 export type Person = {
+  avatarUrl?: string;
   id: string;
   name: string;
   handle: string;
@@ -27,6 +28,7 @@ export type Community = {
   category: string;
   members: number;
   memberIds?: string[];
+  memberRoles?: Record<string, Person["role"]>;
   joined: boolean;
   channels: Channel[];
   channelCategories?: string[];
@@ -51,6 +53,15 @@ export type Message = {
   saved?: boolean;
   edited?: boolean;
   threadOf?: string;
+  createdAt?: string;
+  attachments?: Attachment[];
+};
+export type Attachment = {
+  id: string;
+  name: string;
+  contentType: string;
+  byteSize: number;
+  url: string;
 };
 export type Activity = {
   id: string;
