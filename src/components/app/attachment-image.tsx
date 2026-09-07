@@ -1,3 +1,4 @@
+import { mediaImageUrl } from "../../lib/media-images";
 import { useEffect, useState } from "react";
 import type { Attachment } from "../../types/app";
 import type { AttachmentPreviews } from "../../lib/attachment-previews";
@@ -23,6 +24,11 @@ export function AttachmentImage({
     return attachmentPreviews.retain(file.id);
   }, [attachmentPreviews, file.id, preview, loaded]);
 
+  const source = viewer ? file.url : mediaImageUrl(file.url, "chat-420");
+  const retinaSource = mediaImageUrl(file.url, "chat-840");
+  const retryUrl = (url: string) =>
+    attempt ? `${url}${url.includes("?") ? "&" : "?"}retry=${attempt}` : url;
+
   const content = (
     <>
       {preview && !loaded && (
@@ -46,10 +52,11 @@ export function AttachmentImage({
       <img
         key={attempt}
         data-ui={`a-attachment-remote ${loaded ? "is-loaded" : ""}`}
-        src={
-          attempt
-            ? `${file.url}${file.url.includes("?") ? "&" : "?"}retry=${attempt}`
-            : file.url
+        src={retryUrl(source)}
+        srcSet={
+          !viewer && source !== file.url
+            ? `${retryUrl(source)} 1x, ${retryUrl(retinaSource)} 2x`
+            : undefined
         }
         alt={loaded ? file.name : ""}
         aria-hidden={!loaded}
