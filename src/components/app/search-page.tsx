@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import { conversationLabel } from "../../lib/demo-data";
+import { conversationLabel } from "../../lib/conversations";
 import { AppIcon, EmptyState, PageHeading, PersonAvatar } from "./primitives";
 import { ConversationLink } from "./conversation";
 import { api } from "../../lib/api-client";
-import type { Message } from "../../lib/demo-data";
+import type { Message } from "../../types/app";
 
 export function SearchPage({ initialQuery }: { initialQuery: string }) {
   const { state, findPerson, setModal } = useApp();
