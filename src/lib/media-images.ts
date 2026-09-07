@@ -5,7 +5,9 @@ export type ImageVariant =
 // and external profile images must keep their original URL.
 export function mediaImageUrl(src: string, variant: ImageVariant) {
   const [path] = src.split(/[?#]/);
-  const kind = variant.startsWith("avatar-") ? "avatars" : "attachments";
+  const kind = variant.startsWith("avatar-")
+    ? "(?:avatars|community-icons)"
+    : "attachments";
   if (!new RegExp(`^/api/${kind}/[^/]+$`).test(path)) return src;
   const url = new URL(src, "http://drocsid.local");
   url.searchParams.set("variant", variant);
