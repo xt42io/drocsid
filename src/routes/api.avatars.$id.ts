@@ -1,3 +1,4 @@
+import { imageVariant } from "../server/media-images";
 import { createFileRoute } from "@tanstack/react-router";
 import { getDb } from "../server/db";
 import { avatarResponse } from "../server/avatars";
@@ -9,7 +10,12 @@ export const Route = createFileRoute("/api/avatars/$id")({
       GET: ({ request, params }) =>
         endpoint(async () => {
           await requireUser(request);
-          return avatarResponse(getDb(), params.id);
+          return avatarResponse(
+            getDb(),
+            params.id,
+            undefined,
+            imageVariant(request, "avatar"),
+          );
         }),
     },
   },
