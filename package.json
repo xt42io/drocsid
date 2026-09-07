@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --port 1515",
+    "dev": "NODE_ENV=development NODE_OPTIONS='--import ./instrument.server.mjs' vite --port 1515",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
@@ -11,7 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx --env-file=.env scripts/seed.ts",
     "uploads:cleanup": "tsx --env-file=.env scripts/cleanup.ts",
-    "start": "node --env-file-if-exists=.env --import tsx scripts/server.ts"
+    "start": "node --env-file-if-exists=.env --import ./instrument.server.mjs --import tsx scripts/server.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.3",
@@ -23,6 +23,7 @@
     "@hugeicons/core-free-icons": "^4.3.0",
     "@hugeicons/react": "^1.1.10",
     "@sendbyte/node": "^0.2.1",
+    "@sentry/tanstackstart-react": "10.73.0",
     "@tanstack/react-router": "^1.170.32",
     "@tanstack/react-start": "^1.168.49",
     "@tanstack/react-virtual": "^3.14.10",
