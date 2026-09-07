@@ -13,6 +13,7 @@ function AppHome() {
         Finding your little corner…
       </div>
     );
+  if (!state.onboardingComplete) return <Navigate to="/app/welcome" />;
   return community ? (
     <Navigate
       to="/app/community/$communityId/$channelId"
