@@ -78,7 +78,7 @@ async function community() {
   });
   return id;
 }
-test("real Better Auth sign-up, password hashing, session, wrong-password rejection and logout", async () => {
+test("real Better Auth code signup, session, disabled password login and logout", async () => {
   process.env.BETTER_AUTH_SECRET = "test-only-" + "a".repeat(40);
   process.env.BETTER_AUTH_URL = "http://localhost:1515";
   let code = "";
@@ -96,16 +96,15 @@ test("real Better Auth sign-up, password hashing, session, wrong-password reject
       body: body ? JSON.stringify(body) : undefined,
     });
   const signup = await auth.handler(
-    request("sign-up/email", {
+    request("email-otp/send-verification-otp", {
       email: "auth@example.test",
-      name: "Auth test",
-      password: "Password123!",
+      type: "sign-in",
     }),
   );
   assert.equal(signup.status, 200);
   assert.equal(signup.headers.get("set-cookie"), null);
   const verified = await auth.handler(
-    request("email-otp/verify-email", {
+    request("sign-in/email-otp", {
       email: "auth@example.test",
       otp: code,
     }),
@@ -115,15 +114,15 @@ test("real Better Auth sign-up, password hashing, session, wrong-password reject
   assert.ok(cookie.includes("session_token"));
   const me = await auth.handler(request("get-session", undefined, cookie));
   assert.equal((await me.json()).user.email, "auth@example.test");
-  const [account] = await db.select().from(schema.account);
-  assert.notEqual(account.password, "Password123!");
+  const accounts = await db.select().from(schema.account);
+  assert.equal(accounts.length, 0);
   const invalid = await auth.handler(
     request("sign-in/email", {
       email: "auth@example.test",
       password: "wrong-password",
     }),
   );
-  assert.equal(invalid.status, 401);
+  assert.equal(invalid.status, 404);
   await auth.handler(request("sign-out", {}, cookie));
   assert.equal(
     await (
@@ -1744,4 +1743,57 @@ test("Byteship community icons bind on successful creation, enforce manager acce
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("welcome usernames check global availability and profile saves enforce uniqueness atomically", async () => {
+  const { usernameAvailability } = await import("../src/server/usernames");
+  const a = crypto.randomUUID(),
+    b = crypto.randomUUID();
+  for (const id of [a, b]) {
+    await db
+      .insert(schema.user)
+      .values({
+        id,
+        name: "",
+        email: `${id}@example.test`,
+        emailVerified: true,
+      });
+    await ensureProfile(db, { id, name: "" });
+  }
+  const profile = {
+    type: "profile",
+    name: "New friend",
+    handle: "welcome_friend",
+    color: "peach",
+    bio: "",
+    activity: "",
+    status: "online",
+  };
+  assert.equal(
+    (await usernameAvailability(db, a, "welcome_friend")).available,
+    true,
+  );
+  await action(a, profile);
+  assert.equal(
+    (await usernameAvailability(db, a, "welcome_friend")).available,
+    true,
+  );
+  assert.equal(
+    (await usernameAvailability(db, b, "welcome_friend")).available,
+    false,
+  );
+  await assert.rejects(() => action(b, profile));
+  const [other] = await db
+    .select()
+    .from(schema.user)
+    .where(eq(schema.user.id, b));
+  assert.equal(other.name, "");
+  for (const handle of ["admin", "everyone", "you", "A BAD NAME", "ab"]) {
+    await assert.rejects(() => usernameAvailability(db, a, handle));
+    assert.equal(actionSchema.safeParse({ ...profile, handle }).success, false);
+  }
+  const saved = await snapshot(db, { id: a, name: "New friend" });
+  assert.equal(saved.profile.handle, "welcome_friend");
+  assert.equal(saved.profile.name, "New friend");
+  assert.equal(saved.onboardingComplete, false);
 });
