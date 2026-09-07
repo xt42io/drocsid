@@ -7,13 +7,16 @@ import {
   ArrowUpRight01Icon,
   ViewIcon,
   ViewOffSlashIcon,
-  Mail01Icon,
-  Tick02Icon,
   AlertCircleIcon,
   GithubIcon,
 } from "@hugeicons/core-free-icons";
 import { Avatar, Icon, Logo } from "./ui";
 import { authClient } from "../lib/auth-client";
+import {
+  EmailCodeForm,
+  requestEmailCode,
+  type EmailCodePurpose,
+} from "./email-code-form";
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password";
 type Errors = Partial<Record<"name" | "email" | "password", string>>;
@@ -45,7 +48,7 @@ const copy = {
     eyebrow: "HAPPENS TO THE BEST OF US",
     title: "Lost your keys?",
     description: "Enter your email and we’ll help you find your way back.",
-    submit: "Send reset link",
+    submit: "Send reset code",
     aside: (
       <>
         Your people <br />
@@ -61,11 +64,13 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [errors, setErrors] = useState<Errors>({});
-  const [complete, setComplete] = useState(false);
+  const [codeStep, setCodeStep] = useState<{
+    email: string;
+    purpose: EmailCodePurpose;
+  } | null>(null);
   const [socialNotice, setSocialNotice] = useState(false);
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState("");
-  const successRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -101,37 +106,81 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
     setBusy(true);
     setServerError("");
     try {
+      const address = email.trim().toLowerCase();
       const result = recovery
-        ? await authClient.requestPasswordReset({
-            email: email.trim(),
-            redirectTo: `${window.location.origin}/reset-password`,
-          })
+        ? await requestEmailCode(address, "forget-password")
         : signup
           ? await authClient.signUp.email({
-              email: email.trim(),
+              email: address,
               password,
               name: name.trim(),
             })
-          : await authClient.signIn.email({ email: email.trim(), password });
+          : await authClient.signIn.email({ email: address, password });
       if (result.error) {
+        if (
+          !signup &&
+          !recovery &&
+          result.error.code === "EMAIL_NOT_VERIFIED"
+        ) {
+          const sent = await requestEmailCode(address, "email-verification");
+          if (sent.error)
+            setServerError(sent.error.message || "Could not send your code.");
+          else {
+            setPassword("");
+            setCodeStep({ email: address, purpose: "email-verification" });
+          }
+          return;
+        }
         setServerError(
-          result.error.message || "Could not sign in. Please try again.",
+          result.error.message || "Could not continue. Please try again.",
         );
         return;
       }
       setPassword("");
-      if (recovery) {
-        setComplete(true);
-        requestAnimationFrame(() => successRef.current?.focus());
-      } else {
-        const next = new URLSearchParams(window.location.search).get("next");
-        window.location.assign(
-          next?.startsWith("/app/") && !next.includes("\\")
-            ? next
-            : signup
-              ? "/app/welcome"
-              : "/app",
-        );
+      if (recovery || signup) {
+        setCodeStep({
+          email: address,
+          purpose: recovery ? "forget-password" : "email-verification",
+        });
+      } else enterApp();
+    } catch {
+      setServerError("Could not reach the server. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function enterApp() {
+    const next = new URLSearchParams(window.location.search).get("next");
+    window.location.assign(
+      next?.startsWith("/app/") && !next.includes("\\")
+        ? next
+        : signup
+          ? "/app/welcome"
+          : "/app",
+    );
+  }
+
+  async function signInWithCode() {
+    if (busy) return;
+    const address = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
+      setErrors((previous) => ({
+        ...previous,
+        email: "Enter your email address to receive a sign-in code.",
+      }));
+      emailRef.current?.focus();
+      return;
+    }
+    setBusy(true);
+    setServerError("");
+    try {
+      const result = await requestEmailCode(address, "sign-in");
+      if (result.error)
+        setServerError(result.error.message || "Could not send your code.");
+      else {
+        setPassword("");
+        setCodeStep({ email: address, purpose: "sign-in" });
       }
     } catch {
       setServerError("Could not reach the server. Please try again.");
@@ -259,59 +308,17 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
           data-ui="auth-form-wrap"
           className="w-full max-w-93 m-auto py-18.75 min-[1600px]:max-w-102.5 max-[800px]:py-13.75 max-[580px]:py-[38px_46px] max-[580px]:max-w-95"
         >
-          {complete ? (
-            <div
-              data-ui="auth-success"
-              className="focus:[outline:none] **:data-[ui~=eyebrow]:text-[9px] **:data-[ui~=eyebrow]:text-[#8a947b] [&_h2]:text-[34px] [&_h2]:leading-[1.2] [&_h2]:tracking-[-1.5px] [&_h2]:mt-2.5 [&_h2]:wrap-anywhere [&>p]:text-[14px] [&>p]:leading-[1.7] [&>p]:text-[#858e77] max-[580px]:[&_h2]:text-[33px]"
-              ref={successRef}
-              tabIndex={-1}
-              role="status"
-            >
-              <div
-                data-ui="success-icon"
-                className="flex items-center justify-center bg-[#e6ecd9] rounded-[17px] mb-6.75 text-[#7c8f5d] size-15"
-              >
-                <Icon icon={recovery ? Mail01Icon : Tick02Icon} size={30} />
-              </div>
-              <span
-                data-ui="eyebrow"
-                className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
-              >
-                YOU’VE REACHED THE FRONT DOOR
-              </span>
-              <h2>
-                {recovery
-                  ? "You’re in the right place."
-                  : signup
-                    ? `Looking good, ${name.trim().split(" ")[0]}.`
-                    : "Welcome back."}
-              </h2>
-              <p>
-                {recovery
-                  ? "If an account exists for that email, you’ll receive a password reset link."
-                  : "This is where your next good conversation will begin."}
-              </p>
-              <button
-                data-ui="button button-orange auth-submit"
-                className="inline-flex items-center gap-3 border border-solid border-transparent py-3.5 pr-5.5 pl-5.5 font-semibold rounded-[7px] [transition:background_0.2s,transform_0.2s,box-shadow_0.2s] whitespace-nowrap bg-orange text-[#3e2118] shadow-[0_2px_0_#d842201c] w-full justify-between mt-0.75 min-h-12 text-[14px] px-4.25 hover:transform-[translateY(-2px)] hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:transform-[translateY(0)] max-[580px]:text-[13px] max-[580px]:min-h-12.25 motion-reduce:hover:transform-none"
-                onClick={() => {
-                  setComplete(false);
-                  setSocialNotice(false);
-                }}
-              >
-                Back to{" "}
-                {recovery ? "password recovery" : signup ? "sign up" : "log in"}{" "}
-                <Icon icon={ArrowLeft01Icon} size={17} />
-              </button>
-              <Link
-                to={recovery ? "/sign-in" : signup ? "/app/welcome" : "/app"}
-                data-ui="success-home"
-                className="flex items-center justify-center gap-2 text-[12px] text-[#868e79] mt-5.75"
-              >
-                {recovery ? "Back to log in" : "Step inside"}
-                <Icon icon={ArrowUpRight01Icon} size={15} />
-              </Link>
-            </div>
+          {codeStep ? (
+            <EmailCodeForm
+              email={codeStep.email}
+              purpose={codeStep.purpose}
+              onBack={() => {
+                setCodeStep(null);
+                setServerError("");
+                setErrors({});
+              }}
+              onVerified={enterApp}
+            />
           ) : (
             <>
               <div
@@ -573,12 +580,16 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                   {busy ? "One moment…" : content.submit}
                   <Icon icon={ArrowRight01Icon} size={19} />
                 </button>
-                <p
-                  data-ui="form-preview-note"
-                  className="text-[#758061] text-[10px] leading-[1.6] text-center -mt-1.25 mb-0 -mx-3.75 max-[580px]:text-[9px] max-[580px]:mx-0"
-                >
-                  A little preview of what’s to come. No account needed yet.
-                </p>
+                {!signup && !recovery && (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={signInWithCode}
+                    className="py-2 text-center text-sm font-semibold text-[#76523e] underline-offset-4 hover:underline disabled:opacity-50"
+                  >
+                    Email me a sign-in code
+                  </button>
+                )}
               </form>
               {recovery ? (
                 <Link
