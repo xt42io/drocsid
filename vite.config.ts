@@ -1,10 +1,13 @@
+import "dotenv/config";
 import { defineConfig } from "vite";
+import { realtimePlugin } from "./src/server/realtime/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [
+    realtimePlugin(),
     tailwindcss(),
     tanstackStart({ vite: { installDevServerMiddleware: true } }),
     react(),
