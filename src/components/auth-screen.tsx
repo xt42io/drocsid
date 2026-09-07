@@ -13,6 +13,7 @@ import {
   GithubIcon,
 } from "@hugeicons/core-free-icons";
 import { Avatar, Icon, Logo } from "./ui";
+import { authClient } from "../lib/auth-client";
 
 type AuthMode = "sign-in" | "sign-up" | "forgot-password";
 type Errors = Partial<Record<"name" | "email" | "password", string>>;
@@ -62,6 +63,8 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
   const [errors, setErrors] = useState<Errors>({});
   const [complete, setComplete] = useState(false);
   const [socialNotice, setSocialNotice] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [serverError, setServerError] = useState("");
   const successRef = useRef<HTMLDivElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
@@ -76,8 +79,9 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
     Number(/[0-9]/.test(password)) +
     Number(/[^a-zA-Z0-9]/.test(password));
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (busy) return;
     const nextErrors: Errors = {};
     if (signup && name.trim().length < 2)
       nextErrors.name = "Give us a name with at least 2 characters.";
@@ -94,9 +98,46 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
       else passwordRef.current?.focus();
       return;
     }
-    setComplete(true);
-    setPassword("");
-    requestAnimationFrame(() => successRef.current?.focus());
+    setBusy(true);
+    setServerError("");
+    try {
+      const result = recovery
+        ? await authClient.requestPasswordReset({
+            email: email.trim(),
+            redirectTo: `${window.location.origin}/reset-password`,
+          })
+        : signup
+          ? await authClient.signUp.email({
+              email: email.trim(),
+              password,
+              name: name.trim(),
+            })
+          : await authClient.signIn.email({ email: email.trim(), password });
+      if (result.error) {
+        setServerError(
+          result.error.message || "Could not sign in. Please try again.",
+        );
+        return;
+      }
+      setPassword("");
+      if (recovery) {
+        setComplete(true);
+        requestAnimationFrame(() => successRef.current?.focus());
+      } else {
+        const next = new URLSearchParams(window.location.search).get("next");
+        window.location.assign(
+          next?.startsWith("/app/") && !next.includes("\\")
+            ? next
+            : signup
+              ? "/app/welcome"
+              : "/app",
+        );
+      }
+    } catch {
+      setServerError("Could not reach the server. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function clearError(field: keyof Errors) {
@@ -180,18 +221,9 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
               </h2>
               <p>
                 {recovery
-                  ? "In the live version, a reset link would be sent to your email."
+                  ? "If an account exists for that email, you’ll receive a password reset link."
                   : "This is where your next good conversation will begin."}
               </p>
-              <div className="preview-notice">
-                <strong>This is a design preview.</strong>
-                <span>
-                  {recovery
-                    ? "No email was sent."
-                    : "No account was created or signed in."}{" "}
-                  Authentication will be connected in a later phase.
-                </span>
-              </div>
               <button
                 className="button button-orange auth-submit"
                 onClick={() => {
@@ -207,7 +239,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                 to={recovery ? "/sign-in" : signup ? "/app/welcome" : "/app"}
                 className="success-home"
               >
-                {recovery ? "Back to log in" : "Step inside the preview"}
+                {recovery ? "Back to log in" : "Step inside"}
                 <Icon icon={ArrowUpRight01Icon} size={15} />
               </Link>
             </div>
@@ -223,14 +255,28 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                   <button
                     type="button"
                     className="social-button"
-                    onClick={() => setSocialNotice(true)}
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        const result = await authClient.signIn.social({
+                          provider: "github",
+                          callbackURL: "/app",
+                        });
+                        if (result.error) setSocialNotice(true);
+                      } catch {
+                        setSocialNotice(true);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
                   >
                     <Icon icon={GithubIcon} size={21} /> Continue with GitHub
                   </button>
                   {socialNotice && (
                     <p className="social-notice" role="status">
                       <Icon icon={AlertCircleIcon} size={17} /> GitHub sign-in
-                      will be available when authentication is connected.
+                      is not configured on this server yet.
                     </p>
                   )}
                   <div className="auth-divider">
@@ -239,6 +285,11 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                 </>
               )}
               <form onSubmit={submit} noValidate className="auth-form">
+                {serverError && (
+                  <p className="field-error" role="alert">
+                    {serverError}
+                  </p>
+                )}
                 {signup && (
                   <div className="form-field">
                     <label htmlFor={`${id}-name`}>
@@ -390,8 +441,9 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                 <button
                   className="button button-orange auth-submit"
                   type="submit"
+                  disabled={busy}
                 >
-                  {content.submit}
+                  {busy ? "One moment…" : content.submit}
                   <Icon icon={ArrowRight01Icon} size={19} />
                 </button>
                 <p className="form-preview-note">
