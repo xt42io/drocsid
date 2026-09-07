@@ -30,33 +30,15 @@ export function Logo({ light = false }: { light?: boolean }) {
 
 export function LogoMark() {
   return (
-    <svg
+    <img
+      src="/logo.png"
       data-ui="logo-mark"
-      className="shrink-0 max-[580px]:size-7.25"
+      className="block shrink-0 object-contain max-[580px]:size-7.25"
       width="33"
       height="33"
-      viewBox="0 0 40 40"
-      fill="none"
+      alt=""
       aria-hidden="true"
-    >
-      <path d="M6 7h28v23H17L6 36V7Z" fill="currentColor" />
-      <rect
-        x="13"
-        y="14"
-        width="4"
-        height="8"
-        rx="2"
-        fill="var(--logo-eyes, #f8f7f4)"
-      />
-      <rect
-        x="24"
-        y="14"
-        width="4"
-        height="8"
-        rx="2"
-        fill="var(--logo-eyes, #f8f7f4)"
-      />
-    </svg>
+    />
   );
 }
 
