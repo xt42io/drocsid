@@ -1,3 +1,4 @@
+import { avatarImageSources } from "../lib/media-images";
 import { useState, type ComponentProps } from "react";
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -64,11 +65,13 @@ export function Avatar({
   color = "peach",
   small = false,
   src,
+  large = false,
 }: {
   name: string;
   color?: string;
   small?: boolean;
   src?: string;
+  large?: boolean;
 }) {
   const [failedSrc, setFailedSrc] = useState<string>();
   return (
@@ -78,7 +81,12 @@ export function Avatar({
       aria-hidden="true"
     >
       {src && src !== failedSrc ? (
-        <img src={src} alt="" onError={() => setFailedSrc(src)} />
+        <img
+          {...avatarImageSources(src, large)}
+          decoding="async"
+          alt=""
+          onError={() => setFailedSrc(src)}
+        />
       ) : (
         name.slice(0, 1)
       )}
