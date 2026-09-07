@@ -18,6 +18,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as ApiAppRouteImport } from './routes/api.app'
 import { Route as ApiAvatarsRouteImport } from './routes/api.avatars'
 import { Route as ApiMessagesRouteImport } from './routes/api.messages'
+import { Route as ApiReactionsRouteImport } from './routes/api.reactions'
 import { Route as ApiSessionRouteImport } from './routes/api.session'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as AppIndexRouteImport } from './routes/app.index'
@@ -80,6 +81,11 @@ const ApiAvatarsRoute = ApiAvatarsRouteImport.update({
 const ApiMessagesRoute = ApiMessagesRouteImport.update({
   id: '/api/messages',
   path: '/api/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReactionsRoute = ApiReactionsRouteImport.update({
+  id: '/api/reactions',
+  path: '/api/reactions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSessionRoute = ApiSessionRouteImport.update({
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/api/app': typeof ApiAppRoute
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/messages': typeof ApiMessagesRoute
+  '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/app/discover': typeof AppDiscoverRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByTo {
   '/api/app': typeof ApiAppRoute
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/messages': typeof ApiMessagesRoute
+  '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/app/discover': typeof AppDiscoverRoute
@@ -243,6 +251,7 @@ export interface FileRoutesById {
   '/api/app': typeof ApiAppRoute
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/messages': typeof ApiMessagesRoute
+  '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
   '/app/discover': typeof AppDiscoverRoute
@@ -274,6 +283,7 @@ export interface FileRouteTypes {
     | '/api/app'
     | '/api/avatars'
     | '/api/messages'
+    | '/api/reactions'
     | '/api/session'
     | '/api/uploads'
     | '/app/discover'
@@ -302,6 +312,7 @@ export interface FileRouteTypes {
     | '/api/app'
     | '/api/avatars'
     | '/api/messages'
+    | '/api/reactions'
     | '/api/session'
     | '/api/uploads'
     | '/app/discover'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/api/app'
     | '/api/avatars'
     | '/api/messages'
+    | '/api/reactions'
     | '/api/session'
     | '/api/uploads'
     | '/app/discover'
@@ -361,6 +373,7 @@ export interface RootRouteChildren {
   ApiAppRoute: typeof ApiAppRoute
   ApiAvatarsRoute: typeof ApiAvatarsRouteWithChildren
   ApiMessagesRoute: typeof ApiMessagesRoute
+  ApiReactionsRoute: typeof ApiReactionsRoute
   ApiSessionRoute: typeof ApiSessionRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
@@ -430,6 +443,13 @@ declare module '@tanstack/react-router' {
       path: '/api/messages'
       fullPath: '/api/messages'
       preLoaderRoute: typeof ApiMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reactions': {
+      id: '/api/reactions'
+      path: '/api/reactions'
+      fullPath: '/api/reactions'
+      preLoaderRoute: typeof ApiReactionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/session': {
@@ -617,6 +637,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAppRoute: ApiAppRoute,
   ApiAvatarsRoute: ApiAvatarsRouteWithChildren,
   ApiMessagesRoute: ApiMessagesRoute,
+  ApiReactionsRoute: ApiReactionsRoute,
   ApiSessionRoute: ApiSessionRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
