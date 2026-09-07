@@ -1,10 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getDb } from "../server/db";
 import { messagePage, searchMessages } from "../server/queries";
-import { endpoint, HttpError, json, requireUser } from "../server/http";
+import {
+  endpoint,
+  HttpError,
+  json,
+  requireUser,
+  requireOrigin,
+  readJson,
+} from "../server/http";
+import { actionSchema } from "../lib/contracts";
+import { sendMessage } from "../server/send-message";
 export const Route = createFileRoute("/api/messages")({
   server: {
     handlers: {
+      POST: ({ request }) =>
+        endpoint(async () => {
+          requireOrigin(request);
+          const input = actionSchema.parse(await readJson(request));
+          if (input.type !== "message.send")
+            throw new HttpError(400, "Expected a message.");
+          const start = performance.now();
+          const viewer = await requireUser(request);
+          const authenticated = performance.now();
+          const result = await sendMessage(getDb(), viewer.id, input);
+          const response = json(result);
+          response.headers.set(
+            "Server-Timing",
+            `auth;dur=${(authenticated - start).toFixed(1)}, write;dur=${(performance.now() - authenticated).toFixed(1)}`,
+          );
+          return response;
+        }),
       GET: ({ request }) =>
         endpoint(async () => {
           const viewer = await requireUser(request);
