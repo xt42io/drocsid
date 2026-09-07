@@ -119,7 +119,7 @@ export function SettingsPage({ section }: { section: string }) {
             Sign out
           </button>
           <span>
-            drocsid · made in the open
+            Drocsid · made in the open
             <br />
             Early access
           </span>
