@@ -5,6 +5,8 @@ import type { Action } from "../lib/contracts";
 import {
   accessibleConversations,
   isBlocked,
+  requireDmSend,
+  conversationIdFor,
   requireConversation,
   requireManager,
   roleFor,
@@ -13,6 +15,30 @@ import { HttpError } from "./http";
 
 export async function mutate(db: Database, userId: string, action: Action) {
   switch (action.type) {
+    case "dm.request": {
+      const c = await requireConversation(db, userId, `dm:${action.personId}`);
+      if (
+        c.kind !== "dm" ||
+        c.dmInitiatorId !== action.personId ||
+        c.dmStatus !== "pending"
+      )
+        throw new HttpError(403, "No incoming message request to respond to.");
+      const updated = await db
+        .update(s.conversations)
+        .set({
+          dmStatus: action.operation === "accept" ? "accepted" : "declined",
+        })
+        .where(
+          and(
+            eq(s.conversations.id, c.id),
+            eq(s.conversations.dmStatus, "pending"),
+          ),
+        )
+        .returning();
+      if (!updated.length)
+        throw new HttpError(409, "This request has already been handled.");
+      break;
+    }
     case "profile": {
       const { type, name, ...profile } = action;
       await db
@@ -235,6 +261,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
         action.conversation,
         true,
       );
+      requireDmSend(c, userId);
       const [duplicate] = await db
         .select()
         .from(s.messages)
@@ -330,6 +357,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
       if (!c || (c.kind === "channel" && !c.channelId))
         throw new HttpError(403, "You cannot access this message.");
       if (c.kind === "dm") {
+        requireDmSend(c, userId);
         const others = await db
           .select()
           .from(s.participants)
@@ -479,6 +507,12 @@ export async function mutate(db: Database, userId: string, action: Action) {
             .returning();
           if (!updated.length)
             throw new HttpError(400, "No incoming request to accept.");
+          await db
+            .update(s.conversations)
+            .set({ dmStatus: "accepted" })
+            .where(
+              eq(s.conversations.id, conversationIdFor(userId, `dm:${target}`)),
+            );
         } else {
           const [existing] = await db.select().from(s.friendships).where(pair);
           if (!existing)
@@ -506,6 +540,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
       break;
     case "conversation.read": {
       const c = await requireConversation(db, userId, action.conversation);
+      if (c.kind === "dm" && c.dmStatus !== "accepted") break;
       const readAt = new Date(
         Math.min(new Date(action.through).getTime(), Date.now()),
       );
@@ -539,6 +574,7 @@ async function createMentions(
       (m) => m[1].toLowerCase(),
     ),
   );
+  if (c.kind === "dm" && c.dmStatus !== "accepted") return;
   if (!handles.size && !parentId) return;
   // Group mentions remain restricted to community managers.
   if ((handles.has("everyone") || handles.has("admin")) && c.communityId)
