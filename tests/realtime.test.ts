@@ -26,6 +26,8 @@ test("WebSockets authenticate, acknowledge, scope typing, expire it and revoke a
     async close() {},
   };
   const messages = new Map();
+  let projections = 0;
+  let revoked = false;
   const data: typeof realtimeData = {
     async authenticate(headers) {
       const userId = headers.get("cookie");
@@ -43,9 +45,29 @@ test("WebSockets authenticate, acknowledge, scope typing, expire it and revoke a
       return [];
     },
     async authorize(userId, room) {
-      if (room.conversation === "private" && userId !== "a")
+      if (
+        (revoked && userId === "b") ||
+        (room.conversation === "private" && userId !== "a")
+      )
         throw Object.assign(new Error("No access"), { status: 403 });
       return room.conversation;
+    },
+    async messages(userIds, conversation, id) {
+      projections++;
+      const values = await Promise.all(
+        userIds.map(async (userId) => ({
+          userId,
+          frame: await data.message(userId, conversation, id),
+        })),
+      );
+      return values.filter(
+        (
+          value,
+        ): value is {
+          userId: string;
+          frame: NonNullable<typeof value.frame>;
+        } => !!value.frame,
+      );
     },
     async message(userId, conversation, id) {
       return conversation === "private" && userId !== "a"
@@ -241,12 +263,26 @@ test("WebSockets authenticate, acknowledge, scope typing, expire it and revoke a
   emit({ type: "session", id: "c" });
   const [code] = await once(c.ws, "close");
   assert.equal(code, 4401);
-  emit({ type: "access" });
-  const [accessCode] = await once(b.ws, "close");
-  assert.equal(accessCode, 1012);
-  const reconnected = await client("b");
+  assert.equal(
+    projections,
+    2,
+    "Each committed message uses one batch projection for all users",
+  );
+  revoked = true;
+  const hiddenFrames = hidden.frames.length;
+  emit({ type: "access", userIds: ["b"], communityId: "community" });
+  await until(() => b.frames.some((frame) => frame.type === "access"));
+  assert.equal(b.ws.readyState, WebSocket.OPEN);
+  assert.equal(hidden.ws.readyState, WebSocket.OPEN);
+  assert.ok(
+    !hidden.frames.slice(hiddenFrames).some((frame) => frame.type === "access"),
+  );
+  b.send({ type: "watch", rooms: [{ conversation: "general" }] });
+  await until(
+    () => b.frames.filter((frame) => frame.type === "error").length >= 2,
+  );
   available(false);
-  const [databaseCode] = await once(reconnected.ws, "close");
+  const [databaseCode] = await once(b.ws, "close");
   assert.equal(databaseCode, 1012);
 });
 async function until(check: () => unknown) {
