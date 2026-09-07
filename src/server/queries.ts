@@ -16,7 +16,6 @@ import * as s from "./db/schema";
 import {
   accessibleConversations,
   ensureProfile,
-  isBlocked,
   requireConversation,
 } from "./access";
 import type { Community, AppState, Message, Person } from "../types/app";
@@ -111,23 +110,7 @@ export async function serializeMessages(
   });
 }
 export async function visibleConversations(db: Database, userId: string) {
-  const allowed = await accessibleConversations(db, userId);
-  const result = [];
-  for (const c of allowed) {
-    if (c.kind === "dm") {
-      const others = await db
-        .select()
-        .from(s.participants)
-        .where(eq(s.participants.conversationId, c.id));
-      let blocked = false;
-      for (const p of others)
-        if (p.userId !== userId && (await isBlocked(db, userId, p.userId)))
-          blocked = true;
-      if (blocked) continue;
-    }
-    result.push(c);
-  }
-  return result;
+  return accessibleConversations(db, userId);
 }
 export async function snapshot(
   db: Database,
@@ -179,7 +162,10 @@ export async function snapshot(
           eq(s.friendships.recipientId, userId),
         ),
       ),
-    db.select().from(s.blocks).where(eq(s.blocks.userId, userId)),
+    db
+      .select()
+      .from(s.blocks)
+      .where(or(eq(s.blocks.userId, userId), eq(s.blocks.targetId, userId))),
     db.select().from(s.readStates).where(eq(s.readStates.userId, userId)),
     db
       .select({ notice: s.notifications, message: s.messages })
@@ -332,6 +318,9 @@ export async function snapshot(
         personId,
         status: c.dmStatus,
         incoming: c.dmInitiatorId !== userId,
+        messagingBlocked: blocked.some(
+          (b) => b.userId === personId || b.targetId === personId,
+        ),
       }),
     ),
     friends: friendships
@@ -343,7 +332,7 @@ export async function snapshot(
     outgoing: friendships
       .filter((f) => !f.accepted && f.senderId === userId)
       .map((f) => f.recipientId),
-    blocked: blocked.map((b) => b.targetId),
+    blocked: blocked.filter((b) => b.userId === userId).map((b) => b.targetId),
     activities: notices
       .filter((n) =>
         allowed.some(
