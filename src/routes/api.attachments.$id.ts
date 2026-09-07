@@ -1,3 +1,4 @@
+import { imageVariant } from "../server/media-images";
 import { createFileRoute } from "@tanstack/react-router";
 import { getDb } from "../server/db";
 import { attachmentResponse } from "../server/uploads";
@@ -11,6 +12,8 @@ export const Route = createFileRoute("/api/attachments/$id")({
             getDb(),
             (await requireUser(request)).id,
             params.id,
+            undefined,
+            imageVariant(request, "chat"),
           ),
         ),
     },
