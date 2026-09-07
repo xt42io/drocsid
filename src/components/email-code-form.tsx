@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { authClient } from "../lib/auth-client";
 import { OtpInput } from "./otp-input";
+import { usePostHog } from "@posthog/react";
 
 export async function requestEmailCode(email: string) {
   return authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
@@ -23,6 +24,7 @@ export function EmailCodeForm({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [remaining, setRemaining] = useState(60);
+  const posthog = usePostHog();
   useEffect(() => {
     input.current?.focus();
   }, []);
@@ -75,6 +77,7 @@ export function EmailCodeForm({
               return;
             }
             setOtp("");
+            posthog.capture("email_verified");
             onVerified();
           } catch {
             setError("Could not reach the server. Please try again.");
