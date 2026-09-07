@@ -4,7 +4,12 @@ import type { Presence } from "../../types/app";
 export type BusEvent =
   | { type: "message"; id: string; conversationId: string }
   | { type: "invalidate"; userId: string }
-  | { type: "access" }
+  | {
+      type: "access";
+      userIds?: string[];
+      conversationId?: string;
+      communityId?: string;
+    }
   | { type: "session"; id: string }
   | { type: "read"; userId: string; conversation: string; through: string }
   | { type: "identity"; userId: string }
