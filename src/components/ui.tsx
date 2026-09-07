@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 import { Link } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -58,17 +58,24 @@ export function Avatar({
   name,
   color = "peach",
   small = false,
+  src,
 }: {
   name: string;
   color?: string;
   small?: boolean;
+  src?: string;
 }) {
+  const [failedSrc, setFailedSrc] = useState<string>();
   return (
     <span
       className={`avatar avatar-${color} ${small ? "avatar-small" : ""}`}
       aria-hidden="true"
     >
-      {name.slice(0, 1)}
+      {src && src !== failedSrc ? (
+        <img src={src} alt="" onError={() => setFailedSrc(src)} />
+      ) : (
+        name.slice(0, 1)
+      )}
     </span>
   );
 }
