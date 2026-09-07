@@ -12,6 +12,8 @@ export class HttpError extends Error {
 export async function requireUser(request: Request) {
   const session = await getAuth().api.getSession({ headers: request.headers });
   if (!session) throw new HttpError(401, "Please sign in to continue.");
+  if (!session.user.emailVerified)
+    throw new HttpError(401, "Please verify your email to continue.");
   return session.user;
 }
 export function requireOrigin(request: Request) {
