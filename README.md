@@ -31,6 +31,7 @@ Use Tailwind v4 utilities directly in components, including responsive and state
 - Channel messages and DMs, edits, soft deletion, threads, reactions, pins, personal saves, read state, mentions, and search. Messages render immediately with a faded pending state and clear the composer for the next message. Confirmation restores their normal color; failed messages remain in the list with a retry button.
 - Cursor-based message history and links to search results.
 - WebSocket message delivery, typing indicators in channels/DMs/threads, connection presence, and automatic reconnect recovery.
+- Message requests for non-friend DMs, with preview, accept, decline, and block actions. Pending requests stay out of the regular DM list and suppress read and typing activity until accepted.
 - Optional community selection during onboarding, with skip and create-your-own paths.
 - Byteship profile photos in onboarding and settings, shown throughout chat, mentions, friends, and member lists.
 - Private Byteship message attachments, file picker, drag/drop, clipboard images, progress, retry/cancel, image viewing, and downloads. Sent images keep their local preview until the stored image has loaded; other images show a loading placeholder, with retry on failure.
@@ -94,6 +95,8 @@ Defaults:
 
 Profile photos accept PNG, JPEG, WebP, or GIF up to 5 MB. Uploads use private Byteship paths; authenticated photo routes serve only the current photo. Replacing/removing a photo invalidates profile snapshots across the app and queues the old file for cleanup.
 
+Avatars request 40, 80, or 160 px WebP crops through Byteship's media transformation API. Chat previews fit within 420×320 or 840×640 px without enlarging small originals; `srcSet` selects the appropriate density. The app authorizes each request before transforming a signed private URL. Originals remain available for the image viewer and downloads. Animation is preserved, local upload previews and loading placeholders remain visible until delivery completes, and failed transformations fall back to the original. Only these fixed variants are accepted; API keys and signed delivery tokens stay server-side.
+
 Run `pnpm uploads:cleanup` periodically on the server. It removes abandoned uploads older than an hour, files belonging to deleted messages, replaced/removed profile photos, and expired event/rate-limit records. Failed storage deletions remain queued for retry. This command is supplied but no OS scheduler is installed automatically.
 
 ## Permissions and current limits
@@ -101,6 +104,8 @@ Run `pnpm uploads:cleanup` periodically on the server. It removes abandoned uplo
 Community roles are scoped to each community. Owners/admins manage channels, categories, pins, and membership. Moderators can delete other members' messages. The owner cannot leave; ownership transfer is not implemented yet. Public communities can be rejoined after removal; persistent bans and private-community invitations are future work.
 
 Individual mentions are resolved from current membership. `@everyone` and `@admin` require an owner/admin, and notifications only reach users who can read the channel. Blocks prevent direct messages and suppress mention notifications. Existing DMs remain available when the incoming-DM preference is switched off; that preference controls new conversations.
+
+Non-friends who share a community can send a message request if the recipient allows them. Only the recipient can accept or decline it, and accepting does not create a friendship. Declining prevents further messages and hides the request; becoming friends is an explicit way to allow that conversation again. Migration `0005` moves existing unanswered non-friend DMs into requests, while keeping reciprocal conversations and friend DMs accepted.
 
 This is an initial connected release. Push/email message notifications are not implemented. Search returns up to 100 matching messages. The bootstrap loads 500 recent messages and can expand to 5,000 while browsing history; very large communities will need dedicated per-conversation caches. File quotas and signature checks are implemented; antivirus scanning, video processing, and uploaded community icons are not.
 
