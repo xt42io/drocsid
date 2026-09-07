@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
+import { usePostHog } from "@posthog/react";
 import {
   getChannelCategories,
   createDefaultChannels,
@@ -514,6 +515,7 @@ function CreateChannel({
 function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
   const { state, setState, setModal, notify } = useApp();
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [query, setQuery] = useState("");
   const directory = useDirectory("people", query);
   const results = (
@@ -612,6 +614,7 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
                     ...previous,
                     outgoing: [...previous.outgoing, person.id],
                   }));
+                  posthog.capture("friend_request_sent");
                   notify("Friend request sent.");
                 }}
               >
