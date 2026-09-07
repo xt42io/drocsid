@@ -1,16 +1,18 @@
+import { AvatarUpload } from "./avatar-upload";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import type { Preferences } from "../../lib/demo-data";
 import { AppIcon, PageHeading, PersonAvatar, Toggle } from "./primitives";
 import type { IconName } from "./primitives";
+import { authClient } from "../../lib/auth-client";
 
 const sections: { id: string; label: string; icon: IconName }[] = [
   { id: "profile", label: "Your profile", icon: "people" },
   { id: "appearance", label: "Look & feel", icon: "brush" },
   { id: "notifications", label: "Notifications", icon: "bell" },
   { id: "privacy", label: "Privacy & boundaries", icon: "shield" },
-  { id: "data", label: "Your preview", icon: "code" },
+  { id: "data", label: "Your data", icon: "code" },
 ];
 export function SettingsPage({ section }: { section: string }) {
   const { state, setState, setModal, notify, reset } = useApp();
@@ -26,7 +28,13 @@ export function SettingsPage({ section }: { section: string }) {
     setBio(state.profile.bio);
     setActivity(state.profile.activity);
     setColor(state.profile.color);
-  }, [state.profile]);
+  }, [
+    state.profile.name,
+    state.profile.handle,
+    state.profile.bio,
+    state.profile.activity,
+    state.profile.color,
+  ]);
   const updatePreference = <K extends keyof Preferences>(
     key: K,
     value: Preferences[K],
@@ -54,10 +62,10 @@ export function SettingsPage({ section }: { section: string }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "drocsid-preview.json";
+    link.download = "drocsid-loaded-data.json";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    notify("Your preview is ready to keep.");
+    notify("Your export is ready.");
   }
   return (
     <div className="a-page a-settings-page">
@@ -80,14 +88,27 @@ export function SettingsPage({ section }: { section: string }) {
             </Link>
           ))}
           <div className="a-settings-nav-divider" />
-          <Link to="/sign-in">
+          <button
+            onClick={async () => {
+              try {
+                const result = await authClient.signOut();
+                if (result.error) {
+                  notify(result.error.message || "Could not sign out.");
+                  return;
+                }
+                window.location.assign("/sign-in");
+              } catch {
+                notify("Could not sign out. Please try again.");
+              }
+            }}
+          >
             <AppIcon name="logout" size={18} />
-            Back to sign in
-          </Link>
+            Sign out
+          </button>
           <span>
             drocsid · made in the open
             <br />
-            Frontend preview v0.1
+            Early access
           </span>
         </nav>
         <div className="a-settings-content">
@@ -99,7 +120,7 @@ export function SettingsPage({ section }: { section: string }) {
               </div>
               <form
                 className="a-profile-form"
-                onSubmit={(event) => {
+                onSubmit={async (event) => {
                   event.preventDefault();
                   if (name.trim().length < 2) {
                     setError("Your name needs at least 2 characters.");
@@ -120,7 +141,7 @@ export function SettingsPage({ section }: { section: string }) {
                     );
                     return;
                   }
-                  setState((previous) => ({
+                  const saved = await setState((previous) => ({
                     ...previous,
                     profile: {
                       ...previous.profile,
@@ -131,11 +152,13 @@ export function SettingsPage({ section }: { section: string }) {
                       color,
                     },
                   }));
+                  if (!saved) return;
                   setError("");
                   notify("Looking like you. Profile saved.");
                 }}
               >
                 <div className="a-profile-form-fields a-form">
+                  <AvatarUpload person={preview} />
                   <label>
                     Display name
                     <input
@@ -340,8 +363,8 @@ export function SettingsPage({ section }: { section: string }) {
                 <div>
                   <strong>Your notification preferences</strong>
                   <p>
-                    These controls save your choices for the preview. Browser
-                    and email notifications will come with the connected app.
+                    These preferences control your in-app notifications. Browser
+                    push and email notifications are not enabled yet.
                   </p>
                 </div>
               </div>
@@ -391,7 +414,7 @@ export function SettingsPage({ section }: { section: string }) {
               </div>
               <Toggle
                 label="Direct messages from community members"
-                description="Allow people in your communities to start a conversation with you. Saved as a preview preference."
+                description="Allow people in your communities to start a conversation with you."
                 checked={state.preferences.directMessages}
                 onChange={(value) => updatePreference("directMessages", value)}
               />
@@ -404,8 +427,8 @@ export function SettingsPage({ section }: { section: string }) {
               <div className="a-settings-divider" />
               <h3 className="a-settings-label">Blocked people</h3>
               <p className="a-setting-help">
-                People you block can’t be messaged from this preview until you
-                unblock them.
+                People you block can’t exchange direct messages with you until
+                you unblock them.
               </p>
               {state.blocked.length === 0 ? (
                 <div className="a-settings-callout">
@@ -451,23 +474,22 @@ export function SettingsPage({ section }: { section: string }) {
           {section === "data" && (
             <>
               <div className="a-section-title">
-                <h2>Your preview, in your hands.</h2>
+                <h2>Your data, in your hands.</h2>
                 <p>A little clarity about what lives where.</p>
               </div>
               <div className="a-data-card">
                 <AppIcon name="code" size={27} />
-                <h3>Just here, on this device.</h3>
+                <h3>Connected to your community.</h3>
                 <p>
-                  This is a frontend design preview. Conversations, communities,
-                  and people are sample data. Changes are saved in your browser
-                  so you can keep exploring.
+                  Your account, conversations, and preferences are stored on
+                  this server. Message attachments are stored privately with
+                  Byteship.
                 </p>
                 <p>
-                  No messages are delivered. No real accounts are created. No
-                  credentials are stored.
+                  Unsent drafts stay in this tab and are cleared when you leave.
                 </p>
                 <span>
-                  {state.messages.length} sample messages ·{" "}
+                  {state.messages.length} loaded messages ·{" "}
                   {state.communities.filter((c) => c.joined).length} joined
                   communities
                 </span>
@@ -476,19 +498,20 @@ export function SettingsPage({ section }: { section: string }) {
               <div className="a-setting-action">
                 <div>
                   <h3>Keep a copy</h3>
-                  <p>Download your local preview data as a JSON file.</p>
+                  <p>
+                    Download the data currently loaded in this tab as a JSON
+                    file.
+                  </p>
                 </div>
                 <button className="a-button secondary" onClick={exportData}>
-                  Export preview <AppIcon name="external" size={16} />
+                  Export loaded data <AppIcon name="external" size={16} />
                 </button>
               </div>
               <div className="a-settings-divider" />
               <div className="a-setting-action">
                 <div>
                   <h3>A fresh start</h3>
-                  <p>
-                    Restore the original people, conversations, and settings.
-                  </p>
+                  <p>Clear your unsent drafts in this tab.</p>
                 </div>
                 <button
                   className="a-button danger-outline"
@@ -496,14 +519,13 @@ export function SettingsPage({ section }: { section: string }) {
                     setModal({
                       type: "confirm",
                       title: "Start fresh?",
-                      description:
-                        "Your local messages, new communities, and preferences will be replaced with the original sample data. This can’t be undone unless you export a copy first.",
-                      label: "Reset preview",
+                      description: "Unsent drafts in this tab will be cleared.",
+                      label: "Clear drafts",
                       action: reset,
                     })
                   }
                 >
-                  Reset preview <AppIcon name="reset" size={16} />
+                  Clear drafts <AppIcon name="reset" size={16} />
                 </button>
               </div>
             </>
