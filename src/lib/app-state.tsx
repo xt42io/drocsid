@@ -1,14 +1,27 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import { initialState } from "./demo-data";
-import type { Community, DemoState, Message, Person } from "./demo-data";
+import type {
+  Attachment,
+  Community,
+  DemoState,
+  Message,
+  Person,
+} from "./demo-data";
+import { defaults, type Action } from "./contracts";
+import { api, ApiError } from "./api-client";
+import { stateActions } from "./state-actions";
 
-const STORAGE_KEY = "drocsid-design-preview-v1";
 export type ModalState =
   | { type: "create-community" | "new-message" | "add-friend" | "help" }
   | { type: "create-channel"; communityId: string; group?: string }
-  | { type: "create-category"; communityId: string }
-  | { type: "invite"; communityId: string }
+  | { type: "create-category" | "invite"; communityId: string }
   | { type: "profile"; personId: string }
   | {
       type: "confirm";
@@ -18,203 +31,331 @@ export type ModalState =
       action: () => void;
     }
   | null;
+const empty: DemoState = {
+  version: 1,
+  profile: {
+    id: "you",
+    name: "",
+    handle: "",
+    color: "purple",
+    status: "offline",
+    bio: "",
+    activity: "",
+    role: "Member",
+  },
+  people: [],
+  communities: [],
+  messages: [],
+  friends: [],
+  pending: [],
+  outgoing: [],
+  blocked: [],
+  activities: [],
+  preferences: defaults,
+  muted: [],
+  drafts: {},
+  onboardingComplete: false,
+};
 type AppContextValue = {
   state: DemoState;
-  setState: Dispatch<SetStateAction<DemoState>>;
+  setState: (next: SetStateAction<DemoState>) => Promise<boolean>;
   ready: boolean;
+  refresh: () => Promise<void>;
   modal: ModalState;
   setModal: Dispatch<SetStateAction<ModalState>>;
   toast: string;
   notify: (message: string) => void;
   findPerson: (id: string) => Person;
-  sendMessage: (conversation: string, text: string, threadOf?: string) => void;
+  sendMessage: (
+    conversation: string,
+    text: string,
+    threadOf?: string,
+    attachments?: Attachment[],
+  ) => Promise<boolean>;
   react: (messageId: string, emoji: string) => void;
-  updateMessage: (messageId: string, patch: Partial<Message>) => void;
-  deleteMessage: (messageId: string) => void;
-  joinCommunity: (id: string) => Community | undefined;
+  updateMessage: (
+    messageId: string,
+    patch: Partial<Message>,
+  ) => Promise<boolean>;
+  deleteMessage: (messageId: string) => Promise<boolean>;
+  joinCommunity: (id: string) => Promise<Community | undefined>;
+  command: (action: Action) => Promise<boolean>;
+  loadMessages: (
+    conversation: string,
+    before?: string,
+    target?: string,
+  ) => Promise<boolean>;
   reset: () => void;
 };
 const AppContext = createContext<AppContextValue | null>(null);
-
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<DemoState>(initialState);
+  const [state, renderState] = useState<DemoState>(empty);
+  const current = useRef(state);
   const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
   const [modal, setModal] = useState<ModalState>(null);
   const [toast, setToast] = useState("");
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const storageWarning = useRef(false);
-  function notify(message: string) {
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const pending = useRef(0);
+  const active = useRef(true);
+  const refreshing = useRef<Promise<void> | null>(null);
+  const historyLimit = useRef(500);
+  const version = useRef(0);
+  const failedMessages = useRef(
+    new Map<string, { fingerprint: string; id: string }>(),
+  );
+  const notify = useCallback((message: string) => {
     setToast(message);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 4200);
-  }
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as DemoState;
-        if (
-          parsed.version === 1 &&
-          typeof parsed.profile?.name === "string" &&
-          Array.isArray(parsed.people) &&
-          Array.isArray(parsed.messages) &&
-          Array.isArray(parsed.communities) &&
-          parsed.communities.every(
-            (c) => typeof c.id === "string" && Array.isArray(c.channels),
-          ) &&
-          Array.isArray(parsed.friends) &&
-          Array.isArray(parsed.activities) &&
-          parsed.preferences &&
-          parsed.drafts
-        ) {
-          const defaults = initialState();
-          setState({
-            ...defaults,
-            ...parsed,
-            preferences: { ...defaults.preferences, ...parsed.preferences },
-          });
-        }
-      }
-    } catch {
-      /* A damaged or unavailable local preview starts fresh. */
-    }
-    setReady(true);
-    return () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-    };
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setToast(""), 5000);
   }, []);
-  useEffect(() => {
-    if (!ready) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      if (!storageWarning.current) {
-        storageWarning.current = true;
-        notify(
-          "Your changes work here, but browser storage is full or unavailable.",
-        );
+  const apply = useCallback((next: DemoState) => {
+    current.current = next;
+    renderState(next);
+  }, []);
+  const refresh = useCallback(
+    async function refreshState(): Promise<void> {
+      if (!active.current || pending.current) return;
+      if (refreshing.current) {
+        await refreshing.current;
+        return refreshState();
       }
-    }
-  }, [state, ready]);
-  const findPerson = (id: string) =>
-    id === "you"
-      ? {
-          ...state.profile,
-          activity: state.preferences.activity ? state.profile.activity : "",
+      const started = version.current;
+      const task = (async () => {
+        try {
+          const next = await api<DemoState>(
+            `/api/app?limit=${historyLimit.current}`,
+          );
+          if (!active.current || pending.current || started !== version.current)
+            return;
+          apply({ ...next, drafts: current.current.drafts });
+          setReady(true);
+          setError("");
+        } catch (e) {
+          if (!active.current) return;
+          if (e instanceof ApiError && e.status === 401) {
+            window.location.assign(
+              `/sign-in?next=${encodeURIComponent(window.location.pathname)}`,
+            );
+            return;
+          }
+          setError(e instanceof Error ? e.message : "Could not connect.");
+        } finally {
+          refreshing.current = null;
         }
+      })();
+      refreshing.current = task;
+      await task;
+    },
+    [apply],
+  );
+  useEffect(() => {
+    active.current = true;
+    void refresh();
+    const source = new EventSource("/api/events");
+    source.onmessage = () => {
+      void refresh();
+    };
+    const poll = setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 15000);
+    const focus = () => {
+      void refresh();
+    };
+    window.addEventListener("focus", focus);
+    return () => {
+      active.current = false;
+      source.close();
+      clearInterval(poll);
+      clearTimeout(timer.current);
+      window.removeEventListener("focus", focus);
+    };
+  }, [refresh]);
+  const execute = useCallback(
+    (actions: Action[]) => {
+      if (!actions.length) return Promise.resolve(true);
+      pending.current++;
+      version.current++;
+      const job = queue.current.then(async () => {
+        try {
+          await api("/api/app", actions);
+          return true;
+        } catch (e) {
+          notify(e instanceof Error ? e.message : "Could not save changes.");
+          return false;
+        } finally {
+          pending.current--;
+          if (!pending.current) await refresh();
+        }
+      });
+      queue.current = job;
+      return job;
+    },
+    [notify, refresh],
+  );
+  const setState = useCallback(
+    (updater: SetStateAction<DemoState>) => {
+      const previous = current.current;
+      const next = typeof updater === "function" ? updater(previous) : updater;
+      const actions = stateActions(previous, next);
+      apply(next);
+      return execute(actions);
+    },
+    [apply, execute],
+  );
+  const command = useCallback((action: Action) => execute([action]), [execute]);
+  const loadMessages = useCallback(
+    async (conversation: string, before?: string, target?: string) => {
+      try {
+        if (conversation.startsWith("dm:") && !before && !target)
+          await api("/api/app", [{ type: "conversation.open", conversation }]);
+        if (before)
+          historyLimit.current = Math.min(
+            5000,
+            Math.max(
+              historyLimit.current + 50,
+              current.current.messages.length + 50,
+            ),
+          );
+        const params = new URLSearchParams({
+          conversation,
+          ...(before ? { before } : {}),
+          ...(target ? { target } : {}),
+        });
+        const page = await api<{ messages: Message[]; hasMore: boolean }>(
+          `/api/messages?${params}`,
+        );
+        const merged = [
+          ...new Map(
+            [...current.current.messages, ...page.messages].map((m) => [
+              m.id,
+              m,
+            ]),
+          ).values(),
+        ].sort(
+          (a, b) =>
+            (a.createdAt ?? "").localeCompare(b.createdAt ?? "") ||
+            a.id.localeCompare(b.id),
+        );
+        apply({ ...current.current, messages: merged });
+        return page.hasMore;
+      } catch (e) {
+        notify(e instanceof Error ? e.message : "Could not load messages.");
+        return false;
+      }
+    },
+    [apply, notify],
+  );
+  async function sendMessage(
+    conversation: string,
+    text: string,
+    threadOf?: string,
+    attachments: Attachment[] = [],
+  ) {
+    if (!text.trim() && !attachments.length) return false;
+    const draftKey = threadOf ? `thread:${threadOf}` : conversation;
+    const fingerprint = JSON.stringify([
+      text.trim(),
+      attachments.map((a) => a.id),
+    ]);
+    const old = failedMessages.current.get(draftKey);
+    const id = old?.fingerprint === fingerprint ? old.id : crypto.randomUUID();
+    failedMessages.current.set(draftKey, { fingerprint, id });
+    const ok = await command({
+      type: "message.send",
+      id,
+      conversation,
+      text: text.trim(),
+      threadOf,
+      attachments: attachments.map((a) => a.id),
+    });
+    if (ok) {
+      failedMessages.current.delete(draftKey);
+      if (current.current.drafts[draftKey] === text)
+        apply({
+          ...current.current,
+          drafts: { ...current.current.drafts, [draftKey]: "" },
+        });
+    }
+    return ok;
+  }
+  function findPerson(id: string): Person {
+    return id === "you"
+      ? state.profile
       : (state.people.find((p) => p.id === id) ?? {
           id,
           name: "Former member",
           handle: "former-member",
-          color: "green",
-          status: "offline" as const,
+          color: "purple",
+          status: "offline",
           bio: "",
           activity: "",
-          role: "Member" as const,
+          role: "Member",
         });
-  function sendMessage(conversation: string, text: string, threadOf?: string) {
-    if (!text.trim()) return;
-    const message: Message = {
-      id: crypto.randomUUID(),
-      conversation,
-      author: "you",
-      text: text.trim().slice(0, 4000),
-      time: new Date().toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-      reactions: [],
-      ...(threadOf ? { threadOf } : {}),
-    };
-    setState((previous) => ({
-      ...previous,
-      messages: [...previous.messages, message],
-      drafts: {
-        ...previous.drafts,
-        [threadOf ? `thread:${threadOf}` : conversation]: "",
-      },
-    }));
   }
-  function react(messageId: string, emoji: string) {
-    setState((previous) => ({
-      ...previous,
-      messages: previous.messages.map((message) => {
-        if (message.id !== messageId) return message;
-        const existing = message.reactions.find(
-          (reaction) => reaction.emoji === emoji,
-        );
-        return {
-          ...message,
-          reactions: existing
-            ? message.reactions
-                .map((reaction) =>
-                  reaction.emoji === emoji
-                    ? {
-                        ...reaction,
-                        count: reaction.count + (reaction.mine ? -1 : 1),
-                        mine: !reaction.mine,
-                      }
-                    : reaction,
-                )
-                .filter((reaction) => reaction.count > 0)
-            : [...message.reactions, { emoji, count: 1, mine: true }],
-        };
-      }),
-    }));
-  }
-  function updateMessage(messageId: string, patch: Partial<Message>) {
-    setState((previous) => ({
-      ...previous,
-      messages: previous.messages.map((message) =>
-        message.id === messageId ? { ...message, ...patch } : message,
-      ),
-    }));
-  }
-  function deleteMessage(messageId: string) {
-    setState((previous) => ({
-      ...previous,
-      messages: previous.messages.filter(
-        (message) => message.id !== messageId && message.threadOf !== messageId,
-      ),
-    }));
-    notify("Message deleted.");
-  }
-  function joinCommunity(id: string) {
-    const community = state.communities.find((c) => c.id === id);
-    if (!community) return;
-    setState((previous) => ({
-      ...previous,
-      communities: previous.communities.map((c) =>
-        c.id === id ? { ...c, joined: true } : c,
-      ),
-    }));
-    if (!community.joined) notify(`You’ve found a spot in ${community.name}.`);
-    return community;
-  }
-  function reset() {
-    setState(initialState());
-    setModal(null);
-    notify("A fresh start. The original demo is back.");
-  }
+  if (!ready)
+    return (
+      <main className="a-loading" role="status">
+        {error ? (
+          <div>
+            <p>{error}</p>
+            <button
+              className="a-button primary"
+              onClick={() => {
+                void refresh();
+              }}
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          "Finding your little corner…"
+        )}
+      </main>
+    );
   return (
     <AppContext.Provider
       value={{
         state,
         setState,
         ready,
+        refresh,
         modal,
         setModal,
         toast,
         notify,
         findPerson,
         sendMessage,
-        react,
-        updateMessage,
-        deleteMessage,
-        joinCommunity,
-        reset,
+        command,
+        loadMessages,
+        react: (id, emoji) => {
+          void command({ type: "reaction", id, emoji });
+        },
+        updateMessage: (id, patch) =>
+          command({
+            type: "message.update",
+            id,
+            text: patch.text,
+            pinned: patch.pinned,
+            saved: patch.saved,
+          }),
+        deleteMessage: (id) => command({ type: "message.delete", id }),
+        joinCommunity: async (id) =>
+          (await command({ type: "community.join", id }))
+            ? current.current.communities.find((c) => c.id === id)
+            : undefined,
+        reset: () => {
+          apply({ ...current.current, drafts: {} });
+          notify("Unsent drafts cleared.");
+        },
       }}
     >
+      {error && (
+        <div role="status" className="a-connection-status">
+          Connection interrupted. Retrying…
+        </div>
+      )}
       {children}
     </AppContext.Provider>
   );
