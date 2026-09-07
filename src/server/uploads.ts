@@ -47,7 +47,7 @@ export async function prepareUpload(
       `Files must be smaller than ${Math.floor(limit / 1024 / 1024)} MB.`,
     );
   const c = await requireConversation(db, userId, input.conversation, true);
-  requireDmSend(c, userId);
+  await requireDmSend(db, c, userId);
   const id = crypto.randomUUID();
   const filename = input.filename
     .replace(/[\x00-\x1f\x7f/\\]/g, "_")
