@@ -41,16 +41,16 @@ export async function putChannel(
       on conflict (community_id, name) do update set name = excluded.name
       returning id, name
     ), written as (
-      insert into ${s.conversations} (id, kind, community_id, channel_id, name, description, category_id, private)
-      select ${id}, 'channel', allowed.community_id, ${channel.id}, ${channel.name}, ${channel.description}, category.id, ${!!channel.private}
+      insert into ${s.conversations} (id, kind, community_id, channel_id, name, description, icon, category_id, private)
+      select ${id}, 'channel', allowed.community_id, ${channel.id}, ${channel.name}, ${channel.description}, ${channel.icon ?? ""}, category.id, ${!!channel.private}
       from allowed, category
       on conflict (id) do update set
-        name = excluded.name, description = excluded.description, category_id = excluded.category_id, private = excluded.private
+        name = excluded.name, description = excluded.description, icon = excluded.icon, category_id = excluded.category_id, private = excluded.private
       where ${s.conversations.kind} = 'channel' and ${s.conversations.communityId} = excluded.community_id
         and ${s.conversations.channelId} is not null
-        and (${s.conversations.name}, ${s.conversations.description}, ${s.conversations.categoryId}, ${s.conversations.private})
-          is distinct from (excluded.name, excluded.description, excluded.category_id, excluded.private)
-      returning channel_id, name, description, private
+        and (${s.conversations.name}, ${s.conversations.description}, ${s.conversations.icon}, ${s.conversations.categoryId}, ${s.conversations.private})
+          is distinct from (excluded.name, excluded.description, excluded.icon, excluded.category_id, excluded.private)
+      returning channel_id, name, description, private, icon
     ), notified as (
       insert into ${s.events} (id, user_id)
       select gen_random_uuid()::text, member.user_id from ${s.members} member
@@ -58,14 +58,15 @@ export async function putChannel(
     ), saved as (
       select * from written
       union all
-      select c.channel_id, c.name, c.description, c.private from ${s.conversations} c, allowed, category
+      select c.channel_id, c.name, c.description, c.private, c.icon from ${s.conversations} c, allowed, category
       where c.id = ${id} and c.kind = 'channel' and c.community_id = allowed.community_id and c.channel_id = ${channel.id}
-        and c.name = ${channel.name} and c.description = ${channel.description} and c.category_id = category.id and c.private = ${!!channel.private}
+        and c.icon = ${channel.icon ?? ""} and c.name = ${channel.name} and c.description = ${channel.description} and c.category_id = category.id and c.private = ${!!channel.private}
         and not exists(select 1 from written)
     )
     select exists(select 1 from allowed) as allowed, (select count from quota) as requests,
       (select json_build_object('id', saved.channel_id, 'name', saved.name, 'description', saved.description,
-        'group', category.name, 'private', saved.private) from saved, category limit 1) as channel
+        'group', category.name, 'private', saved.private, 'icon', saved.icon,
+        'hasMessages', exists(select 1 from messages where conversation_id = ${id})) from saved, category limit 1) as channel
   `);
   const row = result.rows[0];
   if (!row.allowed)
