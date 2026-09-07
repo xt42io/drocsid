@@ -88,10 +88,10 @@ export function AppDialogs() {
         <div>
           <AppIcon name="info" />
           <span>
-            <strong>A local design preview</strong>
+            <strong>A home for your community</strong>
             <p>
-              Everything here is sample data. Your changes stay in this browser;
-              messages and invites aren’t sent to anyone.
+              Messages are shared with your conversation. Private channels and
+              files are only available to people with access.
             </p>
           </span>
         </div>
@@ -102,7 +102,7 @@ export function AppDialogs() {
         onClick={() => app.setModal(null)}
         className="a-text-link"
       >
-        Manage or reset your preview <AppIcon name="right" size={16} />
+        Manage your account <AppIcon name="right" size={16} />
       </Link>
     </Dialog>
   );
@@ -124,14 +124,14 @@ function CreateCommunity() {
     "music",
     "code",
   ];
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     if (name.trim().length < 2) {
       setError("Give your corner a name with at least 2 characters.");
       return;
     }
     const id = crypto.randomUUID();
-    setState((previous) => ({
+    const saved = await setState((previous) => ({
       ...previous,
       communities: [
         ...previous.communities,
@@ -151,6 +151,7 @@ function CreateCommunity() {
         },
       ],
     }));
+    if (!saved) return;
     setModal(null);
     notify("Your corner is ready. Make it your own.");
     void navigate({
@@ -228,7 +229,7 @@ function CreateCategory({ communityId }: { communityId: string }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const community = state.communities.find((c) => c.id === communityId);
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     const normalized = name.trim().replace(/\s+/g, " ");
     if (!normalized) {
@@ -244,7 +245,7 @@ function CreateCategory({ communityId }: { communityId: string }) {
       setError("There’s already a category with that name.");
       return;
     }
-    setState((previous) => ({
+    const saved = await setState((previous) => ({
       ...previous,
       communities: previous.communities.map((c) =>
         c.id === communityId
@@ -255,6 +256,7 @@ function CreateCategory({ communityId }: { communityId: string }) {
           : c,
       ),
     }));
+    if (!saved) return;
     setModal(null);
     notify(`${normalized} is ready. Add a channel to get started.`);
   }
@@ -316,7 +318,7 @@ function CreateChannel({
         : (categories[0] ?? "")),
   );
   const [error, setError] = useState("");
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     const normalized = name
       .toLowerCase()
@@ -333,7 +335,7 @@ function CreateChannel({
       return;
     }
     const id = `${normalized}-${crypto.randomUUID().slice(0, 6)}`;
-    setState((previous) => ({
+    const saved = await setState((previous) => ({
       ...previous,
       communities: previous.communities.map((c) =>
         c.id === communityId
@@ -354,6 +356,7 @@ function CreateChannel({
           : c,
       ),
     }));
+    if (!saved) return;
     setModal(null);
     notify(`#${normalized} is ready for its first hello.`);
     void navigate({
@@ -443,7 +446,7 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
       description={
         mode === "new-message"
           ? "Start a direct conversation with someone you know."
-          : "Find a person by name or username. These are sample people in this preview."
+          : "Find a person by name or username."
       }
       onClose={() => setModal(null)}
     >
@@ -507,7 +510,7 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
                     outgoing: [...previous.outgoing, person.id],
                   }));
                   notify(
-                    "Friend request added to this preview. Nothing was sent.",
+                    "Friend request sent.",
                   );
                 }}
               >
@@ -581,8 +584,7 @@ function Invite({ communityId }: { communityId: string }) {
         </button>
       </div>
       <p className="a-form-footnote">
-        This opens a local preview invitation. It doesn’t send an invite or
-        grant access to a real community.
+        Anyone with this link can join this public community.
       </p>
       <Link
         to="/app/invite/$communityId"
@@ -683,7 +685,7 @@ function Profile({ personId }: { personId: string }) {
                 notify(
                   blocked
                     ? `${person.name.split(" ")[0]} unblocked.`
-                    : `${person.name.split(" ")[0]} blocked in this preview.`,
+                    : `${person.name.split(" ")[0]} blocked.`,
                 );
                 setModal(null);
               }}
