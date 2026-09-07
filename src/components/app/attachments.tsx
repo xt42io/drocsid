@@ -1,6 +1,7 @@
+import { AttachmentImage } from "./attachment-image";
 import { uploadFile } from "../../lib/upload-file";
 import { useEffect, useRef, useState } from "react";
-import type { Attachment } from "../../lib/demo-data";
+import type { Attachment } from "../../types/app";
 import { api } from "../../lib/api-client";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, Dialog } from "./primitives";
@@ -19,7 +20,7 @@ export const fileSize = (bytes: number) =>
     ? `${Math.max(1, Math.round(bytes / 1024))} KB`
     : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 export function useAttachments(conversation: string) {
-  const { notify } = useApp();
+  const { notify, attachmentPreviews } = useApp();
   const [uploads, setUploads] = useState<Upload[]>([]);
   const current = useRef<Upload[]>([]);
   const controllers = useRef(new Map<string, AbortController>());
@@ -125,7 +126,22 @@ export function useAttachments(conversation: string) {
     add,
     remove,
     retry: start,
-    clear: () => current.current.forEach((u) => remove(u.key)),
+    take: () => {
+      if (current.current.some((u) => !u.result)) return [];
+      const files = current.current.flatMap((u) =>
+        u.result ? [u.result] : [],
+      );
+      // Ownership moves to the outbox. Do not discard these ready uploads while
+      // their messages are in flight; a failed message may retry with them.
+      current.current.forEach((u) => {
+        if (!u.preview) return;
+        if (u.result?.contentType.startsWith("image/"))
+          attachmentPreviews.add(u.result.id, u.preview);
+        else URL.revokeObjectURL(u.preview);
+      });
+      update([]);
+      return files;
+    },
     ready: uploads.every((u) => !!u.result),
     files: uploads.flatMap((u) => (u.result ? [u.result] : [])),
   };
@@ -191,20 +207,19 @@ export function UploadTray({
   );
 }
 export function MessageAttachments({ files }: { files: Attachment[] }) {
+  const { attachmentPreviews } = useApp();
   const [viewing, setViewing] = useState<Attachment | null>(null);
   return (
     <>
       <div className="a-message-attachments">
         {files.map((file) =>
           file.contentType.startsWith("image/") ? (
-            <button
-              key={file.id}
-              className="a-image-attachment"
-              onClick={() => setViewing(file)}
-              aria-label={`View ${file.name}`}
-            >
-              <img src={file.url} alt={file.name} loading="lazy" />
-            </button>
+            <AttachmentImage
+              key={`${file.id}:${file.url}`}
+              file={file}
+              attachmentPreviews={attachmentPreviews}
+              onView={() => setViewing(file)}
+            />
           ) : (
             <a
               className="a-file-attachment"
@@ -224,10 +239,11 @@ export function MessageAttachments({ files }: { files: Attachment[] }) {
       </div>
       {viewing && (
         <Dialog title={viewing.name} onClose={() => setViewing(null)}>
-          <img
-            className="a-image-viewer"
-            src={viewing.url}
-            alt={viewing.name}
+          <AttachmentImage
+            key={`${viewing.id}:${viewing.url}`}
+            file={viewing}
+            attachmentPreviews={attachmentPreviews}
+            viewer
           />
           <a
             className="a-button secondary"
