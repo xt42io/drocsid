@@ -99,10 +99,7 @@ export function conversationAccess(userId: string) {
             or exists (select 1 from ${s.participants} p where p.conversation_id = ${s.conversations.id} and p.user_id = ${userId}))))
     or (${s.conversations.kind} = 'dm'
       and (${s.conversations.dmStatus} <> 'declined' or ${s.conversations.dmInitiatorId} = ${userId})
-      and exists (select 1 from ${s.participants} p where p.conversation_id = ${s.conversations.id} and p.user_id = ${userId})
-      and not exists (select 1 from ${s.participants} p join ${s.blocks} b
-        on (b.user_id = ${userId} and b.target_id = p.user_id) or (b.target_id = ${userId} and b.user_id = p.user_id)
-        where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId}))
+      and exists (select 1 from ${s.participants} p where p.conversation_id = ${s.conversations.id} and p.user_id = ${userId}))
   )`;
 }
 export function conversationIdFor(userId: string, key: string) {
@@ -262,17 +259,38 @@ export async function takeLimit(
     );
 }
 
+// Blocking restricts interaction, not access to existing conversation history.
+export function dmUnblocked(userId: string) {
+  return sql`not exists (select 1 from ${s.participants} p join ${s.blocks} b
+    on (b.user_id = ${userId} and b.target_id = p.user_id) or (b.target_id = ${userId} and b.user_id = p.user_id)
+    where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId})`;
+}
+export async function requireDmUnblocked(
+  db: Database,
+  conversationId: string,
+  userId: string,
+) {
+  const [allowed] = await db
+    .select({ id: s.conversations.id })
+    .from(s.conversations)
+    .where(and(eq(s.conversations.id, conversationId), dmUnblocked(userId)));
+  if (!allowed)
+    throw new HttpError(403, "Messaging in this conversation is unavailable.");
+}
+
 // Separate reading a request from permission to reply or upload into it.
 export function conversationSendAccess(userId: string) {
   return sql`${conversationAccess(userId)} and (${s.conversations.kind} <> 'dm' or
-    (${s.conversations.dmStatus} <> 'declined' and
+    (${dmUnblocked(userId)} and ${s.conversations.dmStatus} <> 'declined' and
       (${s.conversations.dmStatus} = 'accepted' or ${s.conversations.dmInitiatorId} = ${userId})))`;
 }
-export function requireDmSend(
+export async function requireDmSend(
+  db: Database,
   c: typeof s.conversations.$inferSelect,
   userId: string,
 ) {
   if (c.kind !== "dm") return;
+  await requireDmUnblocked(db, c.id, userId);
   if (c.dmStatus === "declined")
     throw new HttpError(403, "This conversation is unavailable.");
   if (c.dmStatus === "pending" && c.dmInitiatorId !== userId)
