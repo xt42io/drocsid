@@ -1,4 +1,5 @@
-import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { hydrate, rowJson } from "./sql-json";
+import { and, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import type { Database } from "./db";
 import * as s from "./db/schema";
 import { HttpError } from "./http";
@@ -57,40 +58,10 @@ export async function isBlocked(db: Database, a: string, b: string) {
   return !!block;
 }
 export async function accessibleConversations(db: Database, userId: string) {
-  const [memberships, participation] = await Promise.all([
-    db.select().from(s.members).where(eq(s.members.userId, userId)),
-    db.select().from(s.participants).where(eq(s.participants.userId, userId)),
-  ]);
-  const communityIds = memberships.map((m) => m.communityId);
-  const directIds = participation.map((p) => p.conversationId);
-  if (!communityIds.length && !directIds.length) return [];
-  const rows = await db
-    .select()
-    .from(s.conversations)
-    .where(
-      or(
-        communityIds.length
-          ? inArray(s.conversations.communityId, communityIds)
-          : undefined,
-        directIds.length ? inArray(s.conversations.id, directIds) : undefined,
-      ),
-    );
-  return rows.filter((c) =>
-    c.kind === "dm"
-      ? directIds.includes(c.id) &&
-        (c.dmStatus !== "declined" || c.dmInitiatorId === userId)
-      : !!c.channelId &&
-        communityIds.includes(c.communityId!) &&
-        (!c.private ||
-          directIds.includes(c.id) ||
-          ["Owner", "Admin"].includes(
-            memberships.find((m) => m.communityId === c.communityId)?.role ??
-              "",
-          )),
-  );
+  return db.select().from(s.conversations).where(conversationAccess(userId));
 }
 // Check one conversation in SQL instead of loading every membership and channel.
-export function conversationAccess(userId: string) {
+export function conversationAccess(userId: string | SQL) {
   return sql`(
     (${s.conversations.kind} = 'channel' and ${s.conversations.channelId} is not null
       and exists (select 1 from ${s.members} m
@@ -116,10 +87,14 @@ export async function requireConversation(
   createDm = false,
 ) {
   const id = conversationIdFor(userId, key);
-  const [allowed] = await db
-    .select()
+  const [found] = await db
+    .select({
+      conversation: s.conversations,
+      allowed: conversationAccess(userId),
+    })
     .from(s.conversations)
-    .where(and(eq(s.conversations.id, id), conversationAccess(userId)));
+    .where(eq(s.conversations.id, id));
+  const allowed = found?.allowed ? found.conversation : undefined;
   if (allowed) {
     // Empty DMs created before message requests have no known initiator yet.
     if (allowed.kind === "dm" && !allowed.dmInitiatorId && createDm) {
@@ -143,95 +118,53 @@ export async function requireConversation(
   }
   if (!key.startsWith("dm:") || !createDm)
     throw new HttpError(
-      403,
+      !found && key.startsWith("dm:") ? 404 : 403,
       key.startsWith("dm:")
         ? "This conversation is unavailable."
         : "You do not have access to this conversation.",
     );
-  if (key.startsWith("dm:")) {
-    const target = key.slice(3);
-    if (!/^[a-zA-Z0-9_-]{1,160}$/.test(target) || target === userId)
-      throw new HttpError(400, "Choose another person.");
-    if (await isBlocked(db, userId, target))
-      throw new HttpError(403, "This conversation is unavailable.");
-    const [existing] = await db
-      .select()
-      .from(s.conversations)
-      .where(eq(s.conversations.id, id));
-    if (!existing && createDm) {
-      const [targetProfile] = await db
-        .select()
-        .from(s.profiles)
-        .where(eq(s.profiles.userId, target));
-      if (!targetProfile) throw new HttpError(404, "Person not found.");
-      const [friend] = await db
-        .select()
-        .from(s.friendships)
-        .where(
-          and(
-            eq(s.friendships.accepted, true),
-            or(
-              and(
-                eq(s.friendships.senderId, userId),
-                eq(s.friendships.recipientId, target),
-              ),
-              and(
-                eq(s.friendships.senderId, target),
-                eq(s.friendships.recipientId, userId),
-              ),
-            ),
-          ),
-        );
-      const shared = await db
-        .select({ communityId: s.members.communityId })
-        .from(s.members)
-        .where(eq(s.members.userId, userId));
-      const targetShared = shared.length
-        ? await db
-            .select()
-            .from(s.members)
-            .where(
-              and(
-                eq(s.members.userId, target),
-                inArray(
-                  s.members.communityId,
-                  shared.map((m) => m.communityId),
-                ),
-              ),
-            )
-        : [];
-      if (
-        !friend &&
-        (!targetProfile.preferences.directMessages || !targetShared.length)
-      )
-        throw new HttpError(
-          403,
-          "Become friends before starting this conversation.",
-        );
-      await db
-        .insert(s.conversations)
-        .values({
-          id,
-          kind: "dm",
-          dmInitiatorId: userId,
-          dmStatus: friend ? "accepted" : "pending",
-        })
-        .onConflictDoNothing();
-      await db
-        .insert(s.participants)
-        .values([
-          { conversationId: id, userId },
-          { conversationId: id, userId: target },
-        ])
-        .onConflictDoNothing();
-    }
-  }
+  if (found)
+    throw new HttpError(
+      403,
+      "You do not have access to this conversation; it is unavailable.",
+    );
+  const target = key.slice(3);
+  const result = await db.execute<{
+    conversation: typeof s.conversations.$inferSelect | null;
+    blocked: boolean;
+    target: boolean;
+  }>(sql`
+    with peer as materialized (select * from profiles where user_id = ${target}),
+    friendship as (select 1 from friendships where accepted and ((sender_id = ${userId} and recipient_id = ${target}) or (recipient_id = ${userId} and sender_id = ${target}))),
+    blocked as (select 1 from blocked_users where (user_id = ${userId} and target_id = ${target}) or (user_id = ${target} and target_id = ${userId})),
+    eligible as (
+      select * from peer where not exists(select 1 from blocked) and (exists(select 1 from friendship) or
+        ((preferences->>'directMessages')::boolean and exists(select 1 from community_members own join community_members other on other.community_id = own.community_id where own.user_id = ${userId} and other.user_id = ${target})))
+    ), written as (
+      insert into conversations (id, kind, dm_initiator_id, dm_status)
+      select ${id}, 'dm', ${userId}, case when exists(select 1 from friendship) then 'accepted' else 'pending' end from eligible
+      on conflict (id) do nothing returning *
+    ), members as (
+      insert into conversation_members (conversation_id, user_id) select written.id, member.id from written cross join (values (${userId}), (${target})) as member(id)
+      on conflict do nothing
+    ) select (select ${rowJson(s.conversations)} from written as conversations) as conversation,
+      exists(select 1 from blocked) as blocked, exists(select 1 from peer) as target
+  `);
+  if (result.rows[0].conversation)
+    return hydrate(s.conversations, [result.rows[0].conversation])[0];
+  if (result.rows[0].blocked)
+    throw new HttpError(403, "This conversation is unavailable.");
+  if (!result.rows[0].target) throw new HttpError(404, "Person not found.");
+
   const [conversation] = await db
     .select()
     .from(s.conversations)
     .where(and(eq(s.conversations.id, id), conversationAccess(userId)));
   if (!conversation)
-    throw new HttpError(403, "You do not have access to this conversation.");
+    throw new HttpError(
+      403,
+      "Become friends before starting this conversation.",
+    );
   return conversation;
 }
 export async function takeLimit(
@@ -260,7 +193,7 @@ export async function takeLimit(
 }
 
 // Blocking restricts interaction, not access to existing conversation history.
-export function dmUnblocked(userId: string) {
+export function dmUnblocked(userId: string | SQL) {
   return sql`not exists (select 1 from ${s.participants} p join ${s.blocks} b
     on (b.user_id = ${userId} and b.target_id = p.user_id) or (b.target_id = ${userId} and b.user_id = p.user_id)
     where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId})`;
