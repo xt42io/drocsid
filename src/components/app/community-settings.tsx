@@ -10,7 +10,7 @@ import {
   PersonAvatar,
 } from "./primitives";
 export function CommunitySettings({ communityId }: { communityId: string }) {
-  const { state, setState, setModal, notify } = useApp();
+  const { state, setState, setModal, notify, command } = useApp();
   const navigate = useNavigate();
   const community = state.communities.find((c) => c.id === communityId);
   const [tab, setTab] = useState("overview");
@@ -69,7 +69,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
         <div className="a-community-overview">
           <form
             className="a-form"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault();
               if (name.trim().length < 2) {
                 setError(
@@ -77,7 +77,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 );
                 return;
               }
-              setState((previous) => ({
+              const saved = await setState((previous) => ({
                 ...previous,
                 communities: previous.communities.map((c) =>
                   c.id === communityId
@@ -89,6 +89,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                     : c,
                 ),
               }));
+              if (!saved) return;
               notify("Your corner is looking good. Changes saved.");
               setError("");
             }}
@@ -174,7 +175,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                   type: "confirm",
                   title: `Leave ${community.name}?`,
                   description:
-                    "This community will leave your sidebar. Its local messages stay in the preview, and you can rejoin from Discover.",
+                    "You will lose access to this community. You can rejoin from Discover.",
                   label: "Leave community",
                   action: () => {
                     setState((previous) => ({
@@ -287,7 +288,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                             type: "confirm",
                             title: `Delete #${channel.name}?`,
                             description:
-                              "This channel and its local messages will be removed from the preview. This can’t be undone.",
+                              "This channel and its messages will be deleted for everyone. This can’t be undone.",
                             label: "Delete channel",
                             action: () => {
                               setState((previous) => ({
@@ -327,7 +328,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
           <div className="a-settings-section-bar">
             <div>
               <h2>The people who make this place.</h2>
-              <p>Your sample community members.</p>
+              <p>Your community members.</p>
             </div>
             <button
               className="a-button primary"
@@ -362,7 +363,56 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                   <strong>{person.name}</strong>
                   <small>@{person.handle}</small>
                 </span>
-                <span className="a-role-tag">{person.role}</span>
+                <span className="a-role-tag">
+                  {community.memberRoles?.[person.id] ?? "Member"}
+                </span>
+                {person.id !== "you" &&
+                  community.memberRoles?.[person.id] !== "Owner" &&
+                  ["Owner", "Admin"].includes(
+                    community.memberRoles?.you ?? "",
+                  ) && (
+                    <>
+                      <select
+                        aria-label={`Role for ${person.name}`}
+                        value={community.memberRoles?.[person.id] ?? "Member"}
+                        onChange={(event) => {
+                          void command({
+                            type: "member.role",
+                            communityId,
+                            userId: person.id,
+                            role: event.target.value as
+                              "Admin" | "Moderator" | "Member",
+                          });
+                        }}
+                      >
+                        <option>Member</option>
+                        <option>Moderator</option>
+                        {community.memberRoles?.you === "Owner" && (
+                          <option>Admin</option>
+                        )}
+                      </select>
+                      <IconButton
+                        name="userRemove"
+                        label={`Remove ${person.name}`}
+                        onClick={() =>
+                          setModal({
+                            type: "confirm",
+                            title: `Remove ${person.name}?`,
+                            description:
+                              "They will lose access to this community. Public communities can be rejoined.",
+                            label: "Remove member",
+                            action: () => {
+                              void command({
+                                type: "member.remove",
+                                communityId,
+                                userId: person.id,
+                              });
+                            },
+                          })
+                        }
+                      />
+                    </>
+                  )}
                 <IconButton
                   name="more"
                   label={`View ${person.name}'s profile`}
