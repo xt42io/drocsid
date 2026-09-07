@@ -1,3 +1,7 @@
+import { CommunityIconUpload, type IconUpload } from "./community-icon-upload";
+import { CommunityIcon } from "./community-icon";
+import { ChannelIconField } from "./channel-icons";
+import { useDirectory } from "../../lib/use-directory";
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -41,14 +45,14 @@ export function AppDialogs() {
         >
           <button
             data-ui="a-button secondary"
-            className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
+            className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
             onClick={() => app.setModal(null)}
           >
             Keep it
           </button>
           <button
             data-ui="a-button danger"
-            className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=danger]:text-white data-[ui~=danger]:bg-[#b94f3b]"
+            className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=danger]:text-white data-[ui~=danger]:bg-[#b94f3b]"
             onClick={() => {
               modal.action();
               app.setModal(null);
@@ -123,10 +127,14 @@ function CreateCommunity() {
   const { setState, setModal, notify } = useApp();
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [icon, setIcon] = useState<Community["icon"]>("sun");
+  const [creating, setCreating] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadedIcon, setUploadedIcon] = useState<IconUpload>();
+  const submitting = useRef(false);
+  const [icon, setIcon] = useState<Community["icon"]>("");
   const [error, setError] = useState("");
   const choices: Community["icon"][] = [
+    "",
     "sun",
     "leaf",
     "coffee",
@@ -138,11 +146,15 @@ function CreateCommunity() {
   ];
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (submitting.current || uploading) return;
     if (name.trim().length < 2) {
       setError("Give your corner a name with at least 2 characters.");
       return;
     }
     const id = crypto.randomUUID();
+    submitting.current = true;
+    setCreating(true);
+    setError("");
     const saved = await setState((previous) => ({
       ...previous,
       communities: [
@@ -150,20 +162,26 @@ function CreateCommunity() {
         {
           id,
           name: name.trim(),
-          description:
-            description.trim() ||
-            "A new corner of the internet. Make yourself at home.",
+          description: "",
           icon,
+          iconUrl: uploadedIcon?.url,
+          iconUploadId: uploadedIcon?.id,
           color: "peach",
           category: "Your community",
           members: 1,
           memberIds: ["you"],
+          memberRoles: { you: "Owner" },
           joined: true,
           channels: createDefaultChannels(),
         },
       ],
     }));
-    if (!saved) return;
+    submitting.current = false;
+    setCreating(false);
+    if (!saved) {
+      setError("Could not create your community. Please try again.");
+      return;
+    }
     setModal(null);
     notify("Your corner is ready. Make it your own.");
     void navigate({
@@ -175,24 +193,24 @@ function CreateCommunity() {
     <Dialog
       title="A place for your people."
       description="Your book club, side project, or very specific obsession. Give it a home."
-      onClose={() => setModal(null)}
+      onClose={() => {
+        if (!submitting.current && !uploading) setModal(null);
+      }}
     >
       <form
         data-ui="a-form"
         className="flex flex-col gap-5 [&>label]:block [&>label]:font-[550] [&>label]:text-xs/normal [&_label_input]:block [&_label_input]:w-full [&_label_input]:min-h-10.5 [&_label_input]:py-2.75 [&_label_input]:px-3 [&_label_input]:mt-1.75 [&_label_input]:text-[13px] [&_label_input]:font-normal [&_label_input]:leading-[1.65] [&_label_textarea]:block [&_label_textarea]:w-full [&_label_textarea]:min-h-10.5 [&_label_textarea]:py-2.75 [&_label_textarea]:px-3 [&_label_textarea]:mt-1.75 [&_label_textarea]:text-[13px] [&_label_textarea]:font-normal [&_label_textarea]:leading-[1.65] [&_label_textarea]:resize-y [&_label_select]:block [&_label_select]:w-full [&_label_select]:min-h-10.5 [&_label_select]:py-2.75 [&_label_select]:px-3 [&_label_select]:mt-1.75 [&_label_select]:text-[13px] [&_label_select]:font-normal [&_label_select]:leading-[1.65] max-[760px]:[&_label_input]:text-[16px] max-[760px]:[&_label_textarea]:text-[16px] max-[760px]:[&_label_select]:text-[16px] max-[760px]:[&_label_input::placeholder]:text-[13px] max-[760px]:[&_label_textarea::placeholder]:text-[13px]"
         onSubmit={submit}
       >
-        <div
-          data-ui="a-create-icon-preview"
-          className="flex justify-center **:data-[ui~=a-community-icon]:rounded-[23px] **:data-[ui~=a-community-icon]:size-18.5"
-        >
-          <span
-            data-ui="a-community-icon tone-peach"
-            className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] bg-[#f2bc95] text-[#885130] size-11.5 hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
-          >
-            <AppIcon name={icon} size={34} />
-          </span>
-        </div>
+        <CommunityIconUpload
+          community={{ icon, iconUrl: uploadedIcon?.url }}
+          onChange={setUploadedIcon}
+          onBusyChange={setUploading}
+          disabled={creating || uploading}
+        />
+        <p className="text-center text-xs text-(--a-muted)">
+          Or choose a symbol. You can also add an image later.
+        </p>
         <div
           data-ui="a-icon-options"
           className="flex gap-1.75 justify-center [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:bg-(--a-surface) [&>button]:text-(--a-muted) [&>button]:rounded-lg [&>button]:size-8.75 [&>button]:border! [&>button]:border-solid! [&>button]:border-(--a-border)! [&>button[data-ui~=selected]]:border-[#a9bc8d]! [&>button[data-ui~=selected]]:text-(--a-green) [&>button[data-ui~=selected]]:bg-(--a-selected) [[data-ui~=theme-dark]_&>button[data-ui~=selected]]:border-[#626262]! max-[480px]:gap-1.5 max-[480px]:[&>button]:w-7.5 max-[480px]:[&>button]:h-8"
@@ -200,8 +218,9 @@ function CreateCommunity() {
         >
           {choices.map((choice) => (
             <button
+              disabled={creating || uploading}
               type="button"
-              aria-label={`${choice} icon`}
+              aria-label={choice ? `${choice} icon` : "Skip community icon"}
               aria-pressed={icon === choice}
               data-ui={icon === choice ? "selected" : ""}
               key={choice}
@@ -214,6 +233,7 @@ function CreateCommunity() {
         <label>
           Your community’s name
           <input
+            disabled={creating || uploading}
             autoFocus
             value={name}
             onChange={(event) => {
@@ -223,22 +243,6 @@ function CreateCommunity() {
             placeholder="The next good thing"
             maxLength={40}
             required
-          />
-        </label>
-        <label>
-          A little about this place{" "}
-          <span
-            data-ui="a-optional"
-            className="text-(--a-faint) ml-1.75 font-normal text-[10px]"
-          >
-            optional
-          </span>
-          <textarea
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="What brings your people together?"
-            maxLength={250}
-            rows={3}
           />
         </label>
         {error && (
@@ -257,11 +261,16 @@ function CreateCommunity() {
           Start small. You can always add more channels later.
         </div>
         <button
+          disabled={creating || uploading}
+          aria-busy={creating}
           type="submit"
           data-ui="a-button primary full"
-          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+          className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
         >
-          Create your corner <AppIcon name="right" size={17} />
+          {creating ? "Creating community…" : "Create your corner"}
+          <span className={creating ? "animate-spin" : ""}>
+            <AppIcon name={creating ? "reset" : "right"} size={17} />
+          </span>
         </button>
       </form>
     </Dialog>
@@ -349,7 +358,7 @@ function CreateCategory({ communityId }: { communityId: string }) {
         <button
           type="submit"
           data-ui="a-button primary full"
-          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+          className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
         >
           Create category <AppIcon name="plus" size={18} />
         </button>
@@ -369,7 +378,8 @@ function CreateChannel({
   const community = state.communities.find((c) => c.id === communityId);
   const categories = community ? getChannelCategories(community) : [];
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [icon, setIcon] = useState("");
+
   const [group, setGroup] = useState(
     initialGroup ??
       (categories.includes("THE COMMON ROOM")
@@ -405,15 +415,18 @@ function CreateChannel({
       saved = await createChannel(communityId, {
         id,
         name: normalized,
-        description:
-          description.trim() || "A little room for a new conversation.",
+        description: "",
+        icon,
         group: group || "CHANNELS",
       });
     } finally {
       submitting.current = false;
       setCreating(false);
     }
-    if (!saved) return;
+    if (!saved) {
+      setError("Could not create the channel. Please try again.");
+      return;
+    }
     setModal(null);
     notify(`#${normalized} is ready for its first hello.`);
     void navigate({
@@ -425,7 +438,9 @@ function CreateChannel({
     <Dialog
       title="Make room for a conversation."
       description={`A new text channel in ${community?.name ?? "your community"}.`}
-      onClose={() => setModal(null)}
+      onClose={() => {
+        if (!submitting.current) setModal(null);
+      }}
     >
       <form
         data-ui="a-form"
@@ -458,16 +473,7 @@ function CreateChannel({
             required
           />
         </label>
-        <label>
-          What’s it about?
-          <input
-            disabled={creating}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Give people a little context"
-            maxLength={140}
-          />
-        </label>
+        <ChannelIconField value={icon} onChange={setIcon} disabled={creating} />
         <label>
           Category
           <select
@@ -491,13 +497,15 @@ function CreateChannel({
         )}
         <button
           data-ui="a-button primary full"
-          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+          className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
           type="submit"
           disabled={creating}
           aria-busy={creating}
         >
           {creating ? "Creating channel…" : "Create channel"}{" "}
-          <AppIcon name="plus" size={18} />
+          <span className={creating ? "animate-spin" : ""}>
+            <AppIcon name={creating ? "reset" : "plus"} size={18} />
+          </span>
         </button>
       </form>
     </Dialog>
@@ -507,7 +515,10 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
   const { state, setState, setModal, notify } = useApp();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const results = state.people.filter(
+  const directory = useDirectory("people", query);
+  const results = (
+    query.trim() ? (directory.people ?? []) : state.people
+  ).filter(
     (p) =>
       !state.blocked.includes(p.id) &&
       `${p.name} ${p.handle}`
@@ -545,6 +556,8 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
         data-ui="a-picker-list"
         className="max-h-107.5 overflow-y-auto mt-3.75"
       >
+        {directory.loading && <p role="status">Searching…</p>}
+        {directory.error && <p role="alert">{directory.error}</p>}
         {results.map((person) => (
           <div
             data-ui="a-picker-person"
@@ -559,7 +572,7 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
             {mode === "new-message" ? (
               <button
                 data-ui="a-button secondary small"
-                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
+                className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
                 onClick={() => {
                   setModal(null);
                   void navigate({
@@ -573,7 +586,7 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
             ) : (
               <button
                 data-ui="a-button secondary small"
-                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
+                className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
                 disabled={
                   state.friends.includes(person.id) ||
                   state.outgoing.includes(person.id)
@@ -613,7 +626,17 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
             )}
           </div>
         ))}
-        {results.length === 0 && (
+        {query.trim() && directory.hasMore && (
+          <button
+            type="button"
+            className="w-full rounded-md border border-(--a-border) px-4 py-2 text-xs text-(--a-text) hover:bg-(--a-hover) disabled:opacity-50"
+            disabled={directory.loading}
+            onClick={directory.more}
+          >
+            {directory.loading ? "Loading…" : "Load more"}
+          </button>
+        )}
+        {results.length === 0 && !directory.loading && !directory.error && (
           <EmptyState
             icon="search"
             title="No familiar faces yet."
@@ -655,7 +678,7 @@ function Invite({ communityId }: { communityId: string }) {
           data-ui={`a-community-icon tone-${community?.color ?? "peach"}`}
           className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
         >
-          <AppIcon name={community?.icon ?? "sun"} size={30} />
+          <CommunityIcon community={community ?? { icon: "sun" }} size={30} />
         </span>
         <h3>{community?.name}</h3>
         <p>There’s a spot with your name on it.</p>
@@ -679,7 +702,7 @@ function Invite({ communityId }: { communityId: string }) {
         />
         <button
           data-ui="a-button primary"
-          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
+          className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
           onClick={copy}
         >
           <AppIcon name={copied ? "check" : "copy"} size={17} />
@@ -791,7 +814,7 @@ function Profile({ personId }: { personId: string }) {
               search={{ section: "profile" }}
               onClick={() => setModal(null)}
               data-ui="a-button primary full"
-              className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+              className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
             >
               Edit your profile <AppIcon name="edit" size={17} />
             </Link>
@@ -807,14 +830,14 @@ function Profile({ personId }: { personId: string }) {
                 params={{ personId }}
                 onClick={() => setModal(null)}
                 data-ui="a-button primary"
-                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
+                className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
               >
                 <AppIcon name="message" size={17} /> Send a message
               </Link>
             )}
             <button
               data-ui="a-button secondary"
-              className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
+              className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
               onClick={() => {
                 setState((previous) => ({
                   ...previous,
