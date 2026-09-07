@@ -96,6 +96,7 @@ export type AppState = {
 };
 
 export type DirectConversation = {
+  messagingBlocked: boolean;
   hasMessages: boolean;
   personId: string;
   status: "pending" | "accepted" | "declined";
