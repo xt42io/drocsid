@@ -12,12 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ImageCheckRouteImport } from './routes/image-check'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as ApiAppRouteImport } from './routes/api.app'
 import { Route as ApiAvatarsRouteImport } from './routes/api.avatars'
-import { Route as ApiEventsRouteImport } from './routes/api.events'
+import { Route as ApiImageCheckRouteImport } from './routes/api.image-check'
 import { Route as ApiMessagesRouteImport } from './routes/api.messages'
 import { Route as ApiSessionRouteImport } from './routes/api.session'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
@@ -52,6 +53,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ImageCheckRoute = ImageCheckRouteImport.update({
+  id: '/image-check',
+  path: '/image-check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -77,9 +83,9 @@ const ApiAvatarsRoute = ApiAvatarsRouteImport.update({
   path: '/api/avatars',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiEventsRoute = ApiEventsRouteImport.update({
-  id: '/api/events',
-  path: '/api/events',
+const ApiImageCheckRoute = ApiImageCheckRouteImport.update({
+  id: '/api/image-check',
+  path: '/api/image-check',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMessagesRoute = ApiMessagesRouteImport.update({
@@ -179,12 +185,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
+  '/image-check': typeof ImageCheckRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/api/app': typeof ApiAppRoute
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
-  '/api/events': typeof ApiEventsRoute
+  '/api/image-check': typeof ApiImageCheckRoute
   '/api/messages': typeof ApiMessagesRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -207,12 +214,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/image-check': typeof ImageCheckRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/api/app': typeof ApiAppRoute
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
-  '/api/events': typeof ApiEventsRoute
+  '/api/image-check': typeof ApiImageCheckRoute
   '/api/messages': typeof ApiMessagesRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -237,12 +245,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
+  '/image-check': typeof ImageCheckRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/api/app': typeof ApiAppRoute
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
-  '/api/events': typeof ApiEventsRoute
+  '/api/image-check': typeof ApiImageCheckRoute
   '/api/messages': typeof ApiMessagesRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
@@ -268,12 +277,13 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/forgot-password'
+    | '/image-check'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/api/app'
     | '/api/avatars'
-    | '/api/events'
+    | '/api/image-check'
     | '/api/messages'
     | '/api/session'
     | '/api/uploads'
@@ -296,12 +306,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/forgot-password'
+    | '/image-check'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/api/app'
     | '/api/avatars'
-    | '/api/events'
+    | '/api/image-check'
     | '/api/messages'
     | '/api/session'
     | '/api/uploads'
@@ -325,12 +336,13 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/forgot-password'
+    | '/image-check'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
     | '/api/app'
     | '/api/avatars'
-    | '/api/events'
+    | '/api/image-check'
     | '/api/messages'
     | '/api/session'
     | '/api/uploads'
@@ -355,12 +367,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  ImageCheckRoute: typeof ImageCheckRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   ApiAppRoute: typeof ApiAppRoute
   ApiAvatarsRoute: typeof ApiAvatarsRouteWithChildren
-  ApiEventsRoute: typeof ApiEventsRoute
+  ApiImageCheckRoute: typeof ApiImageCheckRoute
   ApiMessagesRoute: typeof ApiMessagesRoute
   ApiSessionRoute: typeof ApiSessionRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
@@ -389,6 +402,13 @@ declare module '@tanstack/react-router' {
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/image-check': {
+      id: '/image-check'
+      path: '/image-check'
+      fullPath: '/image-check'
+      preLoaderRoute: typeof ImageCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -426,11 +446,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAvatarsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/events': {
-      id: '/api/events'
-      path: '/api/events'
-      fullPath: '/api/events'
-      preLoaderRoute: typeof ApiEventsRouteImport
+    '/api/image-check': {
+      id: '/api/image-check'
+      path: '/api/image-check'
+      fullPath: '/api/image-check'
+      preLoaderRoute: typeof ApiImageCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/messages': {
@@ -610,12 +630,13 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  ImageCheckRoute: ImageCheckRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   ApiAppRoute: ApiAppRoute,
   ApiAvatarsRoute: ApiAvatarsRouteWithChildren,
-  ApiEventsRoute: ApiEventsRoute,
+  ApiImageCheckRoute: ApiImageCheckRoute,
   ApiMessagesRoute: ApiMessagesRoute,
   ApiSessionRoute: ApiSessionRoute,
   ApiUploadsRoute: ApiUploadsRoute,
