@@ -157,7 +157,12 @@ export function PersonAvatar({
       data-ui={`a-avatar ${large ? "a-avatar-large" : ""}`}
       className="inline-flex relative shrink-0 align-middle **:data-[ui~=avatar]:rounded-[11px] **:data-[ui~=avatar]:text-[13px] **:data-[ui~=avatar]:font-[550] **:data-[ui~=avatar]:size-8.75 [&[data-ui~=a-avatar-large]_[data-ui~=avatar]]:rounded-[21px] [&[data-ui~=a-avatar-large]_[data-ui~=avatar]]:text-[27px] [&[data-ui~=a-avatar-large]_[data-ui~=avatar]]:size-17"
     >
-      <Avatar name={person.name} color={person.color} src={person.avatarUrl} />
+      <Avatar
+        name={person.name}
+        color={person.color}
+        src={person.avatarUrl}
+        large={large}
+      />
       {presence && (
         <i
           data-ui={`a-presence ${person.status}`}
