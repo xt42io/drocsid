@@ -24,14 +24,14 @@ export async function createAuthFixture(email: string, name: string) {
       body: JSON.stringify(body),
     });
   const signup = await auth.handler(
-    request("sign-up/email", { email, name, password: crypto.randomUUID() }),
+    request("email-otp/send-verification-otp", { email, type: "sign-in" }),
   );
   assert.equal(signup.status, 200);
-  const { user } = await signup.json();
   assert.match(code, /^\d{6}$/);
   const verified = await auth.handler(
-    request("email-otp/verify-email", { email, otp: code }),
+    request("sign-in/email-otp", { email, name, otp: code }),
   );
   assert.equal(verified.status, 200);
+  const { user } = await verified.json();
   return { user, cookie: verified.headers.get("set-cookie")!.split(";")[0] };
 }
