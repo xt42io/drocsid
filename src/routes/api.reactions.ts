@@ -9,6 +9,7 @@ import {
   requireOrigin,
   requireUser,
 } from "../server/http";
+import { getPostHogClient } from "../lib/posthog-server";
 
 export const Route = createFileRoute("/api/reactions")({
   server: {
@@ -26,6 +27,22 @@ export const Route = createFileRoute("/api/reactions")({
             "Server-Timing",
             `auth;dur=${(authenticated - start).toFixed(1)}, write;dur=${(performance.now() - authenticated).toFixed(1)}`,
           );
+          if (input.active) {
+            const posthog = getPostHogClient();
+            if (posthog) {
+              const sessionId = request.headers.get("X-PostHog-Session-Id");
+              posthog.capture({
+                distinctId: viewer.id,
+                event: "reaction_added",
+                properties: {
+                  $session_id: sessionId || undefined,
+                  emoji: input.emoji,
+                  message_id: input.id,
+                },
+              });
+              await posthog.flush();
+            }
+          }
           return response;
         }),
     },
