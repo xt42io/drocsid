@@ -43,6 +43,34 @@
       "when": 1788770865315,
       "tag": "0005_message_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788776000000,
+      "tag": "0006_scoped_realtime_and_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1788777178173,
+      "tag": "0007_safe_chamber",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788779243845,
+      "tag": "0008_dashing_hellcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788780020648,
+      "tag": "0009_hard_thunderbird",
+      "breakpoints": true
     }
   ]
 }
