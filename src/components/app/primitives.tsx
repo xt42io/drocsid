@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { Icon, Avatar } from "../ui";
-import type { Person } from "../../lib/demo-data";
+import type { Person } from "../../types/app";
 import {
   Home01Icon,
   Message01Icon,
