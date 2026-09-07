@@ -16,7 +16,7 @@ The server uses port 1515 and exits if it is occupied. After changing dependenci
 
 Create your own account at `/sign-up`, finish your profile, then create a community from the sidebar. A new database starts empty. The landing page retains its illustrative conversation; authenticated pages use real server data.
 
-Optional development fixtures: supply `SEED_EMAIL` and `SEED_PASSWORD` and run `pnpm db:seed`. This creates one account and a community; it never runs automatically. The seed account must verify its email when signing in, so use an inbox you control.
+Optional development fixtures: supply `SEED_EMAIL` and run `pnpm db:seed`. This creates one account and a community; it never runs automatically. The seed account must verify its email when signing in, so use an inbox you control.
 
 ## UI styling
 
@@ -24,7 +24,7 @@ Use Tailwind v4 utilities directly in components, including responsive and state
 
 ## Connected features
 
-- Email/password registration with required email verification, password or email-code login, sessions, logout, and password reset codes delivered through Sendbyte.
+- Passwordless email-code registration and login through Sendbyte, plus optional GitHub login, sessions, and logout.
 - Profiles, unique usernames, appearance settings, notification preferences, activity visibility, and incoming-DM preferences.
 - Public communities, public invitation links, memberships, categories, channels, member roles, and removal.
 - Private-channel access is enforced on the server. Owners/admins can access private channels and grant explicit membership through the `channel.access` command.
@@ -77,9 +77,9 @@ Better Auth stores its users, sessions, accounts, and verification records in Po
 - `SENDBYTE_API_KEY`: server-only Sendbyte key with email sending permission.
 - `SENDBYTE_FROM`: sender on your verified domain, for example `Drocsid <hello@your-domain.com>`.
 
-Email verification is required. Signup sends a six-digit code; confirmation creates the session and continues onboarding. Existing unverified accounts must verify before accessing app APIs or WebSockets. Password login remains available, with optional “Email me a sign-in code” for existing accounts. Code login for an existing unverified account follows Better Auth’s ownership protection: it clears the old unverified password and revokes old sessions; the email owner can set a fresh password through recovery.
+Signup and login start with only an email address, then a six-digit email code. The account and initial profile are created only after verification. Welcome collects a username (with a debounced availability check), profile name, and optional avatar before the optional community selection step. Username uniqueness is enforced when saving, so an availability check does not reserve a name. Existing accounts use the same code flow. Password login, password registration, password changes, and all password reset endpoints are disabled on the backend. Old recovery URLs redirect to sign-in. Existing accounts and chat history are preserved; no password data migration is needed.
 
-Forgot password now sends a code and accepts a new password in the same screen. Codes are hashed in Postgres, expire in five minutes, allow five failed attempts, and are consumed once. Resends share one database-backed budget per normalized email across all sending endpoints (one request per minute), in addition to Better Auth’s IP limits. New codes replace previous ones. Password resets revoke existing sessions. Unknown-address code requests return a generic success without creating an account.
+Codes are hashed in Postgres, expire in five minutes, allow five failed attempts, and are consumed once. Resends share one database-backed budget per normalized email (one request per minute), in addition to Better Auth’s IP limits. New codes replace previous ones. Both new and existing addresses receive a sign-in code; requesting a code alone does not create an account.
 
 Configure Sendbyte at [app.sendbyte.africa](https://app.sendbyte.africa/), verify your sender domain’s DNS, and use a live key (`sk_live_`) for inbox delivery. Sandbox keys (`sk_test_`) simulate delivery only. See the [Sendbyte setup guide](https://docs.sendbyte.africa/quickstart). Missing configuration and provider failures return an explicit error. The server uses the official SDK with bounded request attempts and idempotency keys; it never exposes the key or logs email bodies/codes. SMTP is no longer used. No new database migration is required for OTPs.
 
