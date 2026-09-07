@@ -1,3 +1,4 @@
+import { ensureProfile } from "./access";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import nodemailer from "nodemailer";
@@ -13,6 +14,7 @@ export function makeAuth(db: Database) {
   const emailEnabled = !!(process.env.SMTP_URL && process.env.SMTP_FROM);
   return betterAuth({
     secret,
+    advanced: { database: { joins: true } },
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:1515",
     database: drizzleAdapter(db, { provider: "pg", schema }),
     emailAndPassword: {
@@ -48,6 +50,15 @@ export function makeAuth(db: Database) {
             },
           }
         : {},
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            await ensureProfile(db, user);
+          },
+        },
+      },
+    },
     rateLimit: { enabled: true, storage: "database", window: 60, max: 60 },
   });
 }
