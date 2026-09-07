@@ -8,7 +8,7 @@ const validSections = [
   "data",
 ];
 export const Route = createFileRoute("/app/settings")({
-  head: () => ({ meta: [{ title: "Make yourself comfortable — drocsid" }] }),
+  head: () => ({ meta: [{ title: "Make yourself comfortable — Drocsid" }] }),
   validateSearch: (search: Record<string, unknown>): { section: string } => ({
     section:
       typeof search.section === "string" &&
