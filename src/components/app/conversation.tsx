@@ -14,6 +14,7 @@ import {
 import { EmojiPanel } from "./emoji-panel";
 import { ChannelMention, Mention } from "./mention";
 import { MentionTextarea } from "./mention-textarea";
+import { MessageAttachments, UploadTray, useAttachments } from "./attachments";
 import {
   AppIcon,
   Dialog,
@@ -69,7 +70,15 @@ export function Conversation({
   personId?: string;
   messageId?: string;
 }) {
-  const { state, setState, setModal, findPerson, notify } = useApp();
+  const {
+    state,
+    setState,
+    setModal,
+    findPerson,
+    notify,
+    loadMessages,
+    command,
+  } = useApp();
   const community = state.communities.find((c) => c.id === communityId);
   const channel = community?.channels.find((c) => c.id === channelId);
   const person = personId
@@ -93,6 +102,35 @@ export function Conversation({
   const selected = allMessages.find((m) => m.id === messageId);
   const blocked = !!personId && state.blocked.includes(personId);
   const muted = state.muted.includes(conversation);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const lastRead = useRef("");
+  useEffect(() => {
+    let active = true;
+    void loadMessages(conversation).then((more) => {
+      if (active) setHasMore(more);
+    });
+    if (messageId) void loadMessages(conversation, undefined, messageId);
+    return () => {
+      active = false;
+    };
+  }, [conversation, messageId, loadMessages]);
+  const newest = allMessages.at(-1)?.createdAt;
+  useEffect(() => {
+    const key = `${conversation}:${newest}`;
+    if (
+      newest &&
+      lastRead.current !== key &&
+      document.visibilityState === "visible"
+    ) {
+      lastRead.current = key;
+      void command({
+        type: "conversation.read",
+        conversation,
+        through: newest,
+      });
+    }
+  }, [conversation, newest, command]);
   useEffect(() => {
     if (lastConversation.current !== conversation) {
       setPanel(personId || window.innerWidth <= 1050 ? null : "members");
@@ -242,6 +280,28 @@ export function Conversation({
       <div className="a-conversation-body">
         <div className="a-message-column">
           <div className="a-message-scroll" ref={scrollRef}>
+            {hasMore && (
+              <button
+                className="a-button secondary small"
+                disabled={loadingHistory}
+                onClick={async () => {
+                  setLoadingHistory(true);
+                  const node = scrollRef.current;
+                  const height = node?.scrollHeight ?? 0;
+                  const offset = node?.scrollTop ?? 0;
+                  setHasMore(
+                    await loadMessages(conversation, allMessages[0]?.id),
+                  );
+                  setLoadingHistory(false);
+                  requestAnimationFrame(() => {
+                    if (node)
+                      node.scrollTop = offset + node.scrollHeight - height;
+                  });
+                }}
+              >
+                {loadingHistory ? "Loading…" : "Load earlier messages"}
+              </button>
+            )}
             {person ? (
               <div className="a-dm-intro">
                 <PersonAvatar person={person} large />
@@ -535,7 +595,14 @@ export function MessageCard({
           {author.role === "Moderator" && (
             <span className="a-moderator-tag">the friendly one</span>
           )}
-          <time>{message.time}</time>
+          <time dateTime={message.createdAt}>
+            {message.createdAt
+              ? new Date(message.createdAt).toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })
+              : message.time}
+          </time>
           {message.edited && <span className="a-edited">edited</span>}
           {message.pinned && (
             <span className="a-message-pin" title="Pinned message">
@@ -594,6 +661,9 @@ export function MessageCard({
             text={message.text}
             conversation={message.conversation}
           />
+        )}
+        {!!message.attachments?.length && (
+          <MessageAttachments files={message.attachments} />
         )}
         {message.reactions.length > 0 && (
           <div className="a-reactions">
@@ -722,7 +792,7 @@ export function MessageCard({
                         type: "confirm",
                         title: "Delete this message?",
                         description:
-                          "This message and its replies will be removed from this local preview.",
+                          "This message and its replies will be deleted for everyone.",
                         label: "Delete message",
                         action: () => deleteMessage(message.id),
                       })
@@ -750,6 +820,9 @@ function Composer({
   threadOf?: string;
 }) {
   const { state, setState, sendMessage, notify } = useApp();
+  const files = useAttachments(conversation);
+  const picker = useRef<HTMLInputElement>(null);
+  const [sending, setSending] = useState(false);
   const draftKey = threadOf ? `thread:${threadOf}` : conversation;
   const draft = state.drafts[draftKey] ?? "";
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -764,10 +837,19 @@ function Composer({
       textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 160)}px`;
     }
   }, [draft]);
-  function submit(event?: FormEvent) {
+  async function submit(event?: FormEvent) {
     event?.preventDefault();
-    if (draft.trim()) {
-      sendMessage(conversation, draft, threadOf);
+    if (sending || !files.ready) return;
+    if (draft.trim() || files.files.length) {
+      setSending(true);
+      const sent = await sendMessage(
+        conversation,
+        draft,
+        threadOf,
+        files.files,
+      );
+      if (sent) files.clear();
+      setSending(false);
       textarea.current?.focus();
     }
   }
@@ -789,8 +871,40 @@ function Composer({
     <form
       className={`a-composer-wrap ${threadOf ? "a-thread-composer" : ""}`}
       onSubmit={submit}
+      onDragOver={(event) => {
+        if (!sending && event.dataTransfer.types.includes("Files"))
+          event.preventDefault();
+      }}
+      onDrop={(event) => {
+        if (event.dataTransfer.files.length) {
+          event.preventDefault();
+          if (!sending) files.add(Array.from(event.dataTransfer.files));
+        }
+      }}
+      onPaste={(event) => {
+        const pasted = Array.from(event.clipboardData.files);
+        if (pasted.length) {
+          event.preventDefault();
+          if (!sending) files.add(pasted);
+        }
+      }}
     >
       <div className="a-composer">
+        <UploadTray
+          uploads={files.uploads}
+          remove={files.remove}
+          retry={files.retry}
+        />
+        <input
+          type="file"
+          multiple
+          hidden
+          ref={picker}
+          onChange={(event) => {
+            if (!sending) files.add(Array.from(event.target.files ?? []));
+            event.target.value = "";
+          }}
+        />
         <MentionTextarea
           conversation={conversation}
           textareaRef={textarea}
@@ -799,6 +913,7 @@ function Composer({
           placeholder={placeholder}
           maxLength={4000}
           value={draft}
+          disabled={sending}
           onValueChange={setDraft}
           onKeyDown={(event) => {
             if (
@@ -813,6 +928,16 @@ function Composer({
         />
         <div className="a-composer-tools">
           <div>
+            <button
+              className="a-icon-button"
+              type="button"
+              title="Attach files"
+              aria-label="Attach files"
+              disabled={sending || files.uploads.length >= 10}
+              onClick={() => picker.current?.click()}
+            >
+              <AppIcon name="file" size={20} />
+            </button>
             <details className="a-compose-menu">
               <summary title="Text formatting" aria-label="Text formatting">
                 <AppIcon name="plus" size={20} />
@@ -854,7 +979,9 @@ function Composer({
           <button
             className="a-send-button"
             type="submit"
-            disabled={!draft.trim()}
+            disabled={
+              sending || !files.ready || (!draft.trim() && !files.files.length)
+            }
             aria-label={threadOf ? "Send reply" : "Send message"}
             title={threadOf ? "Send reply" : "Send message"}
           >
@@ -884,9 +1011,15 @@ function MemberPanel({
   onClose: () => void;
 }) {
   const { state, setModal, findPerson } = useApp();
-  const members = [findPerson("you"), ...state.people].filter(
-    (person) => !community.memberIds || community.memberIds.includes(person.id),
-  );
+  const members = [findPerson("you"), ...state.people]
+    .filter(
+      (person) =>
+        !community.memberIds || community.memberIds.includes(person.id),
+    )
+    .map((person) => ({
+      ...person,
+      role: community.memberRoles?.[person.id] ?? person.role,
+    }));
   return (
     <aside className="a-detail-panel a-member-panel">
       <div className="a-panel-heading">
@@ -952,10 +1085,6 @@ function MemberPanel({
           Invite a friend
         </button>
         <AppIcon name="sun" size={44} />
-      </div>
-      <div className="a-panel-bottom">
-        A little corner. A lot of possibility.{" "}
-        <AppIcon name="heart" size={14} />
       </div>
     </aside>
   );
