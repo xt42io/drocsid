@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import { getChannelCategories } from "../../lib/demo-data";
+import { getChannelCategories } from "../../lib/channels";
 import { LogoMark } from "../ui";
 import { AppIcon, IconButton, PersonAvatar, PreviewNote } from "./primitives";
 import { AppDialogs } from "./app-dialogs";
