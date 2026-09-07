@@ -2,8 +2,11 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import { getChannelCategories, starterChannels } from "../../lib/demo-data";
-import type { Community, Person } from "../../lib/demo-data";
+import {
+  getChannelCategories,
+  createDefaultChannels,
+} from "../../lib/channels";
+import type { Community, Person } from "../../types/app";
 import { AppIcon, Dialog, EmptyState, PersonAvatar } from "./primitives";
 
 export function AppDialogs() {
@@ -147,7 +150,7 @@ function CreateCommunity() {
           members: 1,
           memberIds: ["you"],
           joined: true,
-          channels: starterChannels().slice(0, 3),
+          channels: createDefaultChannels(),
         },
       ],
     }));
@@ -509,9 +512,7 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
                     ...previous,
                     outgoing: [...previous.outgoing, person.id],
                   }));
-                  notify(
-                    "Friend request sent.",
-                  );
+                  notify("Friend request sent.");
                 }}
               >
                 {state.friends.includes(person.id)
