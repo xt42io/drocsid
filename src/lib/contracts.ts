@@ -6,6 +6,11 @@ const id = z
   .max(160)
   .regex(/^[a-zA-Z0-9_-]+$/);
 const key = z.string().min(1).max(350);
+export const reactionSelectionSchema = z.object({
+  id,
+  emoji: z.string().min(1).max(32),
+  active: z.boolean(),
+});
 export const preferencesSchema = z.object({
   theme: z.enum(["light", "dark"]),
   density: z.enum(["comfortable", "compact"]),
