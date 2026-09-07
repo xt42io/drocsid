@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -154,6 +154,7 @@ export const conversations = pgTable(
       onDelete: "cascade",
     }),
     channelId: text("channel_id"),
+    icon: text("icon").notNull().default(""),
     name: text("name").notNull().default(""),
     description: text("description").notNull().default(""),
     categoryId: text("category_id").references(() => categories.id),
@@ -205,6 +206,12 @@ export const messages = pgTable(
       t.id,
     ),
     index("message_parent_idx").on(t.parentId),
+    index("message_search_idx")
+      .using("gin", sql`to_tsvector('simple', ${t.content})`)
+      .where(sql`${t.deletedAt} is null`),
+    index("message_unread_idx")
+      .on(t.conversationId, t.createdAt, t.authorId)
+      .where(sql`${t.deletedAt} is null`),
   ],
 );
 export const reactions = pgTable(
@@ -270,7 +277,10 @@ export const friendships = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     accepted: boolean("accepted").notNull().default(false),
   },
-  (t) => [primaryKey({ columns: [t.senderId, t.recipientId] })],
+  (t) => [
+    primaryKey({ columns: [t.senderId, t.recipientId] }),
+    index("friendship_recipient_idx").on(t.recipientId),
+  ],
 );
 export const blocks = pgTable(
   "blocked_users",
@@ -282,7 +292,10 @@ export const blocks = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.targetId] })],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.targetId] }),
+    index("blocked_target_idx").on(t.targetId),
+  ],
 );
 export const readStates = pgTable(
   "conversation_read_states",
@@ -354,6 +367,45 @@ export const avatars = pgTable(
     index("avatars_uploader_idx").on(t.uploaderId),
     uniqueIndex("avatars_active_user_idx")
       .on(t.uploaderId)
+      .where(sql`${t.status} = 'active'`),
+  ],
+);
+
+// Better Auth can load a session and its user in one authorized query.
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+}));
+export const sessionRelations = relations(session, ({ one }) => ({
+  user: one(user, { fields: [session.userId], references: [user.id] }),
+}));
+export const accountRelations = relations(account, ({ one }) => ({
+  user: one(user, { fields: [account.userId], references: [user.id] }),
+}));
+
+export const communityIcons = pgTable(
+  "community_icons",
+  {
+    id: text("id").primaryKey(),
+    uploaderId: text("uploader_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    communityId: text("community_id").references(() => communities.id, {
+      onDelete: "set null",
+    }),
+    path: text("path").notNull().unique(),
+    uploadId: text("upload_id"),
+    contentType: text("content_type").notNull(),
+    byteSize: integer("byte_size").notNull(),
+    status: text("status", { enum: ["pending", "ready", "active", "deleted"] })
+      .notNull()
+      .default("pending"),
+    createdAt: time("created_at"),
+  },
+  (t) => [
+    index("community_icons_uploader_idx").on(t.uploaderId),
+    uniqueIndex("community_icons_active_idx")
+      .on(t.communityId)
       .where(sql`${t.status} = 'active'`),
   ],
 );
