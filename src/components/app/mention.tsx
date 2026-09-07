@@ -15,7 +15,7 @@ import {
   useRole,
 } from "@floating-ui/react";
 import type { MentionTarget } from "../../lib/mentions";
-import type { Channel } from "../../lib/demo-data";
+import type { Channel } from "../../types/app";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, PersonAvatar } from "./primitives";
 import { WorkspacePortal } from "./floating-panel";
