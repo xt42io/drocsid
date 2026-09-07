@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import { incomingMessageRequests } from "../../lib/direct-messages";
+import {
+  incomingMessageRequests,
+  dmMessagingBlocked,
+} from "../../lib/direct-messages";
 import { AppIcon, EmptyState, PageHeading, PersonAvatar } from "./primitives";
 
 export function MessageRequestActions({
@@ -11,7 +14,7 @@ export function MessageRequestActions({
   personId: string;
   openOnAccept?: boolean;
 }) {
-  const { command } = useApp();
+  const { command, state } = useApp();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   async function respond(operation: "accept" | "decline" | "block") {
@@ -30,6 +33,12 @@ export function MessageRequestActions({
       setBusy(false);
     }
   }
+  if (dmMessagingBlocked(state, personId))
+    return (
+      <p className="text-sm text-(--a-muted)">
+        You can read this request, but messaging is unavailable.
+      </p>
+    );
   return (
     <div
       className="flex flex-wrap items-center gap-2"
