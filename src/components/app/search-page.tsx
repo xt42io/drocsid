@@ -4,6 +4,8 @@ import { useApp } from "../../lib/app-state";
 import { conversationLabel } from "../../lib/demo-data";
 import { AppIcon, EmptyState, PageHeading, PersonAvatar } from "./primitives";
 import { ConversationLink } from "./conversation";
+import { api } from "../../lib/api-client";
+import type { Message } from "../../lib/demo-data";
 
 export function SearchPage({ initialQuery }: { initialQuery: string }) {
   const { state, findPerson, setModal } = useApp();
@@ -13,19 +15,40 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
   useEffect(() => setQuery(initialQuery), [initialQuery]);
   const q = query.trim().toLowerCase();
   const joined = state.communities.filter((c) => c.joined);
-  const messages = q
-    ? state.messages.filter((message) => {
-        const [c, channel] = message.conversation.split(":");
-        if (c !== "dm" && !joined.some((community) => community.id === c))
-          return false;
-        if (c === "dm" && state.blocked.includes(channel)) return false;
-        return q.startsWith("#")
-          ? message.conversation.split(":")[1].includes(q.slice(1))
-          : `${message.text} ${findPerson(message.author).name}`
-              .toLowerCase()
-              .includes(q);
-      })
-    : [];
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!q) {
+      setMessages([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const timer = setTimeout(() => {
+      void api<{ messages: Message[] }>(
+        `/api/messages?q=${encodeURIComponent(q)}`,
+        undefined,
+        controller.signal,
+      )
+        .then((result) => {
+          setMessages(result.messages);
+          setSearchError("");
+        })
+        .catch((error) => {
+          if (!controller.signal.aborted)
+            setSearchError(error.message || "Could not search messages.");
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setSearching(false);
+        });
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [q]);
   const people = q
     ? state.people.filter((p) =>
         `${p.name} ${p.handle}`.toLowerCase().includes(q.replace(/^@/, "")),
@@ -123,6 +146,8 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
               </button>
             ))}
           </div>
+          {searchError && <p role="alert">{searchError}</p>}
+          {searching && <p role="status">Searching…</p>}
           <div className="a-list-caption">
             {tabs.find((t) => t.id === tab)?.count} RESULTS FOR “{query}”
           </div>
