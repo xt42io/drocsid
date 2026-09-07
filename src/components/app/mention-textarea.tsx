@@ -19,7 +19,7 @@ import {
   searchMentions,
 } from "../../lib/mentions";
 import type { ComposerQuery, MentionTarget } from "../../lib/mentions";
-import type { Channel } from "../../lib/demo-data";
+import type { Channel } from "../../types/app";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, PersonAvatar } from "./primitives";
 import { WorkspacePortal } from "./floating-panel";
@@ -192,7 +192,10 @@ export function MentionTextarea({
           updateQuery(event.currentTarget);
         }}
         onSelect={(event) => updateQuery(event.currentTarget)}
-        onBlur={() => setQuery(null)}
+        onBlur={(event) => {
+          setQuery(null);
+          props.onBlur?.(event);
+        }}
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing) return;
           if (query) {
