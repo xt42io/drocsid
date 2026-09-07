@@ -1,3 +1,5 @@
+import { CommunityIcon } from "./community-icon";
+import { useDirectory } from "../../lib/use-directory";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
@@ -20,7 +22,7 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
   const [searchError, setSearchError] = useState("");
   useEffect(() => {
     const controller = new AbortController();
-    if (!q) {
+    if (!q || tab !== "messages") {
       setMessages([]);
       setSearching(false);
       return;
@@ -48,12 +50,15 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [q]);
-  const people = q
-    ? state.people.filter((p) =>
-        `${p.name} ${p.handle}`.toLowerCase().includes(q.replace(/^@/, "")),
-      )
-    : [];
+  }, [q, tab]);
+  const directory = useDirectory(
+    "people",
+    q,
+    undefined,
+    undefined,
+    tab === "people",
+  );
+  const people = directory.people ?? [];
   const channels = q
     ? joined
         .flatMap((c) =>
@@ -166,8 +171,10 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
               </button>
             ))}
           </div>
-          {searchError && <p role="alert">{searchError}</p>}
-          {searching && <p role="status">Searching…</p>}
+          {(searchError || directory.error) && (
+            <p role="alert">{searchError || directory.error}</p>
+          )}
+          {(searching || directory.loading) && <p role="status">Searching…</p>}
           <div
             data-ui="a-list-caption"
             className="font-mono text-(--a-muted) text-[9px] tracking-[0.75px] mb-3.5"
@@ -210,6 +217,15 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
           )}
           {tab === "people" && (
             <div data-ui="a-search-results" className="">
+              {directory.hasMore && (
+                <button
+                  className="rounded-md border border-(--a-border) px-4 py-2 text-sm"
+                  disabled={directory.loading}
+                  onClick={directory.more}
+                >
+                  Load more people
+                </button>
+              )}
               {people.map((person) => (
                 <button
                   data-ui="a-search-person"
@@ -243,7 +259,7 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
                     data-ui={`a-community-icon tone-${community.color}`}
                     className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
                   >
-                    <AppIcon name={community.icon} size={24} />
+                    <CommunityIcon community={community} size={24} />
                   </span>
                   <span>
                     <strong>
