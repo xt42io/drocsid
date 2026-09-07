@@ -152,7 +152,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
     >
       <aside
         data-ui="auth-story"
-        className="relative w-[44%] shrink-0 bg-[#f3653f] pt-10.5 pb-8.5 px-12 flex flex-col text-[#44261d] overflow-hidden **:data-[ui~=logo]:[--logo-eyes:#f3653f] **:data-[ui~=logo-period]:text-[#ffe4c8] [&_h1]:text-[clamp(49px,4.8vw,75px)] [&_h1]:leading-[1.06] [&_h1]:tracking-[-0.065em] [&_h1]:font-[550] [&_h1]:mt-5.25 [&_h1]:mb-6.5 [&_h1]:mx-0 [&_h1_em]:text-[#ffebd3] [&_h1_em]:not-italic min-[1600px]:px-17.5 min-[1600px]:[&_h1]:text-[80px] max-[1100px]:px-8.5 max-[1100px]:[&_h1]:text-[58px] max-[800px]:w-[41%] max-[800px]:px-6 max-[800px]:[&_h1]:text-[45px] max-[580px]:w-full max-[580px]:p-6 max-[580px]:**:data-[ui~=logo]:text-[26px] max-[580px]:[&_h1]:text-[45px] max-[580px]:[&_h1]:mt-2.75 max-[580px]:[&_h1]:mb-0 max-[580px]:[&_h1]:mx-0 max-[580px]:[&_h1]:leading-none max-[580px]:[&_h1_em]:whitespace-nowrap"
+        className="relative w-[44%] shrink-0 bg-[#f3653f] pt-10.5 pb-8.5 px-12 flex flex-col text-[#44261d] overflow-hidden **:data-[ui~=logo-period]:text-[#ffe4c8] [&_h1]:text-[clamp(49px,4.8vw,75px)] [&_h1]:leading-[1.06] [&_h1]:tracking-[-0.065em] [&_h1]:font-[550] [&_h1]:mt-5.25 [&_h1]:mb-6.5 [&_h1]:mx-0 [&_h1_em]:text-[#ffebd3] [&_h1_em]:not-italic min-[1600px]:px-17.5 min-[1600px]:[&_h1]:text-[80px] max-[1100px]:px-8.5 max-[1100px]:[&_h1]:text-[58px] max-[800px]:w-[41%] max-[800px]:px-6 max-[800px]:[&_h1]:text-[45px] max-[580px]:w-full max-[580px]:p-6 max-[580px]:**:data-[ui~=logo]:text-[26px] max-[580px]:[&_h1]:text-[45px] max-[580px]:[&_h1]:mt-2.75 max-[580px]:[&_h1]:mb-0 max-[580px]:[&_h1]:mx-0 max-[580px]:[&_h1]:leading-none max-[580px]:[&_h1_em]:whitespace-nowrap"
       >
         <Logo />
         <div
