@@ -171,7 +171,7 @@ export function ChatPreview() {
         >
           <div
             data-ui="rail-home"
-            className="text-[#555e43] h-8.5 **:data-[ui~=logo-mark]:[--logo-eyes:#e8ebdf] **:data-[ui~=logo-mark]:size-7.25"
+            className="text-[#555e43] h-8.5 **:data-[ui~=logo-mark]:size-7.25"
           >
             <LogoMark />
           </div>
