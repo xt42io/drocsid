@@ -1303,7 +1303,10 @@ test("channel writes commit in one query, preserve permissions and notify only c
   try {
     const result = await putChannel(measured, "owner", input);
     assert.equal(calls, 1);
-    assert.deepEqual(result, { communityId: room, channel: input.channel });
+    assert.deepEqual(result, {
+      communityId: room,
+      channel: { ...input.channel, icon: "", hasMessages: false },
+    });
     assert.deepEqual(
       events
         .filter((e) => e.type === "invalidate")
@@ -1470,5 +1473,264 @@ test("channel writes commit in one query, preserve permissions and notify only c
       .delete(schema.limits)
       .where(eq(schema.limits.key, "actions:owner"));
     await unlisten();
+  }
+});
+
+test("channel icons persist through creation and edits; a first message permanently dismisses setup", async () => {
+  const { putChannel } = await import("../src/server/channels");
+  const room = await community();
+  const channel = {
+    id: "icon-room",
+    name: "icon-room",
+    group: "CHAT",
+    description: "",
+    icon: "🌻",
+  };
+  const created = await putChannel(db, "owner", {
+    type: "channel.put",
+    communityId: room,
+    channel,
+  });
+  assert.equal(created.channel.icon, "🌻");
+  assert.equal(created.channel.hasMessages, false);
+  const read = async () =>
+    (await snapshot(db, viewers[0], 0)).communities
+      .find((c) => c.id === room)!
+      .channels.find((c) => c.id === channel.id)!;
+  assert.equal((await read()).icon, "🌻");
+  await putChannel(db, "owner", {
+    type: "channel.put",
+    communityId: room,
+    channel: { ...channel, icon: "👩🏽‍💻" },
+  });
+  assert.equal((await read()).icon, "👩🏽‍💻");
+  for (const icon of ["🌻", "👩🏽‍💻", "🇳🇬", "1️⃣", ""])
+    assert.ok(
+      actionSchema.safeParse({
+        type: "channel.put",
+        communityId: room,
+        channel: { ...channel, icon },
+      }).success,
+    );
+  assert.equal(
+    actionSchema.safeParse({
+      type: "channel.put",
+      communityId: room,
+      channel: { ...channel, icon: "https://example.com" },
+    }).success,
+    false,
+  );
+  const id = crypto.randomUUID();
+  await send(db, "owner", {
+    type: "message.send",
+    id,
+    conversation: `${room}:${channel.id}`,
+    text: "Hello",
+    attachments: [],
+  });
+  assert.equal((await read()).hasMessages, true);
+  await action("owner", { type: "message.delete", id });
+  assert.equal(
+    (await read()).hasMessages,
+    true,
+    "Deleting the first message must not bring setup back",
+  );
+  await putChannel(db, "owner", {
+    type: "channel.put",
+    communityId: room,
+    channel: { ...channel, icon: "" },
+  });
+  assert.equal((await read()).icon, "");
+});
+
+test("Byteship community icons bind on successful creation, enforce manager access, replace and remove", async () => {
+  const {
+    prepareCommunityIcon,
+    completeCommunityIcon,
+    discardCommunityIcon,
+    removeCommunityIcon,
+    communityIconResponse,
+  } = await import("../src/server/community-icons");
+  const { directory } = await import("../src/server/directory");
+  let content = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const storage = {
+    async createFileUpload(path: string, input: { visibility: string }) {
+      assert.ok(path.startsWith("community-icons/"));
+      assert.equal(input.visibility, "private");
+      return {
+        upload: {
+          id: "upload",
+          url: "https://storage.example.test/put",
+          headers: {},
+        },
+      };
+    },
+    async completePathUpload() {},
+    async getFile() {
+      return { file: { status: "ready", visibility: "private", byteSize: 0 } };
+    },
+    async createSignedUrl() {
+      return { signedUrl: { url: "https://storage.example.test/icon" } };
+    },
+  } as unknown as Parameters<typeof prepareCommunityIcon>[3];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(content);
+  try {
+    const image = { contentType: "image/png" as const, byteSize: 8 };
+    const draft = await prepareCommunityIcon(db, "owner", image, storage);
+    await assert.rejects(
+      () => completeCommunityIcon(db, "member", draft.id, storage),
+      /not found/,
+    );
+    await assert.rejects(
+      () => communityIconResponse(db, draft.id, storage),
+      /not found/,
+    );
+    await completeCommunityIcon(db, "owner", draft.id, storage);
+    await assert.rejects(
+      () => communityIconResponse(db, draft.id, storage),
+      /not found/,
+      "A ready unbound icon is never publicly served",
+    );
+    const id = crypto.randomUUID();
+    const create = {
+      type: "community.create",
+      id,
+      iconUploadId: draft.id,
+      community: {
+        name: "Image community",
+        description: "",
+        icon: "",
+        color: "purple",
+        category: "Tests",
+      },
+      channels: [
+        { id: "general", name: "general", description: "", group: "CHAT" },
+      ],
+    };
+    await assert.rejects(() => action("member", create), /unavailable/);
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.communities)
+          .where(eq(schema.communities.id, id))
+      ).length,
+      0,
+      "Unauthorized icon binding rolls back the whole creation",
+    );
+    await action("owner", create);
+    const url = `/api/community-icons/${draft.id}`;
+    const read = async () =>
+      (await snapshot(db, viewers[0], 0)).communities.find((c) => c.id === id)!;
+    assert.equal((await read()).iconUrl, url);
+    assert.equal(
+      (
+        await directory(db, "outsider", {
+          kind: "communities",
+          query: "",
+          id,
+          offset: 0,
+        })
+      ).communities?.[0].iconUrl,
+      url,
+    );
+    await discardCommunityIcon(db, "owner", draft.id);
+    const response = await communityIconResponse(db, draft.id, storage);
+    assert.equal(response.headers.get("content-type"), "image/png");
+    assert.equal((await response.arrayBuffer()).byteLength, 8);
+    const conditional = new Request(`http://localhost${url}`, {
+      headers: { "If-None-Match": response.headers.get("etag")! },
+    });
+    assert.equal(
+      (
+        await communityIconResponse(
+          db,
+          draft.id,
+          storage,
+          undefined,
+          conditional,
+        )
+      ).status,
+      304,
+    );
+    await assert.rejects(
+      () =>
+        prepareCommunityIcon(
+          db,
+          "member",
+          { ...image, communityId: id },
+          storage,
+        ),
+      /owners and admins/,
+    );
+    await assert.rejects(
+      () => removeCommunityIcon(db, "outsider", id),
+      /owners and admins/,
+    );
+    const replacement = await prepareCommunityIcon(
+      db,
+      "owner",
+      { ...image, communityId: id },
+      storage,
+    );
+    await completeCommunityIcon(db, "owner", replacement.id, storage);
+    assert.equal(
+      (await read()).iconUrl,
+      `/api/community-icons/${replacement.id}`,
+    );
+    await assert.rejects(
+      () =>
+        communityIconResponse(db, draft.id, storage, undefined, conditional),
+      /not found/,
+      "Removed icons cannot return 304",
+    );
+    await removeCommunityIcon(db, "owner", id);
+    assert.equal((await read()).iconUrl, undefined);
+    await assert.rejects(
+      () => communityIconResponse(db, replacement.id, storage),
+      /not found/,
+    );
+    const invalid = await prepareCommunityIcon(db, "owner", image, storage);
+    content = new TextEncoder().encode("notimage");
+    await assert.rejects(
+      () => completeCommunityIcon(db, "owner", invalid.id, storage),
+      /Choose a PNG/,
+    );
+    await discardCommunityIcon(db, "owner", invalid.id);
+    await assert.rejects(
+      () => completeCommunityIcon(db, "owner", invalid.id, storage),
+      /not found/,
+    );
+    const pending = await prepareCommunityIcon(
+      db,
+      "owner",
+      { ...image, communityId: id },
+      storage,
+    );
+    await db
+      .update(schema.members)
+      .set({ role: "Member" })
+      .where(
+        and(
+          eq(schema.members.communityId, id),
+          eq(schema.members.userId, "owner"),
+        ),
+      );
+    await assert.rejects(
+      () => completeCommunityIcon(db, "owner", pending.id, storage),
+      /owners and admins/,
+      "Permissions are checked again on completion",
+    );
+    await assert.rejects(() =>
+      prepareCommunityIcon(
+        db,
+        "owner",
+        { ...image, byteSize: 6 * 1024 * 1024 },
+        storage,
+      ),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
   }
 });
