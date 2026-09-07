@@ -10,13 +10,23 @@ import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type {
   Attachment,
   Community,
-  DemoState,
+  AppState,
   Message,
   Person,
-} from "./demo-data";
+} from "../types/app";
 import { defaults, type Action } from "./contracts";
 import { api, ApiError } from "./api-client";
 import { stateActions } from "./state-actions";
+import {
+  reconcileMessages,
+  enqueueMessage,
+  replaceMessage,
+} from "./pending-messages";
+
+import { AttachmentPreviews } from "./attachment-previews";
+import { RealtimeClient } from "./realtime-client";
+import { applyLiveMessage, applyLiveRead } from "./live-state";
+import type { MessageUpdate, Room, TypingPerson } from "./realtime-protocol";
 
 export type ModalState =
   | { type: "create-community" | "new-message" | "add-friend" | "help" }
@@ -31,7 +41,7 @@ export type ModalState =
       action: () => void;
     }
   | null;
-const empty: DemoState = {
+const empty: AppState = {
   version: 1,
   profile: {
     id: "you",
@@ -57,9 +67,13 @@ const empty: DemoState = {
   onboardingComplete: false,
 };
 type AppContextValue = {
-  state: DemoState;
-  setState: (next: SetStateAction<DemoState>) => Promise<boolean>;
+  state: AppState;
+  attachmentPreviews: AttachmentPreviews;
+  setState: (next: SetStateAction<AppState>) => Promise<boolean>;
   ready: boolean;
+  typingPeople: TypingPerson[];
+  observeRoom: (room: Room) => () => void;
+  setTyping: (room: Room, active: boolean) => void;
   refresh: () => Promise<void>;
   modal: ModalState;
   setModal: Dispatch<SetStateAction<ModalState>>;
@@ -72,6 +86,7 @@ type AppContextValue = {
     threadOf?: string,
     attachments?: Attachment[],
   ) => Promise<boolean>;
+  retryMessage: (messageId: string) => Promise<boolean>;
   react: (messageId: string, emoji: string) => void;
   updateMessage: (
     messageId: string,
@@ -89,10 +104,32 @@ type AppContextValue = {
 };
 const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, renderState] = useState<DemoState>(empty);
+  const [state, renderState] = useState<AppState>(empty);
+  const [attachmentPreviews] = useState(() => new AttachmentPreviews());
+  useEffect(() => () => attachmentPreviews.clear(), [attachmentPreviews]);
+  useEffect(() => {
+    attachmentPreviews.prune(
+      new Set(
+        state.messages.flatMap((message) =>
+          (message.attachments ?? [])
+            .filter((file) => file.contentType.startsWith("image/"))
+            .map((file) => file.id),
+        ),
+      ),
+    );
+  }, [attachmentPreviews, state.messages]);
   const current = useRef(state);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
+  const [connected, setConnected] = useState(false);
+  const [typingPeople, setTypingPeople] = useState<TypingPerson[]>([]);
+  const realtime = useRef<RealtimeClient | null>(null);
+  const liveMessages = useRef(new Map<string, MessageUpdate>());
+  const livePresence = useRef(new Map<string, Person["status"]>());
+  const liveReads = useRef(new Map<string, string>());
+  const receivedAt = useRef(new Map<string, number>());
+  const messageRevision = useRef(0);
+  const needsRefresh = useRef(false);
   const [modal, setModal] = useState<ModalState>(null);
   const [toast, setToast] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -100,36 +137,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const pending = useRef(0);
   const active = useRef(true);
   const refreshing = useRef<Promise<void> | null>(null);
+  const localMessages = useRef(new Map<string, Message>());
   const historyLimit = useRef(500);
   const version = useRef(0);
-  const failedMessages = useRef(
-    new Map<string, { fingerprint: string; id: string }>(),
-  );
+  const inFlightMessages = useRef(new Set<string>());
   const notify = useCallback((message: string) => {
     setToast(message);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(""), 5000);
   }, []);
-  const apply = useCallback((next: DemoState) => {
+  const apply = useCallback((next: AppState) => {
     current.current = next;
     renderState(next);
   }, []);
   const refresh = useCallback(
     async function refreshState(): Promise<void> {
-      if (!active.current || pending.current) return;
+      if (!active.current) return;
+      if (pending.current) {
+        needsRefresh.current = true;
+        return;
+      }
       if (refreshing.current) {
         await refreshing.current;
         return refreshState();
       }
+      needsRefresh.current = false;
+      liveMessages.current.clear();
+      liveReads.current.clear();
       const started = version.current;
       const task = (async () => {
         try {
-          const next = await api<DemoState>(
+          const next = await api<AppState>(
             `/api/app?limit=${historyLimit.current}`,
           );
-          if (!active.current || pending.current || started !== version.current)
+          if (!active.current) return;
+          if (pending.current || started !== version.current) {
+            needsRefresh.current = true;
             return;
-          apply({ ...next, drafts: current.current.drafts });
+          }
+          let merged = {
+            ...next,
+            messages: reconcileMessages(next.messages, localMessages.current),
+            drafts: current.current.drafts,
+          };
+          for (const update of liveMessages.current.values())
+            merged = applyLiveMessage(merged, update);
+          for (const [conversation, through] of liveReads.current)
+            merged = applyLiveRead(merged, conversation, through);
+          merged.people = merged.people.map((p) => ({
+            ...p,
+            status: livePresence.current.get(p.id) ?? p.status,
+          }));
+          apply(merged);
           setReady(true);
           setError("");
         } catch (e) {
@@ -143,6 +202,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setError(e instanceof Error ? e.message : "Could not connect.");
         } finally {
           refreshing.current = null;
+          if (needsRefresh.current && !pending.current && active.current)
+            queueMicrotask(() => {
+              void refreshState();
+            });
         }
       })();
       refreshing.current = task;
@@ -152,41 +215,116 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   useEffect(() => {
     active.current = true;
-    void refresh();
-    const source = new EventSource("/api/events");
-    source.onmessage = () => {
-      void refresh();
+    const bootstrapFallback = setTimeout(() => {
+      if (!realtime.current?.isConnected) void refresh();
+    }, 5000);
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefresh = () => {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        void refresh();
+      }, 100);
     };
-    const poll = setInterval(() => {
-      if (document.visibilityState === "visible") void refresh();
-    }, 15000);
+    const client = new RealtimeClient(
+      (frame) => {
+        if (frame.type === "message") {
+          receivedAt.current.set(frame.id, ++messageRevision.current);
+          liveMessages.current.set(frame.id, frame);
+          localMessages.current.delete(frame.id);
+          apply(applyLiveMessage(current.current, frame));
+        } else if (frame.type === "read") {
+          liveReads.current.set(frame.conversation, frame.through);
+          apply(
+            applyLiveRead(current.current, frame.conversation, frame.through),
+          );
+        } else if (frame.type === "typing") setTypingPeople(frame.people);
+        else if (frame.type === "presence") {
+          livePresence.current.set(frame.userId, frame.status);
+          // Keep the viewer's chosen status; their connection does not edit that preference.
+          apply({
+            ...current.current,
+            people: current.current.people.map((p) =>
+              p.id === frame.userId ? { ...p, status: frame.status } : p,
+            ),
+          });
+        } else if (frame.type === "invalidate") scheduleRefresh();
+      },
+      (online) => {
+        setConnected(online);
+        if (online) scheduleRefresh();
+        else {
+          setTypingPeople([]);
+          livePresence.current.clear();
+        }
+      },
+    );
+    realtime.current = client;
+    client.start();
+    // Expire typing locally too, including suspended tabs and lost stop packets.
+    const expiry = setInterval(
+      () =>
+        setTypingPeople((previous) =>
+          previous.some((p) => p.expiresAt <= Date.now())
+            ? previous.filter((p) => p.expiresAt > Date.now())
+            : previous,
+        ),
+      1000,
+    );
     const focus = () => {
-      void refresh();
+      if (!client.isConnected) void refresh();
     };
     window.addEventListener("focus", focus);
     return () => {
       active.current = false;
-      source.close();
-      clearInterval(poll);
+      realtime.current = null;
+      client.close();
+      clearInterval(expiry);
+      clearTimeout(bootstrapFallback);
+      clearTimeout(refreshTimer);
       clearTimeout(timer.current);
       window.removeEventListener("focus", focus);
     };
-  }, [refresh]);
+  }, [apply, refresh]);
+  const observeRoom = useCallback(
+    (room: Room) => realtime.current?.observe(room) ?? (() => {}),
+    [],
+  );
+  const setTyping = useCallback((room: Room, typing: boolean) => {
+    realtime.current?.setTyping(room, typing);
+  }, []);
+
   const execute = useCallback(
     (actions: Action[]) => {
       if (!actions.length) return Promise.resolve(true);
       pending.current++;
       version.current++;
       const job = queue.current.then(async () => {
+        let failed = false;
         try {
           await api("/api/app", actions);
           return true;
         } catch (e) {
+          failed = true;
           notify(e instanceof Error ? e.message : "Could not save changes.");
           return false;
         } finally {
           pending.current--;
-          if (!pending.current) await refresh();
+          const hasDelta = actions.every((a) =>
+            [
+              "message.update",
+              "message.delete",
+              "reaction",
+              "conversation.read",
+            ].includes(a.type),
+          );
+          if (
+            !pending.current &&
+            (failed ||
+              needsRefresh.current ||
+              !hasDelta ||
+              !realtime.current?.isConnected)
+          )
+            await refresh();
         }
       });
       queue.current = job;
@@ -195,7 +333,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [notify, refresh],
   );
   const setState = useCallback(
-    (updater: SetStateAction<DemoState>) => {
+    (updater: SetStateAction<AppState>) => {
       const previous = current.current;
       const next = typeof updater === "function" ? updater(previous) : updater;
       const actions = stateActions(previous, next);
@@ -223,15 +361,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...(before ? { before } : {}),
           ...(target ? { target } : {}),
         });
+        const started = messageRevision.current;
         const page = await api<{ messages: Message[]; hasMore: boolean }>(
           `/api/messages?${params}`,
         );
         const merged = [
           ...new Map(
-            [...current.current.messages, ...page.messages].map((m) => [
-              m.id,
-              m,
-            ]),
+            [
+              ...current.current.messages,
+              ...page.messages.filter(
+                (m) => (receivedAt.current.get(m.id) ?? 0) <= started,
+              ),
+            ].map((m) => [m.id, m]),
           ).values(),
         ].sort(
           (a, b) =>
@@ -254,31 +395,91 @@ export function AppProvider({ children }: { children: ReactNode }) {
     attachments: Attachment[] = [],
   ) {
     if (!text.trim() && !attachments.length) return false;
-    const draftKey = threadOf ? `thread:${threadOf}` : conversation;
-    const fingerprint = JSON.stringify([
-      text.trim(),
-      attachments.map((a) => a.id),
-    ]);
-    const old = failedMessages.current.get(draftKey);
-    const id = old?.fingerprint === fingerprint ? old.id : crypto.randomUUID();
-    failedMessages.current.set(draftKey, { fingerprint, id });
-    const ok = await command({
-      type: "message.send",
+    const id = crypto.randomUUID();
+    const optimistic: Message = {
       id,
       conversation,
+      author: "you",
       text: text.trim(),
       threadOf,
-      attachments: attachments.map((a) => a.id),
-    });
-    if (ok) {
-      failedMessages.current.delete(draftKey);
-      if (current.current.drafts[draftKey] === text)
-        apply({
-          ...current.current,
-          drafts: { ...current.current.drafts, [draftKey]: "" },
-        });
+      attachments,
+      reactions: [],
+      time: "",
+      createdAt: new Date().toISOString(),
+      sending: true,
+    };
+    localMessages.current.set(id, optimistic);
+    apply(enqueueMessage(current.current, optimistic));
+    return deliverMessage(optimistic);
+  }
+  async function retryMessage(id: string) {
+    const failed = localMessages.current.get(id);
+    if (!failed?.sendError || inFlightMessages.current.has(id)) return false;
+    const message = { ...failed, sending: true, sendError: undefined };
+    localMessages.current.set(id, message);
+    apply(replaceMessage(current.current, id, message));
+    return deliverMessage(message);
+  }
+  async function deliverMessage(message: Message) {
+    const { id, conversation, text, threadOf, attachments = [] } = message;
+    inFlightMessages.current.add(id);
+    pending.current++;
+    version.current++;
+    try {
+      const action: Extract<Action, { type: "message.send" }> = {
+        type: "message.send",
+        id,
+        conversation,
+        text: text.trim(),
+        threadOf,
+        attachments: attachments.map((a) => a.id),
+      };
+      let result: { message: Message | null };
+      try {
+        if (!realtime.current?.isConnected)
+          throw new ApiError(0, "Not connected.");
+        result = await realtime.current.send(action);
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 0) throw error;
+        // An uncertain socket acknowledgement retries the same idempotency key.
+        result = await api<{ message: Message | null }>(
+          "/api/messages",
+          action,
+        );
+      }
+      const live = liveMessages.current.get(id);
+      const confirmed = live ? live.message : result.message;
+      if (confirmed && !live) localMessages.current.set(id, confirmed);
+      else localMessages.current.delete(id);
+      receivedAt.current.set(id, ++messageRevision.current);
+      apply(replaceMessage(current.current, id, confirmed));
+      return true;
+    } catch (e) {
+      // A committed broadcast can arrive even when its acknowledgement is lost.
+      if (
+        current.current.messages.some(
+          (m) => m.id === id && !m.sending && !m.sendError,
+        )
+      )
+        return true;
+      const failed = {
+        ...message,
+        sending: false,
+        sendError:
+          e instanceof Error ? e.message : "Message not sent. Please retry.",
+      };
+      localMessages.current.set(id, failed);
+      apply(replaceMessage(current.current, id, failed));
+      return false;
+    } finally {
+      inFlightMessages.current.delete(id);
+      pending.current--;
+      if (
+        !pending.current &&
+        (needsRefresh.current || !realtime.current?.isConnected)
+      )
+        void refresh();
     }
-    return ok;
   }
   function findPerson(id: string): Person {
     return id === "you"
@@ -318,8 +519,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         state,
+        attachmentPreviews,
         setState,
         ready,
+        typingPeople,
+        observeRoom,
+        setTyping,
         refresh,
         modal,
         setModal,
@@ -327,6 +532,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         notify,
         findPerson,
         sendMessage,
+        retryMessage,
         command,
         loadMessages,
         react: (id, emoji) => {
@@ -351,9 +557,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         },
       }}
     >
-      {error && (
+      {(error || !connected) && (
         <div role="status" className="a-connection-status">
-          Connection interrupted. Retrying…
+          Reconnecting to live chat…
         </div>
       )}
       {children}
