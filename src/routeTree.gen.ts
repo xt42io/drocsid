@@ -17,6 +17,8 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as ApiAppRouteImport } from './routes/api.app'
 import { Route as ApiAvatarsRouteImport } from './routes/api.avatars'
+import { Route as ApiCommunityIconsRouteImport } from './routes/api.community-icons'
+import { Route as ApiDirectoryRouteImport } from './routes/api.directory'
 import { Route as ApiMessagesRouteImport } from './routes/api.messages'
 import { Route as ApiReactionsRouteImport } from './routes/api.reactions'
 import { Route as ApiSessionRouteImport } from './routes/api.session'
@@ -30,9 +32,11 @@ import { Route as AppSavedRouteImport } from './routes/app.saved'
 import { Route as AppSearchRouteImport } from './routes/app.search'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppWelcomeRouteImport } from './routes/app.welcome'
+import { Route as ApiAppSyncRouteImport } from './routes/api.app.sync'
 import { Route as ApiAttachmentsIdRouteImport } from './routes/api.attachments.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
 import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
+import { Route as ApiCommunityIconsIdRouteImport } from './routes/api.community-icons.$id'
 import { Route as AppDmPersonIdRouteImport } from './routes/app.dm.$personId'
 import { Route as AppInviteCommunityIdRouteImport } from './routes/app.invite.$communityId'
 import { Route as AppCommunityCommunityIdChannelIdRouteImport } from './routes/app.community.$communityId.$channelId'
@@ -76,6 +80,16 @@ const ApiAppRoute = ApiAppRouteImport.update({
 const ApiAvatarsRoute = ApiAvatarsRouteImport.update({
   id: '/api/avatars',
   path: '/api/avatars',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCommunityIconsRoute = ApiCommunityIconsRouteImport.update({
+  id: '/api/community-icons',
+  path: '/api/community-icons',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDirectoryRoute = ApiDirectoryRouteImport.update({
+  id: '/api/directory',
+  path: '/api/directory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMessagesRoute = ApiMessagesRouteImport.update({
@@ -143,6 +157,11 @@ const AppWelcomeRoute = AppWelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiAppSyncRoute = ApiAppSyncRouteImport.update({
+  id: '/sync',
+  path: '/sync',
+  getParentRoute: () => ApiAppRoute,
+} as any)
 const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
   id: '/api/attachments/$id',
   path: '/api/attachments/$id',
@@ -157,6 +176,11 @@ const ApiAvatarsIdRoute = ApiAvatarsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => ApiAvatarsRoute,
+} as any)
+const ApiCommunityIconsIdRoute = ApiCommunityIconsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiCommunityIconsRoute,
 } as any)
 const AppDmPersonIdRoute = AppDmPersonIdRouteImport.update({
   id: '/dm/$personId',
@@ -188,8 +212,10 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/api/app': typeof ApiAppRoute
+  '/api/app': typeof ApiAppRouteWithChildren
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
+  '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
+  '/api/directory': typeof ApiDirectoryRoute
   '/api/messages': typeof ApiMessagesRoute
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
@@ -203,9 +229,11 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
   '/app/': typeof AppIndexRoute
+  '/api/app/sync': typeof ApiAppSyncRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
   '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
@@ -217,8 +245,10 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/api/app': typeof ApiAppRoute
+  '/api/app': typeof ApiAppRouteWithChildren
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
+  '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
+  '/api/directory': typeof ApiDirectoryRoute
   '/api/messages': typeof ApiMessagesRoute
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
@@ -232,9 +262,11 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
   '/app': typeof AppIndexRoute
+  '/api/app/sync': typeof ApiAppSyncRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
   '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
@@ -248,8 +280,10 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/api/app': typeof ApiAppRoute
+  '/api/app': typeof ApiAppRouteWithChildren
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
+  '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
+  '/api/directory': typeof ApiDirectoryRoute
   '/api/messages': typeof ApiMessagesRoute
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
@@ -263,9 +297,11 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
   '/app/': typeof AppIndexRoute
+  '/api/app/sync': typeof ApiAppSyncRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
   '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
@@ -282,6 +318,8 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/api/app'
     | '/api/avatars'
+    | '/api/community-icons'
+    | '/api/directory'
     | '/api/messages'
     | '/api/reactions'
     | '/api/session'
@@ -295,9 +333,11 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/welcome'
     | '/app/'
+    | '/api/app/sync'
     | '/api/attachments/$id'
     | '/api/auth/$'
     | '/api/avatars/$id'
+    | '/api/community-icons/$id'
     | '/app/dm/$personId'
     | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
@@ -311,6 +351,8 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/api/app'
     | '/api/avatars'
+    | '/api/community-icons'
+    | '/api/directory'
     | '/api/messages'
     | '/api/reactions'
     | '/api/session'
@@ -324,9 +366,11 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/welcome'
     | '/app'
+    | '/api/app/sync'
     | '/api/attachments/$id'
     | '/api/auth/$'
     | '/api/avatars/$id'
+    | '/api/community-icons/$id'
     | '/app/dm/$personId'
     | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
@@ -341,6 +385,8 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/api/app'
     | '/api/avatars'
+    | '/api/community-icons'
+    | '/api/directory'
     | '/api/messages'
     | '/api/reactions'
     | '/api/session'
@@ -354,9 +400,11 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/welcome'
     | '/app/'
+    | '/api/app/sync'
     | '/api/attachments/$id'
     | '/api/auth/$'
     | '/api/avatars/$id'
+    | '/api/community-icons/$id'
     | '/app/dm/$personId'
     | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
@@ -370,8 +418,10 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
-  ApiAppRoute: typeof ApiAppRoute
+  ApiAppRoute: typeof ApiAppRouteWithChildren
   ApiAvatarsRoute: typeof ApiAvatarsRouteWithChildren
+  ApiCommunityIconsRoute: typeof ApiCommunityIconsRouteWithChildren
+  ApiDirectoryRoute: typeof ApiDirectoryRoute
   ApiMessagesRoute: typeof ApiMessagesRoute
   ApiReactionsRoute: typeof ApiReactionsRoute
   ApiSessionRoute: typeof ApiSessionRoute
@@ -436,6 +486,20 @@ declare module '@tanstack/react-router' {
       path: '/api/avatars'
       fullPath: '/api/avatars'
       preLoaderRoute: typeof ApiAvatarsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/community-icons': {
+      id: '/api/community-icons'
+      path: '/api/community-icons'
+      fullPath: '/api/community-icons'
+      preLoaderRoute: typeof ApiCommunityIconsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/directory': {
+      id: '/api/directory'
+      path: '/api/directory'
+      fullPath: '/api/directory'
+      preLoaderRoute: typeof ApiDirectoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/messages': {
@@ -529,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWelcomeRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/app/sync': {
+      id: '/api/app/sync'
+      path: '/sync'
+      fullPath: '/api/app/sync'
+      preLoaderRoute: typeof ApiAppSyncRouteImport
+      parentRoute: typeof ApiAppRoute
+    }
     '/api/attachments/$id': {
       id: '/api/attachments/$id'
       path: '/api/attachments/$id'
@@ -549,6 +620,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/avatars/$id'
       preLoaderRoute: typeof ApiAvatarsIdRouteImport
       parentRoute: typeof ApiAvatarsRoute
+    }
+    '/api/community-icons/$id': {
+      id: '/api/community-icons/$id'
+      path: '/$id'
+      fullPath: '/api/community-icons/$id'
+      preLoaderRoute: typeof ApiCommunityIconsIdRouteImport
+      parentRoute: typeof ApiCommunityIconsRoute
     }
     '/app/dm/$personId': {
       id: '/app/dm/$personId'
@@ -615,6 +693,17 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiAppRouteChildren {
+  ApiAppSyncRoute: typeof ApiAppSyncRoute
+}
+
+const ApiAppRouteChildren: ApiAppRouteChildren = {
+  ApiAppSyncRoute: ApiAppSyncRoute,
+}
+
+const ApiAppRouteWithChildren =
+  ApiAppRoute._addFileChildren(ApiAppRouteChildren)
+
 interface ApiAvatarsRouteChildren {
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
 }
@@ -627,6 +716,17 @@ const ApiAvatarsRouteWithChildren = ApiAvatarsRoute._addFileChildren(
   ApiAvatarsRouteChildren,
 )
 
+interface ApiCommunityIconsRouteChildren {
+  ApiCommunityIconsIdRoute: typeof ApiCommunityIconsIdRoute
+}
+
+const ApiCommunityIconsRouteChildren: ApiCommunityIconsRouteChildren = {
+  ApiCommunityIconsIdRoute: ApiCommunityIconsIdRoute,
+}
+
+const ApiCommunityIconsRouteWithChildren =
+  ApiCommunityIconsRoute._addFileChildren(ApiCommunityIconsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -634,8 +734,10 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
-  ApiAppRoute: ApiAppRoute,
+  ApiAppRoute: ApiAppRouteWithChildren,
   ApiAvatarsRoute: ApiAvatarsRouteWithChildren,
+  ApiCommunityIconsRoute: ApiCommunityIconsRouteWithChildren,
+  ApiDirectoryRoute: ApiDirectoryRoute,
   ApiMessagesRoute: ApiMessagesRoute,
   ApiReactionsRoute: ApiReactionsRoute,
   ApiSessionRoute: ApiSessionRoute,
