@@ -1,3 +1,4 @@
+import { ChannelIcon } from "./channel-icons";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -21,7 +22,7 @@ import { AppIcon, PersonAvatar } from "./primitives";
 import { WorkspacePortal } from "./floating-panel";
 
 export function Mention({ target }: { target: MentionTarget }) {
-  const { setModal } = useApp();
+  const { setModal } = useApp((app) => ({ setModal: app.setModal }));
   const [open, setOpen] = useState(false);
   const { refs, floatingStyles, context } = useFloating({
     open,
@@ -214,7 +215,7 @@ export function ChannelMention({
                 data-ui="a-mention-group-heading"
                 className="flex items-center gap-2.75 [&>div]:flex-1 [&>div]:min-w-0 [&_strong]:block [&_strong]:text-[14px] [&_strong]:wrap-anywhere [&>div>span]:block [&>div>span]:mt-1 [&>div>span]:text-(--a-muted) [&>div>span]:text-[11px] [&>div>span]:wrap-anywhere"
               >
-                <AppIcon name={channel.private ? "lock" : "hash"} size={24} />
+                <ChannelIcon channel={channel} size={24} />
                 <div>
                   <strong>#{channel.name}</strong>
                   <span>{channel.group}</span>
