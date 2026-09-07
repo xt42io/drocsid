@@ -15,6 +15,7 @@ import {
   requireUser,
 } from "../server/http";
 import { takeLimit } from "../server/access";
+import { getPostHogClient } from "../lib/posthog-server";
 export const Route = createFileRoute("/api/uploads")({
   server: {
     handlers: {
@@ -31,13 +32,28 @@ export const Route = createFileRoute("/api/uploads")({
               z.object({ type: z.literal("discard"), id: z.uuid() }),
             ])
             .parse(await readJson(request));
-          return json(
+          const result =
             input.type === "prepare"
               ? await prepareUpload(db, viewer.id, input)
               : input.type === "discard"
                 ? await discardUpload(db, viewer.id, input.id)
-                : await completeUpload(db, viewer.id, input.id),
-          );
+                : await completeUpload(db, viewer.id, input.id);
+          if (input.type === "complete") {
+            const posthog = getPostHogClient();
+            if (posthog) {
+              const sessionId = request.headers.get("X-PostHog-Session-Id");
+              posthog.capture({
+                distinctId: viewer.id,
+                event: "file_uploaded",
+                properties: {
+                  $session_id: sessionId || undefined,
+                  upload_id: input.id,
+                },
+              });
+              await posthog.flush();
+            }
+          }
+          return json(result);
         }),
     },
   },
