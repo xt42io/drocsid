@@ -1,3 +1,4 @@
+import { sendMessage as send } from "../src/server/send-message";
 import {
   prepareAvatar,
   completeAvatar,
@@ -451,13 +452,14 @@ test("upload ownership, private visibility, actual bytes and message binding are
       /attachment/,
     );
     const messageId = crypto.randomUUID();
-    await action("owner", {
+    const delivered = await send(db, "owner", {
       type: "message.send",
       id: messageId,
       conversation: `${id}:general`,
       text: "",
       attachments: [upload.id],
     });
+    assert.equal(delivered.message?.attachments?.[0]?.id, upload.id);
     assert.equal(
       (await attachmentResponse(db, "member", upload.id, storage)).headers.get(
         "content-type",
@@ -685,4 +687,245 @@ test("onboarding can finish without joining a community, then create an owned co
   )!;
   assert.equal(created.joined, true);
   assert.equal(created.memberRoles?.you, "Owner");
+});
+
+test("fast message writes enforce access, retries and rate limits without full-state invalidation", async () => {
+  const room = await community();
+  await action("member", { type: "community.join", id: room });
+  const input = {
+    type: "message.send" as const,
+    id: crypto.randomUUID(),
+    conversation: `${room}:general`,
+    text: "Fast hello",
+    attachments: [],
+  };
+  const previousEvents = new Set(
+    (await db.select().from(schema.events)).map((e) => e.id),
+  );
+  const sent = await send(db, "owner", input);
+  assert.equal(sent.message?.text, "Fast hello");
+  assert.equal(sent.message?.author, "you");
+  const recipients = (await db.select().from(schema.events))
+    .filter((e) => !previousEvents.has(e.id))
+    .map((e) => e.userId)
+    .sort();
+  assert.deepEqual(recipients, []);
+
+  const eventCount = (await db.select().from(schema.events)).length;
+  assert.equal((await send(db, "owner", input)).message?.id, input.id);
+  assert.equal((await db.select().from(schema.events)).length, eventCount);
+  await assert.rejects(() => send(db, "member", input), /already in use/);
+  await assert.rejects(
+    () => send(db, "outsider", { ...input, id: crypto.randomUUID() }),
+    /access/,
+  );
+  await assert.rejects(
+    () =>
+      send(db, "member", {
+        ...input,
+        id: crypto.randomUUID(),
+        conversation: `${room}:private`,
+      }),
+    /access/,
+  );
+  const privateSend = await send(db, "owner", {
+    ...input,
+    id: crypto.randomUUID(),
+    conversation: `${room}:private`,
+  });
+  assert.ok(privateSend.message);
+  await action("owner", {
+    type: "channel.access",
+    conversation: `${room}:private`,
+    userId: "member",
+    allow: true,
+  });
+  assert.ok(
+    (
+      await send(db, "member", {
+        ...input,
+        id: crypto.randomUUID(),
+        conversation: `${room}:private`,
+      })
+    ).message,
+  );
+  await action("owner", { type: "message.delete", id: input.id });
+  assert.equal((await send(db, "owner", input)).message, null);
+  const fresh = { ...input, id: crypto.randomUUID() };
+  const retries = await Promise.all([
+    send(db, "owner", fresh),
+    send(db, "owner", fresh),
+  ]);
+  assert.equal(retries[0].message?.id, retries[1].message?.id);
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(schema.messages)
+        .where(eq(schema.messages.id, fresh.id))
+    ).length,
+    1,
+  );
+  const limitKey = "actions:owner";
+  await db
+    .update(schema.limits)
+    .set({ count: 120, windowStart: new Date() })
+    .where(eq(schema.limits.key, limitKey));
+  const limited = { ...input, id: crypto.randomUUID() };
+  await assert.rejects(() => send(db, "owner", limited), /too fast/);
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(schema.messages)
+        .where(eq(schema.messages.id, limited.id))
+    ).length,
+    0,
+  );
+  await db.delete(schema.limits).where(eq(schema.limits.key, limitKey));
+});
+
+test("dedicated send path handles replies, mentions and existing/new DMs", async () => {
+  const room = await community();
+  await action("member", { type: "community.join", id: room });
+  const base = {
+    type: "message.send" as const,
+    conversation: `${room}:general`,
+    attachments: [],
+  };
+  const parent = await send(db, "owner", {
+    ...base,
+    id: crypto.randomUUID(),
+    text: "Hello @everyone",
+  });
+  const reply = await send(db, "member", {
+    ...base,
+    id: crypto.randomUUID(),
+    text: "Reply",
+    threadOf: parent.message!.id,
+  });
+  assert.equal(reply.message?.threadOf, parent.message!.id);
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(schema.notifications)
+        .where(eq(schema.notifications.messageId, reply.message!.id))
+    ).length,
+    1,
+  );
+  await assert.rejects(
+    () =>
+      send(db, "member", { ...base, id: crypto.randomUUID(), text: "@admin" }),
+    /owners and admins/,
+  );
+  const dm = {
+    ...base,
+    conversation: "dm:member",
+    id: crypto.randomUUID(),
+    text: "New DM",
+  };
+  assert.ok((await send(db, "owner", dm)).message);
+  assert.ok(
+    (
+      await send(db, "owner", {
+        ...dm,
+        id: crypto.randomUUID(),
+        text: "Existing DM",
+      })
+    ).message,
+  );
+  await action("member", { type: "friend", id: "owner", operation: "block" });
+  await assert.rejects(
+    () => send(db, "owner", { ...dm, id: crypto.randomUUID() }),
+    /unavailable/,
+  );
+  await action("member", { type: "friend", id: "owner", operation: "unblock" });
+});
+
+test("live message projections reauthorize recipients and include edits, reactions, saves, files and tombstones", async () => {
+  const { liveMessage, authorizeRoom } =
+    await import("../src/server/realtime/data");
+  const room = await community();
+  await action("member", { type: "community.join", id: room });
+  const conversation = `${room}:general`;
+  const id = crypto.randomUUID();
+  await send(db, "owner", {
+    type: "message.send",
+    id,
+    conversation,
+    text: "Live hello",
+    attachments: [],
+  });
+  const frame = await liveMessage(db, "member", conversation, id);
+  assert.equal(frame?.message?.text, "Live hello");
+  assert.equal(frame?.message?.author, "owner");
+  assert.equal(frame?.person?.name, "owner");
+  assert.equal(await liveMessage(db, "outsider", conversation, id), null);
+  assert.equal(await liveMessage(db, "member", `${room}:private`, id), null);
+  await assert.rejects(
+    () => authorizeRoom(db, "member", { conversation, threadOf: "missing" }),
+    /unavailable/,
+  );
+  await action("member", { type: "reaction", id, emoji: "👍" });
+  await action("member", { type: "message.update", id, saved: true });
+  assert.deepEqual(
+    (await liveMessage(db, "member", conversation, id))?.message?.reactions,
+    [{ emoji: "👍", count: 1, mine: true }],
+  );
+  assert.equal(
+    (await liveMessage(db, "member", conversation, id))?.message?.saved,
+    true,
+  );
+  assert.equal(
+    (await liveMessage(db, "owner", conversation, id))?.message?.saved,
+    false,
+  );
+  await action("owner", { type: "message.update", id, text: "Edited live" });
+  assert.equal(
+    (await liveMessage(db, "member", conversation, id))?.message?.text,
+    "Edited live",
+  );
+  await action("owner", { type: "message.delete", id });
+  assert.equal(
+    (await liveMessage(db, "member", conversation, id))?.message,
+    null,
+  );
+  await action("member", { type: "community.leave", id: room });
+  assert.equal(await liveMessage(db, "member", conversation, id), null);
+});
+
+test("database notifications publish committed messages, never rolled-back writes or retries", async () => {
+  const room = await community();
+  const received: { type: string; id?: string }[] = [];
+  const unlisten = await engine.listen("drocsid_live", (payload) =>
+    received.push(JSON.parse(payload)),
+  );
+  const input = {
+    type: "message.send" as const,
+    id: crypto.randomUUID(),
+    conversation: `${room}:general`,
+    text: "Commit only",
+    attachments: [],
+  };
+  try {
+    await assert.rejects(
+      () =>
+        db.transaction(async (tx) => {
+          await send(tx as unknown as Database, "owner", input);
+          throw new Error("rollback");
+        }),
+      /rollback/,
+    );
+    assert.equal(received.filter((e) => e.id === input.id).length, 0);
+    await send(db, "owner", input);
+    assert.equal(
+      received.filter((e) => e.type === "message" && e.id === input.id).length,
+      1,
+    );
+    await send(db, "owner", input);
+    assert.equal(received.filter((e) => e.id === input.id).length, 1);
+  } finally {
+    await unlisten();
+  }
 });
