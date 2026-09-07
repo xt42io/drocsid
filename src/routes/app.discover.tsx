@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DiscoverPage } from "../components/app/discover-page";
 export const Route = createFileRoute("/app/discover")({
-  head: () => ({ meta: [{ title: "Find your people — drocsid" }] }),
+  head: () => ({ meta: [{ title: "Find your people — Drocsid" }] }),
   component: DiscoverPage,
 });
