@@ -43,6 +43,7 @@ export type ServerFrame =
   | { type: "ready" }
   | { type: "invalidate" }
   | { type: "watched" }
+  | { type: "access" }
   | { type: "read"; conversation: string; through: string }
   | MessageUpdate
   | { type: "typing"; people: TypingPerson[] }
