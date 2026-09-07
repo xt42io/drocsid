@@ -107,6 +107,8 @@ Individual mentions are resolved from current membership. `@everyone` and `@admi
 
 Non-friends who share a community can send a message request if the recipient allows them. Only the recipient can accept or decline it, and accepting does not create a friendship. Declining prevents further messages and hides the request; becoming friends is an explicit way to allow that conversation again. Migration `0005` moves existing unanswered non-friend DMs into requests, while keeping reciprocal conversations and friend DMs accepted.
 
+Blocking keeps existing DM history, threads, and attachments readable for both participants. The conversation stays in its existing DM or message-request list, with no message or thread composer. The backend rejects new messages, uploads, reactions, and typing in either direction until all blocks between the participants are removed. Unblocking does not restore the friendship or accept a pending message request.
+
 This is an initial connected release. Push/email message notifications are not implemented. Search returns up to 100 matching messages. The bootstrap loads 500 recent messages and can expand to 5,000 while browsing history; very large communities will need dedicated per-conversation caches. File quotas and signature checks are implemented; antivirus scanning, video processing, and uploaded community icons are not.
 
 ## Verification
@@ -128,6 +130,10 @@ pnpm exec tsx --env-file=.env scripts/smoke.ts
 The smoke script calls the production route handlers without starting a server. It creates a disposable account/community/file, checks authorization and delivery, then removes its fixtures. It does not send emails. Run only against an environment where you want this check performed.
 
 To measure message latency against the configured database, run `pnpm exec tsx --env-file=.env scripts/benchmark-messages.ts` after a build. This uses a disposable account and community, prints three send timings and a snapshot timing, and removes its fixtures. The send endpoint exposes `auth` and `write` timings in the `Server-Timing` response header. Plain messages commit permissions, rate limits, persistence and commit notifications in one database statement; mentions, replies and attachments use the full transactional path.
+
+Reactions use `/api/reactions` with an explicit `active` selection, so repeating a request cannot toggle it back. Permissions, quota, and the write run in one database statement; existing triggers publish updates over WebSockets. The UI updates immediately, coalesces rapid clicks per emoji, preserves live counts while requests are pending, and restores server state on failure. Reactions do not wait behind the general action queue. After building, run `pnpm exec tsx --env-file=.env scripts/benchmark-reactions.ts` to compare the old and new handlers using disposable fixtures and inspect `auth`/`write` timings.
+
+Single `channel.put` actions use one database statement for manager permissions, rate limits, category/channel persistence, and notifications scoped to the community's members. The creation dialog applies the confirmed channel immediately and refreshes other app data in the background; it does not wait behind the general action queue. Repeated submits are disabled and retries reuse the channel ID. Run `pnpm exec tsx --env-file=.env scripts/benchmark-channels.ts` after building to measure three channel creations with disposable fixtures and `Server-Timing` details.
 
 ## Source layout
 
