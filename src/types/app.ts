@@ -11,6 +11,8 @@ export type Person = {
   role: "Owner" | "Admin" | "Moderator" | "Member";
 };
 export type Channel = {
+  icon?: string;
+  hasMessages?: boolean;
   id: string;
   name: string;
   description: string;
@@ -19,11 +21,21 @@ export type Channel = {
   unread?: number;
 };
 export type Community = {
+  iconUrl?: string;
+  iconUploadId?: string;
   id: string;
   name: string;
   description: string;
   icon:
-    "sun" | "leaf" | "coffee" | "book" | "game" | "brush" | "music" | "code";
+    | ""
+    | "sun"
+    | "leaf"
+    | "coffee"
+    | "book"
+    | "game"
+    | "brush"
+    | "music"
+    | "code";
   color: string;
   category: string;
   members: number;
