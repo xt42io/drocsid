@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Person } from "../../lib/demo-data";
+import type { Person } from "../../types/app";
 import { useApp } from "../../lib/app-state";
 import { api } from "../../lib/api-client";
 import { uploadFile } from "../../lib/upload-file";
