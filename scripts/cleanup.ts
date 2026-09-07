@@ -6,6 +6,7 @@ import {
   communityIcons,
   events,
   limits,
+  verification,
 } from "../src/server/db/schema";
 import { getStorage } from "../src/server/uploads";
 
@@ -126,7 +127,8 @@ await db
 await db
   .delete(limits)
   .where(lt(limits.windowStart, new Date(Date.now() - 86400000)));
+await db.delete(verification).where(lt(verification.expiresAt, new Date()));
 console.log(
-  `Removed ${removed} abandoned/deleted attachments; expired events and limits cleaned.`,
+  `Removed ${removed} abandoned/deleted attachments; expired verification, events and limits cleaned.`,
 );
 process.exit(0);
