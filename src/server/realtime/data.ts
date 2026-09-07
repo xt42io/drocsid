@@ -21,7 +21,7 @@ export type Identity = {
   status: Person["status"];
 };
 
-// One round trip per viewer; permissions and data are read from the same snapshot.
+// One round trip for the recipient batch; permissions and data share a snapshot.
 // NOTIFY contains IDs only. Content is never sent before this authorization check.
 export async function liveMessage(
   db: Database,
@@ -29,13 +29,35 @@ export async function liveMessage(
   conversationId: string,
   id: string,
 ): Promise<MessageUpdate | null> {
+  return (
+    (await liveMessages(db, [userId], conversationId, id))[0]?.frame ?? null
+  );
+}
+
+export async function liveMessages(
+  db: Database,
+  userIds: string[],
+  conversationId: string,
+  id: string,
+) {
+  if (!userIds.length) return [];
+  const userId = sql`viewer.id`;
   const result = await db.execute<{
+    userId: string;
     message: Message | null;
     person: Person | null;
     unread: number;
     dmConversation: DirectConversation | null;
   }>(sql`
-    select case when ${s.conversations.kind} = 'dm' then json_build_object(
+    with audience as materialized (
+      select member.user_id as id from conversations c join community_members member on member.community_id = c.community_id
+      where c.id = ${conversationId} and c.kind = 'channel' and member.user_id = any(${sql.param(userIds)}::text[])
+        and c.channel_id is not null and (not c.private or member.role in ('Owner', 'Admin') or exists(select 1 from conversation_members p where p.conversation_id = c.id and p.user_id = member.user_id))
+      union select member.user_id from conversations c join conversation_members member on member.conversation_id = c.id
+      where c.id = ${conversationId} and c.kind = 'dm' and member.user_id = any(${sql.param(userIds)}::text[])
+        and (c.dm_status <> 'declined' or c.dm_initiator_id = member.user_id)
+    )
+    select viewer.id as "userId", case when ${s.conversations.kind} = 'dm' then json_build_object(
       'personId', (select p.user_id from conversation_members p where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId} limit 1),
       'hasMessages', exists(select 1 from messages d where d.conversation_id = ${s.conversations.id} and d.deleted_at is null),
       'messagingBlocked', not (${dmUnblocked(userId)}),
@@ -59,26 +81,28 @@ export async function liveMessage(
     (select count(*)::int from messages unread where unread.conversation_id = ${s.conversations.id}
       and unread.deleted_at is null and unread.author_id <> ${userId}
       and unread.created_at > coalesce((select read_at from conversation_read_states where conversation_id = ${s.conversations.id} and user_id = ${userId}), '-infinity'::timestamptz)) as unread
-    from ${s.conversations}
+    from ${s.conversations} cross join audience viewer
     left join messages m on m.id = ${id} and m.conversation_id = ${s.conversations.id}
     left join profiles p on p.user_id = m.author_id
     left join "user" u on u.id = p.user_id
     where ${s.conversations.id} = ${conversationId} and ${conversationAccess(userId)}
   `);
-  const row = result.rows[0];
-  if (!row) return null;
-  if (row.message?.createdAt)
-    row.message.createdAt = new Date(row.message.createdAt).toISOString();
-  return {
-    type: "message",
-    id,
-    message: row.message,
-    conversation: conversationId,
-    unread: row.unread,
-    ...(row.dmConversation ? { dmConversation: row.dmConversation } : {}),
-    ...(row.person ? { person: row.person } : {}),
-  };
+  return result.rows.map((row) => {
+    if (row.message?.createdAt)
+      row.message.createdAt = new Date(row.message.createdAt).toISOString();
+    const frame: MessageUpdate = {
+      type: "message",
+      id,
+      message: row.message,
+      conversation: conversationId,
+      unread: row.unread,
+      ...(row.dmConversation ? { dmConversation: row.dmConversation } : {}),
+      ...(row.person ? { person: row.person } : {}),
+    };
+    return { userId: row.userId, frame };
+  });
 }
+
 export async function authorizeRoom(db: Database, userId: string, room: Room) {
   const conversation = await requireConversation(db, userId, room.conversation);
   if (conversation.kind === "dm")
@@ -150,6 +174,8 @@ export const realtimeData = {
   },
   authorize: (userId: string, room: Room) =>
     authorizeRoom(getDb(), userId, room),
+  messages: (userIds: string[], conversationId: string, id: string) =>
+    liveMessages(getDb(), userIds, conversationId, id),
   message: (userId: string, conversationId: string, id: string) =>
     liveMessage(getDb(), userId, conversationId, id),
   send: (userId: string, action: Parameters<typeof sendMessage>[2]) =>
