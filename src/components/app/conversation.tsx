@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import type { Message, Community, Person } from "../../lib/demo-data";
-import { personName } from "../../lib/demo-data";
+import type { Message, Community, Person } from "../../types/app";
+import { personName } from "../../lib/people";
 import {
   conversationChannels,
   isMentioned,
@@ -115,7 +115,9 @@ export function Conversation({
       active = false;
     };
   }, [conversation, messageId, loadMessages]);
-  const newest = allMessages.at(-1)?.createdAt;
+  const newest = allMessages
+    .filter((m) => !m.sending && !m.sendError)
+    .at(-1)?.createdAt;
   useEffect(() => {
     const key = `${conversation}:${newest}`;
     if (
@@ -553,6 +555,7 @@ export function MessageCard({
     react,
     updateMessage,
     deleteMessage,
+    retryMessage,
     notify,
   } = useApp();
   const author = findPerson(message.author);
@@ -575,7 +578,14 @@ export function MessageCard({
   return (
     <article
       id={`${compact ? "thread-message" : "message"}-${message.id}`}
-      className={`a-message ${compact ? "compact-message" : ""} ${highlighted ? "highlighted" : ""} ${isMentioned(message.text, mentionTargets(state, message.conversation)) ? "mentioned" : ""}`}
+      aria-label={
+        message.sending
+          ? "Message pending"
+          : message.sendError
+            ? "Message failed"
+            : undefined
+      }
+      className={`a-message ${message.sending ? "a-message-pending" : ""} ${compact ? "compact-message" : ""} ${highlighted ? "highlighted" : ""} ${isMentioned(message.text, mentionTargets(state, message.conversation)) ? "mentioned" : ""}`}
     >
       <button
         className="a-avatar-button"
@@ -662,6 +672,14 @@ export function MessageCard({
             conversation={message.conversation}
           />
         )}
+        {message.sendError && (
+          <div className="a-message-failed" role="alert">
+            <span>{message.sendError}</span>
+            <button type="button" onClick={() => void retryMessage(message.id)}>
+              Retry
+            </button>
+          </div>
+        )}
         {!!message.attachments?.length && (
           <MessageAttachments files={message.attachments} />
         )}
@@ -701,7 +719,7 @@ export function MessageCard({
           </button>
         )}
       </div>
-      {!editing && (
+      {!editing && !message.sending && !message.sendError && (
         <div className="a-message-toolbar">
           <EmojiPanel reaction onSelect={(emoji) => react(message.id, emoji)} />
           {!compact && (
@@ -819,39 +837,55 @@ function Composer({
   placeholder: string;
   threadOf?: string;
 }) {
-  const { state, setState, sendMessage, notify } = useApp();
+  const {
+    state,
+    setState,
+    sendMessage,
+    notify,
+    observeRoom,
+    setTyping,
+    typingPeople,
+  } = useApp();
+  useEffect(
+    () => observeRoom({ conversation, threadOf }),
+    [conversation, threadOf, observeRoom],
+  );
+  const typing = typingPeople.filter(
+    (p) => p.conversation === conversation && p.threadOf === threadOf,
+  );
+  const typingText =
+    typing.length > 2
+      ? `${typing[0].name}, ${typing[1].name} and ${typing.length - 2} others are typing…`
+      : typing.length === 2
+        ? `${typing[0].name} and ${typing[1].name} are typing…`
+        : typing.length === 1
+          ? `${typing[0].name} is typing…`
+          : "";
   const files = useAttachments(conversation);
   const picker = useRef<HTMLInputElement>(null);
-  const [sending, setSending] = useState(false);
   const draftKey = threadOf ? `thread:${threadOf}` : conversation;
   const draft = state.drafts[draftKey] ?? "";
   const textarea = useRef<HTMLTextAreaElement>(null);
-  const setDraft = (text: string) =>
-    setState((previous) => ({
+  const setDraft = (text: string) => {
+    setTyping({ conversation, threadOf }, !!text.trim());
+    return setState((previous) => ({
       ...previous,
       drafts: { ...previous.drafts, [draftKey]: text.slice(0, 4000) },
     }));
+  };
   useEffect(() => {
     if (textarea.current) {
       textarea.current.style.height = "auto";
       textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 160)}px`;
     }
   }, [draft]);
-  async function submit(event?: FormEvent) {
+  function submit(event?: FormEvent) {
     event?.preventDefault();
-    if (sending || !files.ready) return;
-    if (draft.trim() || files.files.length) {
-      setSending(true);
-      const sent = await sendMessage(
-        conversation,
-        draft,
-        threadOf,
-        files.files,
-      );
-      if (sent) files.clear();
-      setSending(false);
-      textarea.current?.focus();
-    }
+    if (!files.ready || (!draft.trim() && !files.files.length)) return;
+    const attachments = files.take();
+    setTyping({ conversation, threadOf }, false);
+    void sendMessage(conversation, draft, threadOf, attachments);
+    textarea.current?.focus();
   }
   function insert(text: string) {
     const node = textarea.current;
@@ -872,20 +906,19 @@ function Composer({
       className={`a-composer-wrap ${threadOf ? "a-thread-composer" : ""}`}
       onSubmit={submit}
       onDragOver={(event) => {
-        if (!sending && event.dataTransfer.types.includes("Files"))
-          event.preventDefault();
+        if (event.dataTransfer.types.includes("Files")) event.preventDefault();
       }}
       onDrop={(event) => {
         if (event.dataTransfer.files.length) {
           event.preventDefault();
-          if (!sending) files.add(Array.from(event.dataTransfer.files));
+          files.add(Array.from(event.dataTransfer.files));
         }
       }}
       onPaste={(event) => {
         const pasted = Array.from(event.clipboardData.files);
         if (pasted.length) {
           event.preventDefault();
-          if (!sending) files.add(pasted);
+          files.add(pasted);
         }
       }}
     >
@@ -901,7 +934,7 @@ function Composer({
           hidden
           ref={picker}
           onChange={(event) => {
-            if (!sending) files.add(Array.from(event.target.files ?? []));
+            files.add(Array.from(event.target.files ?? []));
             event.target.value = "";
           }}
         />
@@ -913,8 +946,8 @@ function Composer({
           placeholder={placeholder}
           maxLength={4000}
           value={draft}
-          disabled={sending}
           onValueChange={setDraft}
+          onBlur={() => setTyping({ conversation, threadOf }, false)}
           onKeyDown={(event) => {
             if (
               event.key === "Enter" &&
@@ -933,7 +966,7 @@ function Composer({
               type="button"
               title="Attach files"
               aria-label="Attach files"
-              disabled={sending || files.uploads.length >= 10}
+              disabled={files.uploads.length >= 10}
               onClick={() => picker.current?.click()}
             >
               <AppIcon name="file" size={20} />
@@ -979,15 +1012,30 @@ function Composer({
           <button
             className="a-send-button"
             type="submit"
-            disabled={
-              sending || !files.ready || (!draft.trim() && !files.files.length)
-            }
+            disabled={!files.ready || (!draft.trim() && !files.files.length)}
             aria-label={threadOf ? "Send reply" : "Send message"}
             title={threadOf ? "Send reply" : "Send message"}
           >
             <AppIcon name="send" size={18} />
           </button>
         </div>
+      </div>
+      <div
+        className="a-typing-indicator"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {typingText && (
+          <>
+            <span className="a-typing-dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span>{typingText}</span>
+          </>
+        )}
       </div>
       <div className="a-composer-footnote">
         <span>
