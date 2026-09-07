@@ -1,0 +1,69 @@
+diff --git a/dist/esm/request-response.js b/dist/esm/request-response.js
+index 4ce23fae2de3772646a2380a9e64c3f468b051f6..104668beb4593b5271f32054ad64ee3fc300f29e 100644
+--- a/dist/esm/request-response.js
++++ b/dist/esm/request-response.js
+@@ -43,7 +43,27 @@ function requestHandler(handler) {
+ 			});
+ 			throw error;
+ 		}
+-		return toResponse(attachResponseHeaders(eventStorage.run({ h3Event }, () => handler(request, requestOpts)), h3Event), h3Event);
++		// Handle confirmed client cancellations before H3 logs an unhandled 500.
++		const handleError = (error) => {
++			const seen = new Set();
++			let cause = error;
++			while (cause && !seen.has(cause)) {
++				if (request.signal.aborted && cause === request.signal.reason) {
++					return new Response(null, { status: 499, statusText: "Client Closed Request" });
++				}
++				seen.add(cause);
++				cause = typeof cause === "object" ? cause.cause : undefined;
++			}
++			throw error;
++		};
++		let response;
++		try {
++			response = eventStorage.run({ h3Event }, () => handler(request, requestOpts));
++		} catch (error) {
++			response = handleError(error);
++		}
++		if (isPromiseLike(response)) response = Promise.resolve(response).catch(handleError);
++		return toResponse(attachResponseHeaders(response, h3Event), h3Event);
+ 	};
+ }
+ function getH3Event() {
+diff --git a/src/request-response.ts b/src/request-response.ts
+index e0ad8a336a37bc29ccdff48d87dfb5b360b633f1..18888882ed33bb136b436b02d4e646ea7b482d66 100644
+--- a/src/request-response.ts
++++ b/src/request-response.ts
+@@ -135,9 +135,28 @@ export function requestHandler<TRegister = unknown>(
+       throw error
+     }
+ 
+-    const response = eventStorage.run({ h3Event }, () =>
+-      handler(request, requestOpts),
+-    )
++    // A disconnected request rejects with its abort reason. Handle it before H3
++    // converts that rejection into an unhandled 500 and logs it. Other failures,
++    // including upstream ECONNRESET errors, must retain their normal handling.
++    const handleError = (error: unknown): Response => {
++      const seen = new Set<unknown>()
++      let cause = error
++      while (cause && !seen.has(cause)) {
++        if (request.signal.aborted && cause === request.signal.reason) {
++          return new Response(null, { status: 499, statusText: 'Client Closed Request' })
++        }
++        seen.add(cause)
++        cause = typeof cause === 'object' ? (cause as { cause?: unknown }).cause : undefined
++      }
++      throw error
++    }
++    let response
++    try {
++      response = eventStorage.run({ h3Event }, () => handler(request, requestOpts))
++    } catch (error) {
++      response = handleError(error)
++    }
++    if (isPromiseLike(response)) response = Promise.resolve(response).catch(handleError)
+     return h3_toResponse(attachResponseHeaders(response, h3Event), h3Event)
+   }
+ }
