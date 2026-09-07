@@ -84,6 +84,7 @@ export type AppState = {
   communities: Community[];
   messages: Message[];
   friends: string[];
+  dmConversations: DirectConversation[];
   pending: string[];
   outgoing: string[];
   blocked: string[];
@@ -92,4 +93,11 @@ export type AppState = {
   muted: string[];
   drafts: Record<string, string>;
   onboardingComplete: boolean;
+};
+
+export type DirectConversation = {
+  hasMessages: boolean;
+  personId: string;
+  status: "pending" | "accepted" | "declined";
+  incoming: boolean;
 };
