@@ -1,4 +1,103 @@
 /* The product workspace shares the landing page's paper, ink, and orange. */
+.a-upload-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 12px 0;
+}
+.a-upload-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--a-border);
+  border-radius: 10px;
+  max-width: 320px;
+  background: var(--a-surface);
+}
+.a-upload-item > img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.a-upload-item > div {
+  min-width: 0;
+  flex: 1;
+}
+.a-upload-item strong,
+.a-file-attachment strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+  font-size: 12px;
+}
+.a-upload-item small,
+.a-file-attachment small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.7;
+  margin-top: 3px;
+}
+.a-upload-item button {
+  padding: 3px;
+  font-size: 12px;
+}
+.a-upload-item progress {
+  width: 100%;
+  height: 4px;
+  accent-color: var(--a-orange);
+}
+.a-message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.a-image-attachment {
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--a-border);
+  max-width: min(420px, 100%);
+}
+.a-image-attachment img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+}
+.a-file-attachment {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--a-border);
+  border-radius: 10px;
+  max-width: 100%;
+  background: var(--a-surface);
+}
+.a-image-viewer {
+  max-width: 100%;
+  max-height: 65vh;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 16px;
+}
+.a-connection-status {
+  position: fixed;
+  z-index: 100;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  background: #f7b267;
+  color: #171717;
+  border-radius: 8px;
+  font-size: 13px;
+}
 .workspace {
   --a-bg: #fbfaf7;
   --a-surface: #fffefa;
@@ -5361,4 +5460,46 @@
   .workspace .a-emoji-panel input {
     font-size: 16px;
   }
+}
+
+.avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+.a-avatar-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.a-avatar-upload-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.a-avatar-upload > small {
+  color: var(--a-muted);
+  font-size: 11px;
+}
+.a-avatar-upload > progress {
+  width: min(100%, 220px);
+  accent-color: var(--a-orange);
+}
+.a-welcome-create {
+  border-style: dashed !important;
+}
+.a-welcome-create .a-community-icon {
+  background: var(--a-soft);
+  color: var(--a-text);
+}
+.a-welcome-skip {
+  margin: 22px auto 0;
+}
+.a-welcome-actions {
+  flex-wrap: wrap;
 }
