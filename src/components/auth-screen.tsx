@@ -5,27 +5,21 @@ import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
   ArrowUpRight01Icon,
-  ViewIcon,
-  ViewOffSlashIcon,
   AlertCircleIcon,
   GithubIcon,
 } from "@hugeicons/core-free-icons";
 import { Avatar, Icon, Logo } from "./ui";
 import { authClient } from "../lib/auth-client";
-import {
-  EmailCodeForm,
-  requestEmailCode,
-  type EmailCodePurpose,
-} from "./email-code-form";
+import { EmailCodeForm, requestEmailCode } from "./email-code-form";
 
-type AuthMode = "sign-in" | "sign-up" | "forgot-password";
-type Errors = Partial<Record<"name" | "email" | "password", string>>;
+type AuthMode = "sign-in" | "sign-up";
+type Errors = Partial<Record<"email", string>>;
 const copy = {
   "sign-in": {
     eyebrow: "YOUR CORNER IS WAITING",
     title: "Hey, welcome back.",
     description: "The conversation’s better with you in it.",
-    submit: "Let me in",
+    submit: "Send code",
     aside: (
       <>
         Right where <br />
@@ -36,113 +30,54 @@ const copy = {
   "sign-up": {
     eyebrow: "THERE’S ROOM FOR YOU HERE",
     title: "Good to have you.",
-    description: "A new account. A whole lot of possibility.",
-    submit: "Make yourself at home",
+    description:
+      "Start with your email. You’ll set up your profile after verification.",
+    submit: "Send code",
     aside: (
       <>
         It starts with <br />a little <em>hello.</em>
       </>
     ),
   },
-  "forgot-password": {
-    eyebrow: "HAPPENS TO THE BEST OF US",
-    title: "Lost your keys?",
-    description: "Enter your email and we’ll help you find your way back.",
-    submit: "Send reset code",
-    aside: (
-      <>
-        Your people <br />
-        are <em>still here.</em>
-      </>
-    ),
-  },
 };
 
 export function AuthScreen({ mode }: { mode: AuthMode }) {
-  const [passwordVisible, setPasswordVisible] = useState(false);
-  const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [codeStep, setCodeStep] = useState<{
     email: string;
-    purpose: EmailCodePurpose;
   } | null>(null);
   const [socialNotice, setSocialNotice] = useState(false);
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState("");
-  const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
   const id = useId();
   const content = copy[mode];
   const signup = mode === "sign-up";
-  const recovery = mode === "forgot-password";
-  const strength =
-    Number(password.length >= 8) +
-    Number(/[A-Z]/.test(password) && /[a-z]/.test(password)) +
-    Number(/[0-9]/.test(password)) +
-    Number(/[^a-zA-Z0-9]/.test(password));
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
     const nextErrors: Errors = {};
-    if (signup && name.trim().length < 2)
-      nextErrors.name = "Give us a name with at least 2 characters.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
       nextErrors.email = "That email doesn’t look quite right. Try again?";
-    if (!recovery && password.length < (signup ? 8 : 1))
-      nextErrors.password = signup
-        ? "Use at least 8 characters for your password."
-        : "Pop in your password to continue.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
-      if (nextErrors.name) nameRef.current?.focus();
-      else if (nextErrors.email) emailRef.current?.focus();
-      else passwordRef.current?.focus();
+      emailRef.current?.focus();
       return;
     }
     setBusy(true);
     setServerError("");
     try {
       const address = email.trim().toLowerCase();
-      const result = recovery
-        ? await requestEmailCode(address, "forget-password")
-        : signup
-          ? await authClient.signUp.email({
-              email: address,
-              password,
-              name: name.trim(),
-            })
-          : await authClient.signIn.email({ email: address, password });
+      const result = await requestEmailCode(address);
       if (result.error) {
-        if (
-          !signup &&
-          !recovery &&
-          result.error.code === "EMAIL_NOT_VERIFIED"
-        ) {
-          const sent = await requestEmailCode(address, "email-verification");
-          if (sent.error)
-            setServerError(sent.error.message || "Could not send your code.");
-          else {
-            setPassword("");
-            setCodeStep({ email: address, purpose: "email-verification" });
-          }
-          return;
-        }
         setServerError(
-          result.error.message || "Could not continue. Please try again.",
+          result.error.message || "Could not send your code. Please try again.",
         );
         return;
       }
-      setPassword("");
-      if (recovery || signup) {
-        setCodeStep({
-          email: address,
-          purpose: recovery ? "forget-password" : "email-verification",
-        });
-      } else enterApp();
+      setCodeStep({ email: address });
     } catch {
       setServerError("Could not reach the server. Please try again.");
     } finally {
@@ -152,41 +87,13 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
 
   function enterApp() {
     const next = new URLSearchParams(window.location.search).get("next");
-    window.location.assign(
-      next?.startsWith("/app/") && !next.includes("\\")
-        ? next
-        : signup
-          ? "/app/welcome"
-          : "/app",
-    );
-  }
-
-  async function signInWithCode() {
-    if (busy) return;
-    const address = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
-      setErrors((previous) => ({
-        ...previous,
-        email: "Enter your email address to receive a sign-in code.",
-      }));
-      emailRef.current?.focus();
+    if (signup) {
+      window.location.assign("/app/welcome");
       return;
     }
-    setBusy(true);
-    setServerError("");
-    try {
-      const result = await requestEmailCode(address, "sign-in");
-      if (result.error)
-        setServerError(result.error.message || "Could not send your code.");
-      else {
-        setPassword("");
-        setCodeStep({ email: address, purpose: "sign-in" });
-      }
-    } catch {
-      setServerError("Could not reach the server. Please try again.");
-    } finally {
-      setBusy(false);
-    }
+    window.location.assign(
+      next?.startsWith("/app/") && !next.includes("\\") ? next : "/app",
+    );
   }
 
   function clearError(field: keyof Errors) {
@@ -311,7 +218,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
           {codeStep ? (
             <EmailCodeForm
               email={codeStep.email}
-              purpose={codeStep.purpose}
+
               onBack={() => {
                 setCodeStep(null);
                 setServerError("");
@@ -334,7 +241,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                 <h2>{content.title}</h2>
                 <p>{content.description}</p>
               </div>
-              {!recovery && (
+              {
                 <>
                   <button
                     type="button"
@@ -375,7 +282,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     <span>or, the good old email way</span>
                   </div>
                 </>
-              )}
+              }
               <form
                 onSubmit={submit}
                 noValidate
@@ -391,44 +298,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     {serverError}
                   </p>
                 )}
-                {signup && (
-                  <div
-                    data-ui="form-field"
-                    className="flex flex-col [&_label]:block [&_label]:text-[14px] [&_label]:font-semibold [&_label]:mb-2 [&_input]:w-full [&_input]:border [&_input]:border-solid [&_input]:border-[#dcded2] [&_input]:bg-[#fcfcf8] [&_input]:h-11.75 [&_input]:py-0 [&_input]:px-3.25 [&_input]:rounded-md [&_input]:text-[#424938] [&_input]:text-[14px] [&_input]:[outline:none] [&_input]:[transition:border-color_0.15s,box-shadow_0.15s] [&_input::placeholder]:text-[#818974] [&_input:focus]:border-[#e58965] [&_input:focus]:shadow-[0_0_0_3px_#f45e3810] [&_input[aria-invalid='true']]:border-[#cc5d48] [&_input[aria-invalid='true']]:bg-[#fff8f2] max-[580px]:[&_label]:text-[13px] max-[580px]:[&_input]:text-[16px] max-[580px]:[&_input]:h-12 max-[580px]:[&_input]:px-3 max-[580px]:[&_input::placeholder]:text-[12px]"
-                  >
-                    <label htmlFor={`${id}-name`}>
-                      What should we call you?
-                    </label>
-                    <input
-                      ref={nameRef}
-                      id={`${id}-name`}
-                      name="name"
-                      autoComplete="nickname"
-                      placeholder="Your name"
-                      value={name}
-                      onChange={(event) => {
-                        setName(event.target.value);
-                        clearError("name");
-                      }}
-                      aria-invalid={!!errors.name}
-                      aria-describedby={
-                        errors.name ? `${id}-name-error` : undefined
-                      }
-                      required
-                      minLength={2}
-                      maxLength={40}
-                    />
-                    {errors.name && (
-                      <span
-                        id={`${id}-name-error`}
-                        data-ui="field-error"
-                        className="mt-1.5 text-[11px] text-[#b04830] leading-normal"
-                      >
-                        {errors.name}
-                      </span>
-                    )}
-                  </div>
-                )}
+
                 <div
                   data-ui="form-field"
                   className="flex flex-col [&_label]:block [&_label]:text-[14px] [&_label]:font-semibold [&_label]:mb-2 [&_input]:w-full [&_input]:border [&_input]:border-solid [&_input]:border-[#dcded2] [&_input]:bg-[#fcfcf8] [&_input]:h-11.75 [&_input]:py-0 [&_input]:px-3.25 [&_input]:rounded-md [&_input]:text-[#424938] [&_input]:text-[14px] [&_input]:[outline:none] [&_input]:[transition:border-color_0.15s,box-shadow_0.15s] [&_input::placeholder]:text-[#818974] [&_input:focus]:border-[#e58965] [&_input:focus]:shadow-[0_0_0_3px_#f45e3810] [&_input[aria-invalid='true']]:border-[#cc5d48] [&_input[aria-invalid='true']]:bg-[#fff8f2] max-[580px]:[&_label]:text-[13px] max-[580px]:[&_input]:text-[16px] max-[580px]:[&_input]:h-12 max-[580px]:[&_input]:px-3 max-[580px]:[&_input::placeholder]:text-[12px]"
@@ -462,115 +332,6 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     </span>
                   )}
                 </div>
-                {!recovery && (
-                  <div
-                    data-ui="form-field"
-                    className="flex flex-col [&_label]:block [&_label]:text-[14px] [&_label]:font-semibold [&_label]:mb-2 [&_input]:w-full [&_input]:border [&_input]:border-solid [&_input]:border-[#dcded2] [&_input]:bg-[#fcfcf8] [&_input]:h-11.75 [&_input]:py-0 [&_input]:px-3.25 [&_input]:rounded-md [&_input]:text-[#424938] [&_input]:text-[14px] [&_input]:[outline:none] [&_input]:[transition:border-color_0.15s,box-shadow_0.15s] [&_input::placeholder]:text-[#818974] [&_input:focus]:border-[#e58965] [&_input:focus]:shadow-[0_0_0_3px_#f45e3810] [&_input[aria-invalid='true']]:border-[#cc5d48] [&_input[aria-invalid='true']]:bg-[#fff8f2] max-[580px]:[&_label]:text-[13px] max-[580px]:[&_input]:text-[16px] max-[580px]:[&_input]:h-12 max-[580px]:[&_input]:px-3 max-[580px]:[&_input::placeholder]:text-[12px]"
-                  >
-                    <div
-                      data-ui="password-label"
-                      className="flex items-start justify-between gap-2 [&_a]:text-[11px] [&_a]:text-[#9c7861] [&_a:hover]:text-[#c2552e] max-[580px]:[&_a]:text-[11px]"
-                    >
-                      <label htmlFor={`${id}-password`}>Password</label>
-                      {!signup && (
-                        <Link to="/forgot-password">Forgot password?</Link>
-                      )}
-                    </div>
-                    <div
-                      data-ui="password-input"
-                      className="relative [&_input]:pr-11.25 [&_button]:absolute [&_button]:right-px [&_button]:top-px [&_button]:bottom-px [&_button]:w-10.5 [&_button]:border-0 [&_button]:border-none [&_button]:border-[currentColor] [&_button]:bg-transparent [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:text-[#a1a794] [&_button]:rounded-[5px] [&_button:hover]:text-[#52623d] max-[580px]:[&_input]:pr-11"
-                    >
-                      <input
-                        ref={passwordRef}
-                        id={`${id}-password`}
-                        name="password"
-                        type={passwordVisible ? "text" : "password"}
-                        autoComplete={
-                          signup ? "new-password" : "current-password"
-                        }
-                        placeholder={
-                          signup
-                            ? "Make it a good one (8+ characters)"
-                            : "Your secret handshake"
-                        }
-                        value={password}
-                        onChange={(event) => {
-                          setPassword(event.target.value);
-                          clearError("password");
-                        }}
-                        aria-invalid={!!errors.password}
-                        aria-describedby={
-                          errors.password
-                            ? `${id}-password-error`
-                            : signup
-                              ? `${id}-password-hint`
-                              : undefined
-                        }
-                        minLength={signup ? 8 : undefined}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setPasswordVisible(!passwordVisible)}
-                        aria-label={
-                          passwordVisible ? "Hide password" : "Show password"
-                        }
-                        aria-pressed={passwordVisible}
-                      >
-                        <Icon
-                          icon={passwordVisible ? ViewOffSlashIcon : ViewIcon}
-                          size={19}
-                        />
-                      </button>
-                    </div>
-                    {errors.password && (
-                      <span
-                        id={`${id}-password-error`}
-                        data-ui="field-error"
-                        className="mt-1.5 text-[11px] text-[#b04830] leading-normal"
-                      >
-                        {errors.password}
-                      </span>
-                    )}
-                    {signup && (
-                      <div
-                        data-ui="password-hint"
-                        className="mt-2 text-[#6f7c60] text-[10px] leading-normal"
-                        id={`${id}-password-hint`}
-                      >
-                        {password.length > 0 ? (
-                          <>
-                            <div
-                              data-ui={`strength-meter strength-${strength}`}
-                              className="flex gap-1 mt-0.75 mb-1.75 [&_i]:h-0.75 [&_i]:flex-1 [&_i]:bg-[#e3e6d9] [&_i]:rounded-xs **:data-[ui~=filled]:bg-[#dea377] [&[data-ui~=strength-3]_[data-ui~=filled]]:bg-[#819567] [&[data-ui~=strength-4]_[data-ui~=filled]]:bg-[#819567]"
-                              aria-hidden="true"
-                            >
-                              {[1, 2, 3, 4].map((level) => (
-                                <i
-                                  key={level}
-                                  data-ui={strength >= level ? "filled" : ""}
-                                />
-                              ))}
-                            </div>
-                            <span>
-                              {password.length < 8
-                                ? "A little longer — at least 8 characters."
-                                : strength <= 2
-                                  ? "Good start. Mix in numbers or symbols."
-                                  : strength === 3
-                                    ? "Looking strong."
-                                    : "That’s a strong password."}
-                            </span>
-                          </>
-                        ) : (
-                          <span>
-                            At least 8 characters. A little mystery is good.
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
                 <button
                   data-ui="button button-orange auth-submit"
                   className="inline-flex items-center gap-3 border border-solid border-transparent py-3.5 pr-5.5 pl-5.5 font-semibold rounded-[7px] [transition:background_0.2s,transform_0.2s,box-shadow_0.2s] whitespace-nowrap bg-orange text-[#3e2118] shadow-[0_2px_0_#d842201c] w-full justify-between mt-0.75 min-h-12 text-[14px] px-4.25 hover:transform-[translateY(-2px)] hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:transform-[translateY(0)] max-[580px]:text-[13px] max-[580px]:min-h-12.25 motion-reduce:hover:transform-none"
@@ -580,26 +341,8 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                   {busy ? "One moment…" : content.submit}
                   <Icon icon={ArrowRight01Icon} size={19} />
                 </button>
-                {!signup && !recovery && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={signInWithCode}
-                    className="py-2 text-center text-sm font-semibold text-[#76523e] underline-offset-4 hover:underline disabled:opacity-50"
-                  >
-                    Email me a sign-in code
-                  </button>
-                )}
               </form>
-              {recovery ? (
-                <Link
-                  data-ui="auth-bottom-link"
-                  className="flex items-center justify-center gap-2 text-[12px] text-[#828d70] mt-6.25"
-                  to="/sign-in"
-                >
-                  <Icon icon={ArrowLeft01Icon} size={16} /> Back to log in
-                </Link>
-              ) : (
+              {
                 <div
                   data-ui="auth-invite"
                   className="mt-6.5 [border-top-width:1px] [border-top-style:solid] border-t-[#e2e5d8] pt-5.75 text-center text-[11px] text-[#6d795e] [&_a]:inline-flex [&_a]:items-center [&_a]:gap-0.5 [&_a]:ml-1 [&_a]:text-[#626f4e] [&_a]:font-semibold [&_a:hover]:text-[#d1522b] max-[800px]:text-[10px] max-[580px]:text-[12px] max-[580px]:pt-5.75"
@@ -612,7 +355,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     <Icon icon={ArrowUpRight01Icon} size={15} />
                   </Link>
                 </div>
-              )}
+              }
             </>
           )}
         </div>
