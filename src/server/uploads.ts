@@ -1,8 +1,10 @@
+import type { ImageVariant } from "../lib/media-images";
+import { storedImage } from "./media-images";
 import { ByteshipClient } from "@byteship/js";
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import type { Database } from "./db";
 import { attachments, messages } from "./db/schema";
-import { requireConversation } from "./access";
+import { requireConversation, requireDmSend } from "./access";
 import { visibleConversations } from "./queries";
 import { HttpError } from "./http";
 import type { z } from "zod";
@@ -45,6 +47,7 @@ export async function prepareUpload(
       `Files must be smaller than ${Math.floor(limit / 1024 / 1024)} MB.`,
     );
   const c = await requireConversation(db, userId, input.conversation, true);
+  requireDmSend(c, userId);
   const id = crypto.randomUUID();
   const filename = input.filename
     .replace(/[\x00-\x1f\x7f/\\]/g, "_")
@@ -220,6 +223,7 @@ export async function attachmentResponse(
   userId: string,
   id: string,
   storage = getStorage(),
+  variant?: ImageVariant,
 ) {
   const [file] = await db
     .select()
@@ -240,23 +244,19 @@ export async function attachmentResponse(
       .where(and(eq(messages.id, file.messageId), isNull(messages.deletedAt)));
     if (!message) throw new HttpError(404, "File not found.");
   }
-  const { signedUrl } = await storage.createSignedUrl(file.path, {
-    expiresInSeconds: 60,
-  });
-  // Proxy downloads so file names, content types and disposition stay under app control.
-  const response = await fetch(signedUrl.url, {
-    signal: AbortSignal.timeout(60000),
-  });
-  if (!response.ok)
-    throw new HttpError(502, "This file is temporarily unavailable.");
+  const { response, contentType, byteSize } = await storedImage(
+    storage,
+    file,
+    variant,
+  );
   return new Response(response.body, {
     headers: {
-      "Content-Type": file.contentType,
+      "Content-Type": contentType,
       "Content-Disposition": `${file.contentType.startsWith("image/") ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.originalName).replace(/'/g, "%27")}`,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; sandbox",
-      "Content-Length": String(file.byteSize),
+      ...(byteSize === undefined ? {} : { "Content-Length": String(byteSize) }),
     },
   });
 }
