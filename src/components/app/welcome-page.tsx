@@ -1,3 +1,4 @@
+import { CommunityIcon } from "./community-icon";
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
@@ -171,7 +172,7 @@ export function WelcomePage() {
                     data-ui={`a-community-icon tone-${community.color}`}
                     className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
                   >
-                    <AppIcon name={community.icon} size={29} />
+                    <CommunityIcon community={community} size={29} />
                   </span>
                   <strong>{community.name}</strong>
                   <small>{community.category}</small>
