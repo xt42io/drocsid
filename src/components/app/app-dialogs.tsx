@@ -35,15 +35,20 @@ export function AppDialogs() {
         description={modal.description}
         onClose={() => app.setModal(null)}
       >
-        <div className="a-dialog-actions">
+        <div
+          data-ui="a-dialog-actions"
+          className="flex justify-end gap-2.5 mt-7.5"
+        >
           <button
-            className="a-button secondary"
+            data-ui="a-button secondary"
+            className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
             onClick={() => app.setModal(null)}
           >
             Keep it
           </button>
           <button
-            className="a-button danger"
+            data-ui="a-button danger"
+            className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=danger]:text-white data-[ui~=danger]:bg-[#b94f3b]"
             onClick={() => {
               modal.action();
               app.setModal(null);
@@ -60,7 +65,10 @@ export function AppDialogs() {
       description="A little guide to your corner of the internet."
       onClose={() => app.setModal(null)}
     >
-      <div className="a-help-list">
+      <div
+        data-ui="a-help-list"
+        className="flex flex-col gap-5.5 mb-6.5 [&>div]:flex [&>div]:gap-3.25 [&>div>svg]:text-(--a-green) [&>div>svg]:shrink-0 [&_strong]:text-[13px] [&_strong]:font-semibold [&_p]:text-[12px] [&_p]:leading-[1.8] [&_p]:text-(--a-muted) [&_p]:mt-1.75 max-[480px]:[&_p]:text-[12px]"
+      >
         <div>
           <AppIcon name="message" />
           <span>
@@ -103,7 +111,8 @@ export function AppDialogs() {
         to="/app/settings"
         search={{ section: "data" }}
         onClick={() => app.setModal(null)}
-        className="a-text-link"
+        data-ui="a-text-link"
+        className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
       >
         Manage your account <AppIcon name="right" size={16} />
       </Link>
@@ -168,19 +177,33 @@ function CreateCommunity() {
       description="Your book club, side project, or very specific obsession. Give it a home."
       onClose={() => setModal(null)}
     >
-      <form className="a-form" onSubmit={submit}>
-        <div className="a-create-icon-preview">
-          <span className="a-community-icon tone-peach">
+      <form
+        data-ui="a-form"
+        className="flex flex-col gap-5 [&>label]:block [&>label]:font-[550] [&>label]:text-xs/normal [&_label_input]:block [&_label_input]:w-full [&_label_input]:min-h-10.5 [&_label_input]:py-2.75 [&_label_input]:px-3 [&_label_input]:mt-1.75 [&_label_input]:text-[13px] [&_label_input]:font-normal [&_label_input]:leading-[1.65] [&_label_textarea]:block [&_label_textarea]:w-full [&_label_textarea]:min-h-10.5 [&_label_textarea]:py-2.75 [&_label_textarea]:px-3 [&_label_textarea]:mt-1.75 [&_label_textarea]:text-[13px] [&_label_textarea]:font-normal [&_label_textarea]:leading-[1.65] [&_label_textarea]:resize-y [&_label_select]:block [&_label_select]:w-full [&_label_select]:min-h-10.5 [&_label_select]:py-2.75 [&_label_select]:px-3 [&_label_select]:mt-1.75 [&_label_select]:text-[13px] [&_label_select]:font-normal [&_label_select]:leading-[1.65] max-[760px]:[&_label_input]:text-[16px] max-[760px]:[&_label_textarea]:text-[16px] max-[760px]:[&_label_select]:text-[16px] max-[760px]:[&_label_input::placeholder]:text-[13px] max-[760px]:[&_label_textarea::placeholder]:text-[13px]"
+        onSubmit={submit}
+      >
+        <div
+          data-ui="a-create-icon-preview"
+          className="flex justify-center **:data-[ui~=a-community-icon]:rounded-[23px] **:data-[ui~=a-community-icon]:size-18.5"
+        >
+          <span
+            data-ui="a-community-icon tone-peach"
+            className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] bg-[#f2bc95] text-[#885130] size-11.5 hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
+          >
             <AppIcon name={icon} size={34} />
           </span>
         </div>
-        <div className="a-icon-options" aria-label="Community icon">
+        <div
+          data-ui="a-icon-options"
+          className="flex gap-1.75 justify-center [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:bg-(--a-surface) [&>button]:text-(--a-muted) [&>button]:rounded-lg [&>button]:size-8.75 [&>button]:border! [&>button]:border-solid! [&>button]:border-(--a-border)! [&>button[data-ui~=selected]]:border-[#a9bc8d]! [&>button[data-ui~=selected]]:text-(--a-green) [&>button[data-ui~=selected]]:bg-(--a-selected) [[data-ui~=theme-dark]_&>button[data-ui~=selected]]:border-[#626262]! max-[480px]:gap-1.5 max-[480px]:[&>button]:w-7.5 max-[480px]:[&>button]:h-8"
+          aria-label="Community icon"
+        >
           {choices.map((choice) => (
             <button
               type="button"
               aria-label={`${choice} icon`}
               aria-pressed={icon === choice}
-              className={icon === choice ? "selected" : ""}
+              data-ui={icon === choice ? "selected" : ""}
               key={choice}
               onClick={() => setIcon(choice)}
             >
@@ -203,7 +226,13 @@ function CreateCommunity() {
           />
         </label>
         <label>
-          A little about this place <span className="a-optional">optional</span>
+          A little about this place{" "}
+          <span
+            data-ui="a-optional"
+            className="text-(--a-faint) ml-1.75 font-normal text-[10px]"
+          >
+            optional
+          </span>
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
@@ -213,14 +242,25 @@ function CreateCommunity() {
           />
         </label>
         {error && (
-          <p className="a-form-error" role="alert">
+          <p
+            data-ui="a-form-error"
+            className="text-[#b56345] text-[12px] leading-[1.6]"
+            role="alert"
+          >
             {error}
           </p>
         )}
-        <div className="a-form-footnote">
+        <div
+          data-ui="a-form-footnote"
+          className="text-(--a-muted) leading-[1.8] text-[11px]!"
+        >
           Start small. You can always add more channels later.
         </div>
-        <button type="submit" className="a-button primary full">
+        <button
+          type="submit"
+          data-ui="a-button primary full"
+          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+        >
           Create your corner <AppIcon name="right" size={17} />
         </button>
       </form>
@@ -269,7 +309,11 @@ function CreateCategory({ communityId }: { communityId: string }) {
       description={`Keep related channels together in ${community?.name ?? "your community"}.`}
       onClose={() => setModal(null)}
     >
-      <form className="a-form" onSubmit={submit}>
+      <form
+        data-ui="a-form"
+        className="flex flex-col gap-5 [&>label]:block [&>label]:font-[550] [&>label]:text-xs/normal [&_label_input]:block [&_label_input]:w-full [&_label_input]:min-h-10.5 [&_label_input]:py-2.75 [&_label_input]:px-3 [&_label_input]:mt-1.75 [&_label_input]:text-[13px] [&_label_input]:font-normal [&_label_input]:leading-[1.65] [&_label_textarea]:block [&_label_textarea]:w-full [&_label_textarea]:min-h-10.5 [&_label_textarea]:py-2.75 [&_label_textarea]:px-3 [&_label_textarea]:mt-1.75 [&_label_textarea]:text-[13px] [&_label_textarea]:font-normal [&_label_textarea]:leading-[1.65] [&_label_textarea]:resize-y [&_label_select]:block [&_label_select]:w-full [&_label_select]:min-h-10.5 [&_label_select]:py-2.75 [&_label_select]:px-3 [&_label_select]:mt-1.75 [&_label_select]:text-[13px] [&_label_select]:font-normal [&_label_select]:leading-[1.65] max-[760px]:[&_label_input]:text-[16px] max-[760px]:[&_label_textarea]:text-[16px] max-[760px]:[&_label_select]:text-[16px] max-[760px]:[&_label_input::placeholder]:text-[13px] max-[760px]:[&_label_textarea::placeholder]:text-[13px]"
+        onSubmit={submit}
+      >
         <label>
           Category name
           <input
@@ -287,14 +331,26 @@ function CreateCategory({ communityId }: { communityId: string }) {
           />
         </label>
         {error && (
-          <p id="category-error" className="a-form-error" role="alert">
+          <p
+            id="category-error"
+            data-ui="a-form-error"
+            className="text-[#b56345] text-[12px] leading-[1.6]"
+            role="alert"
+          >
             {error}
           </p>
         )}
-        <p className="a-form-footnote">
+        <p
+          data-ui="a-form-footnote"
+          className="text-(--a-muted) leading-[1.8] text-[11px]!"
+        >
           You can add channels after creating your category.
         </p>
-        <button type="submit" className="a-button primary full">
+        <button
+          type="submit"
+          data-ui="a-button primary full"
+          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+        >
           Create category <AppIcon name="plus" size={18} />
         </button>
       </form>
@@ -373,8 +429,15 @@ function CreateChannel({
       description={`A new text channel in ${community?.name ?? "your community"}.`}
       onClose={() => setModal(null)}
     >
-      <form className="a-form" onSubmit={submit}>
-        <div className="a-channel-type">
+      <form
+        data-ui="a-form"
+        className="flex flex-col gap-5 [&>label]:block [&>label]:font-[550] [&>label]:text-xs/normal [&_label_input]:block [&_label_input]:w-full [&_label_input]:min-h-10.5 [&_label_input]:py-2.75 [&_label_input]:px-3 [&_label_input]:mt-1.75 [&_label_input]:text-[13px] [&_label_input]:font-normal [&_label_input]:leading-[1.65] [&_label_textarea]:block [&_label_textarea]:w-full [&_label_textarea]:min-h-10.5 [&_label_textarea]:py-2.75 [&_label_textarea]:px-3 [&_label_textarea]:mt-1.75 [&_label_textarea]:text-[13px] [&_label_textarea]:font-normal [&_label_textarea]:leading-[1.65] [&_label_textarea]:resize-y [&_label_select]:block [&_label_select]:w-full [&_label_select]:min-h-10.5 [&_label_select]:py-2.75 [&_label_select]:px-3 [&_label_select]:mt-1.75 [&_label_select]:text-[13px] [&_label_select]:font-normal [&_label_select]:leading-[1.65] max-[760px]:[&_label_input]:text-[16px] max-[760px]:[&_label_textarea]:text-[16px] max-[760px]:[&_label_select]:text-[16px] max-[760px]:[&_label_input::placeholder]:text-[13px] max-[760px]:[&_label_textarea::placeholder]:text-[13px]"
+        onSubmit={submit}
+      >
+        <div
+          data-ui="a-channel-type"
+          className="flex gap-3 p-4 bg-(--a-selected) border border-solid border-(--a-border) rounded-lg text-(--a-green) [&>span]:flex-1 [&_strong]:block [&_strong]:text-[12px] [&_strong]:font-semibold [&_small]:block [&_small]:text-[10px] [&_small]:mt-1 [&_small]:text-(--a-muted)"
+        >
           <AppIcon name="hash" size={25} />
           <span>
             <strong>Text channel</strong>
@@ -417,11 +480,19 @@ function CreateChannel({
           </select>
         </label>
         {error && (
-          <p className="a-form-error" role="alert">
+          <p
+            data-ui="a-form-error"
+            className="text-[#b56345] text-[12px] leading-[1.6]"
+            role="alert"
+          >
             {error}
           </p>
         )}
-        <button className="a-button primary full" type="submit">
+        <button
+          data-ui="a-button primary full"
+          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+          type="submit"
+        >
           Create channel <AppIcon name="plus" size={18} />
         </button>
       </form>
@@ -453,7 +524,10 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
       }
       onClose={() => setModal(null)}
     >
-      <label className="a-search-field">
+      <label
+        data-ui="a-search-field"
+        className="flex items-center gap-2.25 bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] min-h-10.75 py-0 px-3 text-(--a-muted) [&_input]:w-full [&_input]:py-2.75 [&_input]:px-0 [&_input]:bg-transparent [&_input]:border-0 [&_input]:border-none [&_input]:border-[currentColor] [&_input]:rounded-none [&_input]:text-[12px] [&_input]:shadow-none! focus-within:border-[#b8c5a3] [[data-ui~=theme-dark]_&:focus-within]:border-[#888888] [[data-ui~=theme-dark]_&:focus-within]:shadow-[0_0_0_3px_#ffffff08] max-[760px]:[[data-ui~=workspace]_&_input]:text-[16px] max-[760px]:[[data-ui~=workspace]_&_input::placeholder]:text-[12px]"
+      >
         <AppIcon name="search" size={19} />
         <input
           autoFocus
@@ -463,9 +537,16 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
-      <div className="a-picker-list">
+      <div
+        data-ui="a-picker-list"
+        className="max-h-107.5 overflow-y-auto mt-3.75"
+      >
         {results.map((person) => (
-          <div className="a-picker-person" key={person.id}>
+          <div
+            data-ui="a-picker-person"
+            className="flex items-center gap-2.75 [border-bottom-width:1px] [border-bottom-style:solid] border-b-(--a-border) py-4 px-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:min-w-0 [&_strong]:block [&_strong]:text-[12px] [&_strong]:font-[550] [&_small]:block [&_small]:text-[10px] [&_small]:text-(--a-faint) [&_small]:mt-1 max-[480px]:gap-2.25 max-[480px]:[&_strong]:text-[12px] max-[480px]:**:data-[ui~=a-button]:text-[10px]! max-[480px]:**:data-[ui~=a-button]:py-1.5 max-[480px]:**:data-[ui~=a-button]:px-2.25"
+            key={person.id}
+          >
             <PersonAvatar person={person} presence />
             <span>
               <strong>{person.name}</strong>
@@ -473,7 +554,8 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
             </span>
             {mode === "new-message" ? (
               <button
-                className="a-button secondary small"
+                data-ui="a-button secondary small"
+                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
                 onClick={() => {
                   setModal(null);
                   void navigate({
@@ -486,7 +568,8 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
               </button>
             ) : (
               <button
-                className="a-button secondary small"
+                data-ui="a-button secondary small"
+                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
                 disabled={
                   state.friends.includes(person.id) ||
                   state.outgoing.includes(person.id)
@@ -560,37 +643,56 @@ function Invite({ communityId }: { communityId: string }) {
       description={`Make a little room in ${community?.name ?? "your community"}.`}
       onClose={() => setModal(null)}
     >
-      <div className="a-invite-preview">
+      <div
+        data-ui="a-invite-preview"
+        className="flex flex-col items-center text-center pt-2.25 pb-7.5 px-0 **:data-[ui~=a-community-icon]:rounded-[18px] **:data-[ui~=a-community-icon]:mb-4 **:data-[ui~=a-community-icon]:size-15 [&_h3]:text-[21px] [&_p]:mt-2.25 [&_p]:text-(--a-muted) [&_p]:text-[12px]"
+      >
         <span
-          className={`a-community-icon tone-${community?.color ?? "peach"}`}
+          data-ui={`a-community-icon tone-${community?.color ?? "peach"}`}
+          className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
         >
           <AppIcon name={community?.icon ?? "sun"} size={30} />
         </span>
         <h3>{community?.name}</h3>
         <p>There’s a spot with your name on it.</p>
       </div>
-      <label className="a-field-label" htmlFor="invite-link">
+      <label
+        data-ui="a-field-label"
+        className="block font-[550] text-xs/normal"
+        htmlFor="invite-link"
+      >
         Your invite link
       </label>
-      <div className="a-copy-field">
+      <div
+        data-ui="a-copy-field"
+        className="flex items-center gap-1.75 mt-2 mb-4.25 mx-0 [&>input]:flex-1 [&>input]:h-10.25 [&>input]:p-2.5 [&>input]:text-[11px] [&>input]:text-(--a-muted) max-[480px]:[&>input]:text-[10px] max-[480px]:**:data-[ui~=a-button]:text-[11px]! max-[480px]:**:data-[ui~=a-button]:px-2.5"
+      >
         <input
           id="invite-link"
           readOnly
           value={url}
           onFocus={(event) => event.target.select()}
         />
-        <button className="a-button primary" onClick={copy}>
+        <button
+          data-ui="a-button primary"
+          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
+          onClick={copy}
+        >
           <AppIcon name={copied ? "check" : "copy"} size={17} />
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <p className="a-form-footnote">
+      <p
+        data-ui="a-form-footnote"
+        className="text-(--a-muted) leading-[1.8] text-[11px]!"
+      >
         Anyone with this link can join this public community.
       </p>
       <Link
         to="/app/invite/$communityId"
         params={{ communityId }}
-        className="a-text-link"
+        data-ui="a-text-link"
+        className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
         onClick={() => setModal(null)}
       >
         Preview the invitation <AppIcon name="external" size={15} />
@@ -608,21 +710,44 @@ function Profile({ personId }: { personId: string }) {
       title={own ? "Your little introduction." : "A familiar face."}
       onClose={() => setModal(null)}
     >
-      <div className={`a-profile-cover tone-${person.color}`}>
+      <div
+        data-ui={`a-profile-cover tone-${person.color}`}
+        className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] h-23.75 rounded-lg flex items-center justify-between p-5.5 mb-0 overflow-hidden [&>svg]:transform-[rotate(-12deg)] [&>svg]:opacity-60 [&>span]:text-[8px] [&>span]:font-mono [&>span]:tracking-[1px]"
+      >
         <AppIcon name="sun" size={56} />
         <span>COME AS YOU ARE.</span>
       </div>
-      <div className="a-profile-details">
+      <div
+        data-ui="a-profile-details"
+        className="pt-0 pb-px px-2 *:data-[ui~=a-avatar]:-mt-7.75 *:data-[ui~=a-avatar]:border-[5px] *:data-[ui~=a-avatar]:border-solid *:data-[ui~=a-avatar]:border-(--a-bg) *:data-[ui~=a-avatar]:rounded-[26px] *:data-[ui~=a-avatar]:mb-2.5 [&_h3]:text-[25px] [&_h3]:mb-1.25 [&_h3]:tracking-[-0.8px] [&>span:not([data-ui~=a-avatar])]:text-(--a-faint) [&>span:not([data-ui~=a-avatar])]:text-[12px] **:data-[ui~=a-role-tag]:ml-2 [&>p]:text-[14px] [&>p]:leading-[1.8] [&>p]:mt-4.75 [&>p]:text-(--a-muted) [&>p]:whitespace-pre-wrap [&>p]:wrap-anywhere [&>select]:w-full [&>select]:mt-2 [&>select]:mb-4.5 [&>select]:text-[12px] max-[480px]:[&_h3]:text-[25px] max-[480px]:[&>p]:text-[13px]"
+      >
         <PersonAvatar person={person} large presence />
         <h3>{person.name}</h3>
         <span>
-          @{person.handle} <span className="a-role-tag">{person.role}</span>
+          @{person.handle}{" "}
+          <span
+            data-ui="a-role-tag"
+            className="inline-block py-0.75 px-1.75 border border-solid border-(--a-border) rounded-sm bg-(--a-soft) text-[9px] text-(--a-muted)"
+          >
+            {person.role}
+          </span>
         </span>
         <p>{person.bio || "Sometimes a hello says enough."}</p>
-        <div className="a-profile-meta">
-          <span className="a-eyebrow">AROUND HERE</span>
+        <div
+          data-ui="a-profile-meta"
+          className="flex flex-col gap-2.5 py-5 px-0 my-4.5 [border-block:1px_solid_var(--a-border)] [&>span:last-child]:flex [&>span:last-child]:items-center [&>span:last-child]:gap-1.5 [&>span:last-child]:text-(--a-muted) [&>span:last-child]:text-[11px] [&>span:last-child]:leading-[1.6] max-[480px]:[&>span:last-child]:text-[10px]"
+        >
+          <span
+            data-ui="a-eyebrow"
+            className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
+          >
+            AROUND HERE
+          </span>
           <span>
-            <i className={`a-status-dot ${person.status}`} />
+            <i
+              data-ui={`a-status-dot ${person.status}`}
+              className="data-[ui~=online]:bg-[#2ee68b] data-[ui~=away]:bg-[#ffc447] data-[ui~=offline]:bg-[#cbd5e1] inline-block rounded-full shrink-0 size-1.5"
+            />
             {person.status === "online"
               ? "Online"
               : person.status === "away"
@@ -633,7 +758,11 @@ function Profile({ personId }: { personId: string }) {
         </div>
         {own ? (
           <>
-            <label className="a-field-label" htmlFor="presence">
+            <label
+              data-ui="a-field-label"
+              className="block font-[550] text-xs/normal"
+              htmlFor="presence"
+            >
               How are you showing up?
             </label>
             <select
@@ -657,25 +786,31 @@ function Profile({ personId }: { personId: string }) {
               to="/app/settings"
               search={{ section: "profile" }}
               onClick={() => setModal(null)}
-              className="a-button primary full"
+              data-ui="a-button primary full"
+              className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
             >
               Edit your profile <AppIcon name="edit" size={17} />
             </Link>
           </>
         ) : (
-          <div className="a-profile-buttons">
+          <div
+            data-ui="a-profile-buttons"
+            className="flex gap-2.25 *:data-[ui~=primary]:flex-1 max-[480px]:**:data-[ui~=a-button]:text-[11px]!"
+          >
             {!blocked && (
               <Link
                 to="/app/dm/$personId"
                 params={{ personId }}
                 onClick={() => setModal(null)}
-                className="a-button primary"
+                data-ui="a-button primary"
+                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
               >
                 <AppIcon name="message" size={17} /> Send a message
               </Link>
             )}
             <button
-              className="a-button secondary"
+              data-ui="a-button secondary"
+              className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
               onClick={() => {
                 setState((previous) => ({
                   ...previous,
@@ -697,7 +832,8 @@ function Profile({ personId }: { personId: string }) {
         )}
         {!own && state.friends.includes(personId) && (
           <button
-            className="a-text-link a-remove-friend"
+            data-ui="a-text-link a-remove-friend"
+            className="inline-flex items-center gap-1.75 font-[550] bg-transparent p-0 mt-5 text-(--a-muted) text-[11px] hover:text-(--a-orange)"
             onClick={() =>
               setModal({
                 type: "confirm",

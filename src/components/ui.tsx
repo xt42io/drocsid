@@ -13,11 +13,15 @@ export function Logo({ light = false }: { light?: boolean }) {
     <Link
       to="/"
       aria-label="drocsid home"
-      className={`logo ${light ? "logo-light" : ""}`}
+      data-ui={`logo ${light ? "logo-light" : ""}`}
+      className="inline-flex items-center gap-2 text-[29px] leading-none font-extrabold tracking-[-1.5px] w-fit max-[580px]:text-[26px]"
     >
       <LogoMark />
       <span>
-        drocsid<span className="logo-period">.</span>
+        drocsid
+        <span data-ui="logo-period" className="text-orange">
+          .
+        </span>
       </span>
     </Link>
   );
@@ -26,7 +30,8 @@ export function Logo({ light = false }: { light?: boolean }) {
 export function LogoMark() {
   return (
     <svg
-      className="logo-mark"
+      data-ui="logo-mark"
+      className="shrink-0 max-[580px]:size-7.25"
       width="33"
       height="33"
       viewBox="0 0 40 40"
@@ -68,7 +73,8 @@ export function Avatar({
   const [failedSrc, setFailedSrc] = useState<string>();
   return (
     <span
-      className={`avatar avatar-${color} ${small ? "avatar-small" : ""}`}
+      data-ui={`avatar avatar-${color} ${small ? "avatar-small" : ""}`}
+      className="inline-flex items-center justify-center shrink-0 rounded-[10px] text-[13px] font-bold text-[#875442] bg-[#efd9cc] size-7.75 data-[ui~=avatar-purple]:bg-[#e6ddf0] data-[ui~=avatar-purple]:text-[#83718f] data-[ui~=avatar-green]:bg-[#e1e8d1] data-[ui~=avatar-green]:text-[#6c7c50] data-[ui~=avatar-yellow]:bg-[#f2e7c7] data-[ui~=avatar-yellow]:text-[#a18449] data-[ui~=avatar-blue]:bg-[#dbe7e9] data-[ui~=avatar-blue]:text-[#597e88] data-[ui~=avatar-small]:text-[10px] data-[ui~=avatar-small]:rounded-lg data-[ui~=avatar-small]:size-6 [&>img]:object-cover [&>img]:rounded-[inherit] [&>img]:block [&>img]:size-full"
       aria-hidden="true"
     >
       {src && src !== failedSrc ? (

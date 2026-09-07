@@ -236,7 +236,8 @@ export function MentionTextarea({
           <div
             ref={refs.setFloating}
             style={floatingStyles}
-            className="a-mention-suggestions"
+            data-ui="a-mention-suggestions"
+            className="z-80 border border-solid border-(--a-border) rounded-xl bg-(--a-surface) text-(--a-text) shadow-[0_12px_45px_#00000026] overflow-hidden whitespace-normal w-[min(370px,calc(100vw-24px))] overflow-y-auto p-1.5 [&>header]:flex [&>header]:flex-wrap [&>header]:items-center [&>header]:justify-between [&>header]:gap-1.25 [&>header]:pt-2.5 [&>header]:pb-3 [&>header]:px-2.25 [&>header]:text-(--a-muted) [&>header]:text-[11px] [&>header>span]:text-[9px]"
             {...getFloatingProps()}
           >
             <header>
@@ -268,13 +269,17 @@ export function MentionTextarea({
                   role="option"
                   aria-selected={index === selectedIndex}
                   tabIndex={-1}
-                  className={`a-mention-option ${index === selectedIndex ? "selected" : ""}`}
+                  data-ui={`a-mention-option ${index === selectedIndex ? "selected" : ""}`}
+                  className="flex items-center gap-2.75 w-full p-2.25 rounded-[7px] bg-transparent text-(--a-text) text-left data-[ui~=selected]:bg-(--a-selected) [&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&_strong]:block [&_strong]:wrap-anywhere [&_strong]:text-[12px] [&_strong]:font-[550] [&_small]:block [&_small]:wrap-anywhere [&_small]:text-[10px] [&_small]:mt-1 [&_small]:text-(--a-muted) **:data-[ui~=avatar]:rounded-[10px] **:data-[ui~=avatar]:text-[13px] **:data-[ui~=avatar]:size-8"
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => select(match)}
                   onMouseMove={() => setActiveIndex(index)}
                 >
                   {match.kind === "channel" ? (
-                    <span className="a-mention-group-icon">
+                    <span
+                      data-ui="a-mention-group-icon"
+                      className="rounded-[10px] text-[13px] flex items-center justify-center shrink-0 text-(--a-green) bg-(--a-soft) size-8"
+                    >
                       <AppIcon
                         name={match.channel.private ? "lock" : "hash"}
                         size={20}
@@ -283,7 +288,10 @@ export function MentionTextarea({
                   ) : match.target.kind === "person" ? (
                     <PersonAvatar person={match.target.person} presence />
                   ) : (
-                    <span className="a-mention-group-icon">
+                    <span
+                      data-ui="a-mention-group-icon"
+                      className="rounded-[10px] text-[13px] flex items-center justify-center shrink-0 text-(--a-green) bg-(--a-soft) size-8"
+                    >
                       <AppIcon
                         name={
                           match.target.handle === "admin" ? "shield" : "people"
@@ -310,7 +318,10 @@ export function MentionTextarea({
                   </span>
                   {match.kind === "mention" &&
                     match.target.kind === "group" && (
-                      <span className="a-role-tag">
+                      <span
+                        data-ui="a-role-tag"
+                        className="inline-block py-0.75 px-1.75 border border-solid border-(--a-border) rounded-sm bg-(--a-soft) text-[9px] text-(--a-muted)"
+                      >
                         {match.target.people.length}
                       </span>
                     )}

@@ -97,7 +97,11 @@ export function AvatarUpload({
   }
 
   return (
-    <div className="a-avatar-upload" aria-busy={busy}>
+    <div
+      data-ui="a-avatar-upload"
+      className="flex flex-col items-center gap-3 [&>small]:text-(--a-muted) [&>small]:text-[11px] [&>progress]:w-[min(100%,220px)] [&>progress]:accent-(--a-orange)"
+      aria-busy={busy}
+    >
       <PersonAvatar person={person} large />
       <input
         ref={input}
@@ -111,10 +115,14 @@ export function AvatarUpload({
           if (file) void change(file);
         }}
       />
-      <div className="a-avatar-upload-actions">
+      <div
+        data-ui="a-avatar-upload-actions"
+        className="flex items-center justify-center flex-wrap gap-3"
+      >
         <button
           type="button"
-          className="a-button secondary"
+          data-ui="a-button secondary"
+          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
           disabled={busy}
           onClick={() => input.current?.click()}
         >
@@ -123,7 +131,8 @@ export function AvatarUpload({
         {person.avatarUrl && (
           <button
             type="button"
-            className="a-text-link"
+            data-ui="a-text-link"
+            className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
             disabled={busy}
             onClick={() => void change()}
           >
@@ -146,7 +155,11 @@ export function AvatarUpload({
         />
       )}
       {error && (
-        <p className="a-form-error" role="alert">
+        <p
+          data-ui="a-form-error"
+          className="text-[#b56345] text-[12px] leading-[1.6]"
+          role="alert"
+        >
           {error}
         </p>
       )}

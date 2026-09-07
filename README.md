@@ -18,6 +18,10 @@ Create your own account at `/sign-up`, finish your profile, then create a commun
 
 Optional development fixtures: supply `SEED_EMAIL` and `SEED_PASSWORD` and run `pnpm db:seed`. This creates one account and a community; it never runs automatically.
 
+## UI styling
+
+Use Tailwind v4 utilities directly in components, including responsive and state variants. `src/styles.css` contains font imports, theme tokens, base element defaults, and animation keyframes. Keep complete utility names in source so Tailwind can discover them; use `data-ui` attributes for component and state selectors. Floating UI supplies the calculated inline positions for popovers. The emoji picker's scoped important utilities override its third-party stylesheet.
+
 ## Connected features
 
 - Email/password registration, login, sessions, logout, and a password reset flow.

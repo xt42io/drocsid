@@ -153,9 +153,17 @@ export function UploadTray({
 }: Pick<ReturnType<typeof useAttachments>, "uploads" | "remove" | "retry">) {
   if (!uploads.length) return null;
   return (
-    <div className="a-upload-tray" aria-label="Message attachments">
+    <div
+      data-ui="a-upload-tray"
+      className="flex flex-wrap gap-2.5 pt-3 pb-0 px-3"
+      aria-label="Message attachments"
+    >
       {uploads.map((item) => (
-        <div className="a-upload-item" key={item.key}>
+        <div
+          data-ui="a-upload-item"
+          className="flex items-start gap-2.5 p-2.5 border border-solid border-(--a-border) rounded-[10px] max-w-80 bg-(--a-surface) [&>img]:object-cover [&>img]:rounded-md [&>img]:size-12 [&>div]:min-w-0 [&>div]:flex-1 [&_strong]:block [&_strong]:max-w-55 [&_strong]:text-[12px] [&_strong]:truncate [&_small]:block [&_small]:text-[11px] [&_small]:opacity-70 [&_small]:mt-0.75 [&_button]:p-0.75 [&_button]:text-[12px] [&_progress]:w-full [&_progress]:h-1 [&_progress]:accent-(--a-orange)"
+          key={item.key}
+        >
           {item.preview ? (
             <img src={item.preview} alt="" />
           ) : (
@@ -211,7 +219,10 @@ export function MessageAttachments({ files }: { files: Attachment[] }) {
   const [viewing, setViewing] = useState<Attachment | null>(null);
   return (
     <>
-      <div className="a-message-attachments">
+      <div
+        data-ui="a-message-attachments"
+        className="flex flex-wrap gap-2 mt-2"
+      >
         {files.map((file) =>
           file.contentType.startsWith("image/") ? (
             <AttachmentImage
@@ -222,7 +233,8 @@ export function MessageAttachments({ files }: { files: Attachment[] }) {
             />
           ) : (
             <a
-              className="a-file-attachment"
+              data-ui="a-file-attachment"
+              className="[&_strong]:block [&_strong]:max-w-55 [&_strong]:text-[12px] [&_strong]:truncate [&_small]:block [&_small]:text-[11px] [&_small]:opacity-70 [&_small]:mt-0.75 flex items-center gap-3 p-3.5 border border-solid border-(--a-border) rounded-[10px] max-w-full bg-(--a-surface)"
               key={file.id}
               href={file.url}
               download={file.name}
@@ -246,7 +258,8 @@ export function MessageAttachments({ files }: { files: Attachment[] }) {
             viewer
           />
           <a
-            className="a-button secondary"
+            data-ui="a-button secondary"
+            className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
             href={viewing.url}
             download={viewing.name}
           >

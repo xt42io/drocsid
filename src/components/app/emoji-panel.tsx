@@ -69,7 +69,8 @@ export function EmojiPanel({
       <button
         ref={refs.setReference}
         type="button"
-        className={`a-icon-button a-emoji-trigger ${open ? "is-active" : ""}`}
+        data-ui={`a-icon-button a-emoji-trigger ${open ? "is-active" : ""}`}
+        className="inline-flex items-center justify-center shrink-0 p-0 rounded-md text-(--a-muted) bg-transparent [transition:background_0.15s,color_0.15s] size-8 hover:bg-(--a-hover) hover:text-(--a-green) data-[ui~=is-active]:bg-(--a-hover) data-[ui~=is-active]:text-(--a-green)"
         title={label}
         aria-label={label}
         {...getReferenceProps()}
@@ -86,14 +87,16 @@ export function EmojiPanel({
             <div
               ref={refs.setFloating}
               style={floatingStyles}
-              className={`a-emoji-panel ${reaction && !expanded ? "a-quick-reactions" : ""}`}
+              data-ui={`a-emoji-panel ${reaction && !expanded ? "a-quick-reactions" : ""}`}
+              className="z-80 border border-solid border-(--a-border) rounded-xl bg-(--a-surface) text-(--a-text) shadow-[0_12px_45px_#00000026] overflow-hidden whitespace-normal w-[min(352px,calc(100vw-24px))] data-[ui~=a-quick-reactions]:w-auto data-[ui~=a-quick-reactions]:rounded-[9px] [&>header]:flex [&>header]:items-center [&>header]:justify-between [&>header]:gap-2.5 [&>header]:py-1.75 [&>header]:pr-2.5 [&>header]:pl-4 [&>header]:[border-bottom-width:1px] [&>header]:[border-bottom-style:solid] [&>header]:border-b-(--a-border) [&>header]:text-[12px] [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-bg-color:var(--a-surface)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-bg-color:var(--a-surface)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-text-color:var(--a-text)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-text-color:var(--a-text)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-picker-border-color:transparent]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-picker-border-color:transparent]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-picker-border-radius:0]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-highlight-color:var(--a-orange)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-highlight-color:var(--a-orange)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-hover-bg-color:var(--a-hover)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-hover-bg-color:var(--a-hover)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-focus-bg-color:var(--a-selected)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-focus-bg-color:var(--a-selected)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-search-input-bg-color:var(--a-soft)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-search-input-bg-color:var(--a-soft)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-search-input-bg-color-active:var(--a-soft)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-search-input-bg-color-active:var(--a-soft)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-search-input-text-color:var(--a-text)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-search-input-placeholder-color:var(--a-muted)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-search-border-color:var(--a-border)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-search-border-color-active:var(--a-orange)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-category-label-bg-color:var(--a-surface)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-category-label-bg-color:var(--a-surface)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-category-label-text-color:var(--a-muted)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-category-icon-active-color:var(--a-orange)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-category-icon-active-color:var(--a-orange)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-skin-tone-picker-menu-color:var(--a-surface)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-skin-tone-picker-menu-color:var(--a-surface)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-emoji-variation-picker-bg-color:var(--a-surface)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-dark-emoji-variation-picker-bg-color:var(--a-surface)]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-emoji-size:27px]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-category-label-height:32px]! [[data-ui~=workspace]_&_.EmojiPickerReact]:[--epr-search-input-height:38px]! [[data-ui~=workspace]_&_.EmojiPickerReact]:font-sans! [[data-ui~=workspace]_&_.EmojiPickerReact]:border-0! [[data-ui~=workspace]_&_.EmojiPickerReact]:border-none! [[data-ui~=workspace]_&_.EmojiPickerReact]:border-[currentColor]! [[data-ui~=workspace]_&_h2]:text-[12px]! [[data-ui~=workspace]_&_h2]:font-[550]! [[data-ui~=workspace]_&_h2]:tracking-normal! [[data-ui~=workspace]_&_input:focus]:border-(--a-orange)! [[data-ui~=workspace]_&_input:focus]:shadow-none! [[data-ui~=workspace]_&_[role='tab']]:text-(--a-muted)! [[data-ui~=workspace]_&_[role='tab'][aria-selected='true']]:text-(--a-orange)! max-[480px]:[[data-ui~=workspace]_&_input]:text-[16px]!"
               {...getFloatingProps({
                 "aria-label": reaction ? "Choose a reaction" : "Emoji picker",
               })}
             >
               {reaction && !expanded ? (
                 <div
-                  className="a-quick-reaction-list"
+                  data-ui="a-quick-reaction-list"
+                  className="flex items-center gap-0.75 p-1.5 [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:p-0 [&>button]:rounded-md [&>button]:bg-transparent [&>button]:text-(--a-muted) [&>button]:text-[21px] [&>button]:size-9 [&>button:hover]:bg-(--a-hover) [&>button:focus-visible]:bg-(--a-hover) *:data-[ui~=a-more-reactions]:[border-left-width:1px] *:data-[ui~=a-more-reactions]:[border-left-style:solid] *:data-[ui~=a-more-reactions]:border-l-(--a-border) *:data-[ui~=a-more-reactions]:rounded-[0_6px_6px_0] *:data-[ui~=a-more-reactions]:ml-0.75 *:data-[ui~=a-more-reactions]:w-8.5"
                   aria-label="Quick reactions"
                 >
                   {quickReactions.map((emoji) => (
@@ -112,7 +115,7 @@ export function EmojiPanel({
                   ))}
                   <button
                     type="button"
-                    className="a-more-reactions"
+                    data-ui="a-more-reactions"
                     title="More reactions"
                     aria-label="More reactions"
                     onClick={() => setExpanded(true)}
@@ -136,7 +139,11 @@ export function EmojiPanel({
                   </header>
                   <Suspense
                     fallback={
-                      <div className="a-emoji-loading" role="status">
+                      <div
+                        data-ui="a-emoji-loading"
+                        className="min-h-62.5 grid place-items-center text-(--a-muted) text-[13px]"
+                        role="status"
+                      >
                         Loading emoji…
                       </div>
                     }

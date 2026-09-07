@@ -145,11 +145,24 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
   }
 
   return (
-    <main id="main" className="auth-page">
-      <aside className="auth-story">
+    <main
+      id="main"
+      data-ui="auth-page"
+      className="min-h-svh flex max-[580px]:block"
+    >
+      <aside
+        data-ui="auth-story"
+        className="relative w-[44%] shrink-0 bg-[#f3653f] pt-10.5 pb-8.5 px-12 flex flex-col text-[#44261d] overflow-hidden **:data-[ui~=logo]:[--logo-eyes:#f3653f] **:data-[ui~=logo-period]:text-[#ffe4c8] [&_h1]:text-[clamp(49px,4.8vw,75px)] [&_h1]:leading-[1.06] [&_h1]:tracking-[-0.065em] [&_h1]:font-[550] [&_h1]:mt-5.25 [&_h1]:mb-6.5 [&_h1]:mx-0 [&_h1_em]:text-[#ffebd3] [&_h1_em]:not-italic min-[1600px]:px-17.5 min-[1600px]:[&_h1]:text-[80px] max-[1100px]:px-8.5 max-[1100px]:[&_h1]:text-[58px] max-[800px]:w-[41%] max-[800px]:px-6 max-[800px]:[&_h1]:text-[45px] max-[580px]:w-full max-[580px]:p-6 max-[580px]:**:data-[ui~=logo]:text-[26px] max-[580px]:[&_h1]:text-[45px] max-[580px]:[&_h1]:mt-2.75 max-[580px]:[&_h1]:mb-0 max-[580px]:[&_h1]:mx-0 max-[580px]:[&_h1]:leading-none max-[580px]:[&_h1_em]:whitespace-nowrap"
+      >
         <Logo />
-        <div className="auth-story-main">
-          <div className="auth-story-eyebrow">
+        <div
+          data-ui="auth-story-main"
+          className="w-full max-w-115 m-auto py-[76px_70px] [&>p]:text-[16px] [&>p]:leading-[1.65] [&>p]:text-[#833c26] [&>p]:m-0 min-[1600px]:max-w-122.5 max-[1100px]:[&>p]:text-[14px] max-[800px]:[&>p]:text-[13px] max-[580px]:pt-7.75 max-[580px]:px-0 max-[580px]:max-w-none max-[580px]:pb-4.25 max-[580px]:[&>p]:hidden"
+        >
+          <div
+            data-ui="auth-story-eyebrow"
+            className="flex items-center gap-2 text-[9px] tracking-[1.2px] font-mono text-[#71341f] [&>span]:text-[23px] max-[1100px]:text-[8px] max-[800px]:text-[7px] max-[800px]:tracking-[0.5px] max-[800px]:[&>span]:text-[19px] max-[580px]:text-[8px]"
+          >
             <span>✳</span> GOOD PEOPLE. GOOD COMPANY.
           </div>
           <h1>{content.aside}</h1>
@@ -158,38 +171,80 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
             <br />
             and your beautifully specific interests.
           </p>
-          <div className="auth-conversation">
-            <div className="auth-message">
+          <div
+            data-ui="auth-conversation"
+            className="mt-12.75 py-0 px-1.25 max-[800px]:mt-9.25 max-[800px]:p-0 max-[580px]:hidden"
+          >
+            <div
+              data-ui="auth-message"
+              className="flex items-center gap-3 w-[90%] min-w-62 bg-[#fffaf0] border border-solid border-[#eac6ad] p-4.5 rounded-[10px] transform-[rotate(-4deg)] shadow-[0_10px_20px_#7d2c1110] **:data-[ui~=avatar]:size-8.5 [&_p]:text-[12px] [&_p]:mt-1.25 [&_p]:mb-0 [&_p]:mx-0 [&_p]:text-[#93826f] max-[1100px]:min-w-56 max-[1100px]:p-3.5 max-[1100px]:[&_p]:text-[11px] max-[800px]:min-w-0 max-[800px]:w-full max-[800px]:py-3.25 max-[800px]:px-2.25 max-[800px]:gap-1.75 max-[800px]:**:data-[ui~=avatar]:text-[10px] max-[800px]:**:data-[ui~=avatar]:rounded-lg max-[800px]:**:data-[ui~=avatar]:size-6.25 max-[800px]:[&_p]:text-[10px]"
+            >
               <Avatar name="Jamie" color="purple" />
               <div>
-                <div className="auth-message-meta">
+                <div
+                  data-ui="auth-message-meta"
+                  className="flex items-center gap-3 [&_strong]:text-[12px] [&_strong]:text-[#5b554a] [&>span]:text-[9px] [&>span]:text-[#b6a794] max-[800px]:[&_strong]:text-[10px] max-[800px]:[&>span]:hidden"
+                >
                   <strong>Jamie</strong>
                   <span>just now</span>
                 </div>
                 <p>hey! saved you a spot. 👋</p>
               </div>
             </div>
-            <div className="auth-message reply">
+            <div
+              data-ui="auth-message reply"
+              className="flex items-center gap-3 w-[90%] min-w-62 bg-[#fffaf0] border border-solid border-[#eac6ad] p-4.5 rounded-[10px] transform-[rotate(-4deg)] shadow-[0_10px_20px_#7d2c1110] **:data-[ui~=avatar]:size-8.5 [&_p]:text-[12px] [&_p]:mt-1.25 [&_p]:mb-0 [&_p]:mx-0 [&_p]:text-[#93826f] data-[ui~=reply]:ml-6.75 data-[ui~=reply]:mt-4 data-[ui~=reply]:transform-[rotate(3deg)] max-[1100px]:min-w-56 max-[1100px]:p-3.5 max-[1100px]:[&_p]:text-[11px] max-[1100px]:data-[ui~=reply]:ml-3 max-[800px]:min-w-0 max-[800px]:w-full max-[800px]:py-3.25 max-[800px]:px-2.25 max-[800px]:gap-1.75 max-[800px]:**:data-[ui~=avatar]:text-[10px] max-[800px]:**:data-[ui~=avatar]:rounded-lg max-[800px]:**:data-[ui~=avatar]:size-6.25 max-[800px]:[&_p]:text-[10px] max-[800px]:data-[ui~=reply]:ml-0.5"
+            >
               <Avatar name="You" color="green" />
               <div>
-                <div className="auth-message-meta">
+                <div
+                  data-ui="auth-message-meta"
+                  className="flex items-center gap-3 [&_strong]:text-[12px] [&_strong]:text-[#5b554a] [&>span]:text-[9px] [&>span]:text-[#b6a794] max-[800px]:[&_strong]:text-[10px] max-[800px]:[&>span]:hidden"
+                >
                   <strong>You</strong>
                   <span>just now</span>
                 </div>
                 <p>feels like my kind of place.</p>
               </div>
-              <span className="auth-reaction">🧡 3</span>
+              <span
+                data-ui="auth-reaction"
+                className="absolute -bottom-3.75 right-4.5 bg-[#ffead3] border border-solid border-[#e1b697] py-1 px-2.25 rounded-md text-[12px] text-[#9b7355] max-[800px]:text-[10px] max-[800px]:-bottom-3.25"
+              >
+                🧡 3
+              </span>
             </div>
           </div>
-          <span className="auth-handwritten">come as you are.</span>
+          <span
+            data-ui="auth-handwritten"
+            className="block text-right pr-4.5 mt-9.5 italic text-[17px] text-[#8d422a] transform-[rotate(-6deg)] max-[580px]:hidden"
+          >
+            come as you are.
+          </span>
         </div>
-        <div className="auth-story-footer">
-          <span className="story-footer-dot" /> OPEN SOURCE. OPEN DOOR. ALWAYS.
+        <div
+          data-ui="auth-story-footer"
+          className="flex items-center gap-2 font-mono tracking-[1px] text-[9px] text-[#8e3e24] max-[800px]:text-[7px] max-[800px]:tracking-[0.5px] max-[580px]:hidden"
+        >
+          <span
+            data-ui="story-footer-dot"
+            className="rounded-full bg-[#8f442e] size-1.5"
+          />{" "}
+          OPEN SOURCE. OPEN DOOR. ALWAYS.
         </div>
       </aside>
-      <section className="auth-form-side">
-        <div className="auth-topbar">
-          <Link to="/" className="back-home">
+      <section
+        data-ui="auth-form-side"
+        className="flex-1 min-w-0 pt-10.25 pb-6.5 px-12.25 flex flex-col min-[1600px]:px-17.5 max-[1100px]:px-8.5 max-[800px]:px-7 max-[580px]:pt-5 max-[580px]:pb-6.25 max-[580px]:px-6.25 max-[580px]:min-h-[calc(100svh-220px)]"
+      >
+        <div
+          data-ui="auth-topbar"
+          className="flex items-center justify-between gap-4 w-full text-[11px] text-[#949486] [&>span>a]:inline-flex [&>span>a]:items-center [&>span>a]:gap-0.5 [&>span>a]:text-[#454b3e] [&>span>a]:ml-1.5 [&>span>a]:font-semibold [&_a:hover]:text-[#cf4c29] max-[1100px]:text-[10px] max-[800px]:[&>span]:hidden max-[580px]:text-[11px] max-[580px]:[&>span]:block max-[580px]:[&>span]:text-[10px]"
+        >
+          <Link
+            to="/"
+            data-ui="back-home"
+            className="flex items-center gap-1.5 text-[#727769]"
+          >
             <Icon icon={ArrowLeft01Icon} size={16} /> Back to home
           </Link>
           <span>
@@ -200,18 +255,30 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
             </Link>
           </span>
         </div>
-        <div className="auth-form-wrap">
+        <div
+          data-ui="auth-form-wrap"
+          className="w-full max-w-93 m-auto py-18.75 min-[1600px]:max-w-102.5 max-[800px]:py-13.75 max-[580px]:py-[38px_46px] max-[580px]:max-w-95"
+        >
           {complete ? (
             <div
-              className="auth-success"
+              data-ui="auth-success"
+              className="focus:[outline:none] **:data-[ui~=eyebrow]:text-[9px] **:data-[ui~=eyebrow]:text-[#8a947b] [&_h2]:text-[34px] [&_h2]:leading-[1.2] [&_h2]:tracking-[-1.5px] [&_h2]:mt-2.5 [&_h2]:wrap-anywhere [&>p]:text-[14px] [&>p]:leading-[1.7] [&>p]:text-[#858e77] max-[580px]:[&_h2]:text-[33px]"
               ref={successRef}
               tabIndex={-1}
               role="status"
             >
-              <div className="success-icon">
+              <div
+                data-ui="success-icon"
+                className="flex items-center justify-center bg-[#e6ecd9] rounded-[17px] mb-6.75 text-[#7c8f5d] size-15"
+              >
                 <Icon icon={recovery ? Mail01Icon : Tick02Icon} size={30} />
               </div>
-              <span className="eyebrow">YOU’VE REACHED THE FRONT DOOR</span>
+              <span
+                data-ui="eyebrow"
+                className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
+              >
+                YOU’VE REACHED THE FRONT DOOR
+              </span>
               <h2>
                 {recovery
                   ? "You’re in the right place."
@@ -225,7 +292,8 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                   : "This is where your next good conversation will begin."}
               </p>
               <button
-                className="button button-orange auth-submit"
+                data-ui="button button-orange auth-submit"
+                className="inline-flex items-center gap-3 border border-solid border-transparent py-3.5 pr-5.5 pl-5.5 font-semibold rounded-[7px] [transition:background_0.2s,transform_0.2s,box-shadow_0.2s] whitespace-nowrap bg-orange text-[#3e2118] shadow-[0_2px_0_#d842201c] w-full justify-between mt-0.75 min-h-12 text-[14px] px-4.25 hover:transform-[translateY(-2px)] hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:transform-[translateY(0)] max-[580px]:text-[13px] max-[580px]:min-h-12.25 motion-reduce:hover:transform-none"
                 onClick={() => {
                   setComplete(false);
                   setSocialNotice(false);
@@ -237,7 +305,8 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
               </button>
               <Link
                 to={recovery ? "/sign-in" : signup ? "/app/welcome" : "/app"}
-                className="success-home"
+                data-ui="success-home"
+                className="flex items-center justify-center gap-2 text-[12px] text-[#868e79] mt-5.75"
               >
                 {recovery ? "Back to log in" : "Step inside"}
                 <Icon icon={ArrowUpRight01Icon} size={15} />
@@ -245,8 +314,16 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
             </div>
           ) : (
             <>
-              <div className="auth-heading">
-                <span className="eyebrow">{content.eyebrow}</span>
+              <div
+                data-ui="auth-heading"
+                className="**:data-[ui~=eyebrow]:text-[9px] **:data-[ui~=eyebrow]:tracking-[1.3px] **:data-[ui~=eyebrow]:text-[#89907c] [&_h2]:text-[37px] [&_h2]:mt-3 [&_h2]:mb-3.25 [&_h2]:tracking-[-1.8px] [&_h2]:font-semibold [&>p]:text-[#707662] [&>p]:text-[14px] [&>p]:leading-[1.7] [&>p]:mt-0 [&>p]:mb-7 [&>p]:mx-0 max-[800px]:[&_h2]:text-[32px] max-[800px]:[&>p]:text-[13px] max-[800px]:**:data-[ui~=eyebrow]:text-[8px] max-[580px]:[&_h2]:text-[34px] max-[580px]:**:data-[ui~=eyebrow]:text-[8px] max-[580px]:[&>p]:text-[14px] max-[580px]:[&>p]:mb-6"
+              >
+                <span
+                  data-ui="eyebrow"
+                  className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
+                >
+                  {content.eyebrow}
+                </span>
                 <h2>{content.title}</h2>
                 <p>{content.description}</p>
               </div>
@@ -254,7 +331,8 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                 <>
                   <button
                     type="button"
-                    className="social-button"
+                    data-ui="social-button"
+                    className="w-full min-h-12 flex items-center justify-center gap-2 border border-solid border-[#d9dbcf] bg-transparent rounded-md text-[14px] font-semibold [transition:background_0.2s,border-color_0.2s] hover:bg-[#eeefe7] hover:border-[#b7c0a7] max-[580px]:text-[13px] max-[580px]:min-h-12"
                     disabled={busy}
                     onClick={async () => {
                       setBusy(true);
@@ -274,24 +352,43 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     <Icon icon={GithubIcon} size={21} /> Continue with GitHub
                   </button>
                   {socialNotice && (
-                    <p className="social-notice" role="status">
+                    <p
+                      data-ui="social-notice"
+                      className="flex items-start gap-2 rounded-md text-[#727d60] bg-[#eaf0df] p-2.5 text-[11px] leading-[1.6] mb-0 [&_svg]:shrink-0 [&_svg]:mt-px"
+                      role="status"
+                    >
                       <Icon icon={AlertCircleIcon} size={17} /> GitHub sign-in
                       is not configured on this server yet.
                     </p>
                   )}
-                  <div className="auth-divider">
+                  <div
+                    data-ui="auth-divider"
+                    className="flex items-center gap-4 my-5.75 mx-0 text-[#76806a] text-[10px] before:[content:''] before:flex-1 before:h-px before:bg-[#e1e3d8] after:[content:''] after:flex-1 after:h-px after:bg-[#e1e3d8] max-[580px]:text-[10px] max-[580px]:my-5.5"
+                  >
                     <span>or, the good old email way</span>
                   </div>
                 </>
               )}
-              <form onSubmit={submit} noValidate className="auth-form">
+              <form
+                onSubmit={submit}
+                noValidate
+                data-ui="auth-form"
+                className="flex flex-col gap-4.5"
+              >
                 {serverError && (
-                  <p className="field-error" role="alert">
+                  <p
+                    data-ui="field-error"
+                    className="mt-1.5 text-[11px] text-[#b04830] leading-normal"
+                    role="alert"
+                  >
                     {serverError}
                   </p>
                 )}
                 {signup && (
-                  <div className="form-field">
+                  <div
+                    data-ui="form-field"
+                    className="flex flex-col [&_label]:block [&_label]:text-[14px] [&_label]:font-semibold [&_label]:mb-2 [&_input]:w-full [&_input]:border [&_input]:border-solid [&_input]:border-[#dcded2] [&_input]:bg-[#fcfcf8] [&_input]:h-11.75 [&_input]:py-0 [&_input]:px-3.25 [&_input]:rounded-md [&_input]:text-[#424938] [&_input]:text-[14px] [&_input]:[outline:none] [&_input]:[transition:border-color_0.15s,box-shadow_0.15s] [&_input::placeholder]:text-[#818974] [&_input:focus]:border-[#e58965] [&_input:focus]:shadow-[0_0_0_3px_#f45e3810] [&_input[aria-invalid='true']]:border-[#cc5d48] [&_input[aria-invalid='true']]:bg-[#fff8f2] max-[580px]:[&_label]:text-[13px] max-[580px]:[&_input]:text-[16px] max-[580px]:[&_input]:h-12 max-[580px]:[&_input]:px-3 max-[580px]:[&_input::placeholder]:text-[12px]"
+                  >
                     <label htmlFor={`${id}-name`}>
                       What should we call you?
                     </label>
@@ -315,13 +412,20 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                       maxLength={40}
                     />
                     {errors.name && (
-                      <span id={`${id}-name-error`} className="field-error">
+                      <span
+                        id={`${id}-name-error`}
+                        data-ui="field-error"
+                        className="mt-1.5 text-[11px] text-[#b04830] leading-normal"
+                      >
                         {errors.name}
                       </span>
                     )}
                   </div>
                 )}
-                <div className="form-field">
+                <div
+                  data-ui="form-field"
+                  className="flex flex-col [&_label]:block [&_label]:text-[14px] [&_label]:font-semibold [&_label]:mb-2 [&_input]:w-full [&_input]:border [&_input]:border-solid [&_input]:border-[#dcded2] [&_input]:bg-[#fcfcf8] [&_input]:h-11.75 [&_input]:py-0 [&_input]:px-3.25 [&_input]:rounded-md [&_input]:text-[#424938] [&_input]:text-[14px] [&_input]:[outline:none] [&_input]:[transition:border-color_0.15s,box-shadow_0.15s] [&_input::placeholder]:text-[#818974] [&_input:focus]:border-[#e58965] [&_input:focus]:shadow-[0_0_0_3px_#f45e3810] [&_input[aria-invalid='true']]:border-[#cc5d48] [&_input[aria-invalid='true']]:bg-[#fff8f2] max-[580px]:[&_label]:text-[13px] max-[580px]:[&_input]:text-[16px] max-[580px]:[&_input]:h-12 max-[580px]:[&_input]:px-3 max-[580px]:[&_input::placeholder]:text-[12px]"
+                >
                   <label htmlFor={`${id}-email`}>Email address</label>
                   <input
                     ref={emailRef}
@@ -342,20 +446,33 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     required
                   />
                   {errors.email && (
-                    <span id={`${id}-email-error`} className="field-error">
+                    <span
+                      id={`${id}-email-error`}
+                      data-ui="field-error"
+                      className="mt-1.5 text-[11px] text-[#b04830] leading-normal"
+                    >
                       {errors.email}
                     </span>
                   )}
                 </div>
                 {!recovery && (
-                  <div className="form-field">
-                    <div className="password-label">
+                  <div
+                    data-ui="form-field"
+                    className="flex flex-col [&_label]:block [&_label]:text-[14px] [&_label]:font-semibold [&_label]:mb-2 [&_input]:w-full [&_input]:border [&_input]:border-solid [&_input]:border-[#dcded2] [&_input]:bg-[#fcfcf8] [&_input]:h-11.75 [&_input]:py-0 [&_input]:px-3.25 [&_input]:rounded-md [&_input]:text-[#424938] [&_input]:text-[14px] [&_input]:[outline:none] [&_input]:[transition:border-color_0.15s,box-shadow_0.15s] [&_input::placeholder]:text-[#818974] [&_input:focus]:border-[#e58965] [&_input:focus]:shadow-[0_0_0_3px_#f45e3810] [&_input[aria-invalid='true']]:border-[#cc5d48] [&_input[aria-invalid='true']]:bg-[#fff8f2] max-[580px]:[&_label]:text-[13px] max-[580px]:[&_input]:text-[16px] max-[580px]:[&_input]:h-12 max-[580px]:[&_input]:px-3 max-[580px]:[&_input::placeholder]:text-[12px]"
+                  >
+                    <div
+                      data-ui="password-label"
+                      className="flex items-start justify-between gap-2 [&_a]:text-[11px] [&_a]:text-[#9c7861] [&_a:hover]:text-[#c2552e] max-[580px]:[&_a]:text-[11px]"
+                    >
                       <label htmlFor={`${id}-password`}>Password</label>
                       {!signup && (
                         <Link to="/forgot-password">Forgot password?</Link>
                       )}
                     </div>
-                    <div className="password-input">
+                    <div
+                      data-ui="password-input"
+                      className="relative [&_input]:pr-11.25 [&_button]:absolute [&_button]:right-px [&_button]:top-px [&_button]:bottom-px [&_button]:w-10.5 [&_button]:border-0 [&_button]:border-none [&_button]:border-[currentColor] [&_button]:bg-transparent [&_button]:flex [&_button]:items-center [&_button]:justify-center [&_button]:text-[#a1a794] [&_button]:rounded-[5px] [&_button:hover]:text-[#52623d] max-[580px]:[&_input]:pr-11"
+                    >
                       <input
                         ref={passwordRef}
                         id={`${id}-password`}
@@ -400,22 +517,31 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                       </button>
                     </div>
                     {errors.password && (
-                      <span id={`${id}-password-error`} className="field-error">
+                      <span
+                        id={`${id}-password-error`}
+                        data-ui="field-error"
+                        className="mt-1.5 text-[11px] text-[#b04830] leading-normal"
+                      >
                         {errors.password}
                       </span>
                     )}
                     {signup && (
-                      <div className="password-hint" id={`${id}-password-hint`}>
+                      <div
+                        data-ui="password-hint"
+                        className="mt-2 text-[#6f7c60] text-[10px] leading-normal"
+                        id={`${id}-password-hint`}
+                      >
                         {password.length > 0 ? (
                           <>
                             <div
-                              className={`strength-meter strength-${strength}`}
+                              data-ui={`strength-meter strength-${strength}`}
+                              className="flex gap-1 mt-0.75 mb-1.75 [&_i]:h-0.75 [&_i]:flex-1 [&_i]:bg-[#e3e6d9] [&_i]:rounded-xs **:data-[ui~=filled]:bg-[#dea377] [&[data-ui~=strength-3]_[data-ui~=filled]]:bg-[#819567] [&[data-ui~=strength-4]_[data-ui~=filled]]:bg-[#819567]"
                               aria-hidden="true"
                             >
                               {[1, 2, 3, 4].map((level) => (
                                 <i
                                   key={level}
-                                  className={strength >= level ? "filled" : ""}
+                                  data-ui={strength >= level ? "filled" : ""}
                                 />
                               ))}
                             </div>
@@ -439,23 +565,34 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                   </div>
                 )}
                 <button
-                  className="button button-orange auth-submit"
+                  data-ui="button button-orange auth-submit"
+                  className="inline-flex items-center gap-3 border border-solid border-transparent py-3.5 pr-5.5 pl-5.5 font-semibold rounded-[7px] [transition:background_0.2s,transform_0.2s,box-shadow_0.2s] whitespace-nowrap bg-orange text-[#3e2118] shadow-[0_2px_0_#d842201c] w-full justify-between mt-0.75 min-h-12 text-[14px] px-4.25 hover:transform-[translateY(-2px)] hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:transform-[translateY(0)] max-[580px]:text-[13px] max-[580px]:min-h-12.25 motion-reduce:hover:transform-none"
                   type="submit"
                   disabled={busy}
                 >
                   {busy ? "One moment…" : content.submit}
                   <Icon icon={ArrowRight01Icon} size={19} />
                 </button>
-                <p className="form-preview-note">
+                <p
+                  data-ui="form-preview-note"
+                  className="text-[#758061] text-[10px] leading-[1.6] text-center -mt-1.25 mb-0 -mx-3.75 max-[580px]:text-[9px] max-[580px]:mx-0"
+                >
                   A little preview of what’s to come. No account needed yet.
                 </p>
               </form>
               {recovery ? (
-                <Link className="auth-bottom-link" to="/sign-in">
+                <Link
+                  data-ui="auth-bottom-link"
+                  className="flex items-center justify-center gap-2 text-[12px] text-[#828d70] mt-6.25"
+                  to="/sign-in"
+                >
                   <Icon icon={ArrowLeft01Icon} size={16} /> Back to log in
                 </Link>
               ) : (
-                <div className="auth-invite">
+                <div
+                  data-ui="auth-invite"
+                  className="mt-6.5 [border-top-width:1px] [border-top-style:solid] border-t-[#e2e5d8] pt-5.75 text-center text-[11px] text-[#6d795e] [&_a]:inline-flex [&_a]:items-center [&_a]:gap-0.5 [&_a]:ml-1 [&_a]:text-[#626f4e] [&_a]:font-semibold [&_a:hover]:text-[#d1522b] max-[800px]:text-[10px] max-[580px]:text-[12px] max-[580px]:pt-5.75"
+                >
                   {signup
                     ? "Already found your people?"
                     : "Don’t have an account yet?"}{" "}
@@ -468,7 +605,10 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
             </>
           )}
         </div>
-        <footer className="auth-footer">
+        <footer
+          data-ui="auth-footer"
+          className="flex items-center justify-between text-[#737d63] text-[10px] [&>span:last-child]:text-[21px] [&>span:last-child]:text-[#899577] max-[580px]:text-[9px]"
+        >
           <span>A little corner of the internet, for you.</span>
           <span>✳</span>
         </footer>

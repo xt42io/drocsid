@@ -5,7 +5,14 @@ function AppHome() {
   const { state, ready } = useApp();
   const community = state.communities.find((c) => c.joined);
   if (!ready)
-    return <div className="a-loading">Finding your little corner…</div>;
+    return (
+      <div
+        data-ui="a-loading"
+        className="h-full flex justify-center items-center text-(--a-muted) text-[14px]"
+      >
+        Finding your little corner…
+      </div>
+    );
   return community ? (
     <Navigate
       to="/app/community/$communityId/$channelId"

@@ -29,13 +29,20 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
         title="This corner isn’t available."
         description="Head back to your communities to find your place."
       >
-        <Link to="/app" className="a-button primary">
+        <Link
+          to="/app"
+          data-ui="a-button primary"
+          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
+        >
           Back to your corner
         </Link>
       </EmptyState>
     );
   return (
-    <div className="a-page a-community-settings">
+    <div
+      data-ui="a-page a-community-settings"
+      className="h-full overflow-y-auto pt-10.75 pb-10 px-11 [&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:text-[10px]! [&_[data-ui~=a-page-heading]_h1]:text-[32px] **:data-[ui~=a-settings-section-bar]:flex-wrap min-[1600px]:py-12 min-[1600px]:px-15 max-[1250px]:py-8.75 max-[1250px]:px-7.5 max-[1250px]:**:data-[ui~=a-page-heading]:[align-items:start] max-[1250px]:[&_[data-ui~=a-page-heading]_h1]:text-[28px] max-[1250px]:[&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:whitespace-normal max-[1250px]:[&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:max-w-35 max-[760px]:pt-7 max-[760px]:pb-8 max-[760px]:px-6 max-[760px]:[&_[data-ui~=a-page-heading]_h1]:text-[29px] max-[480px]:pt-6 max-[480px]:pb-8 max-[480px]:px-4.5 max-[480px]:[&_[data-ui~=a-page-heading]_h1]:text-[29px] max-[480px]:[&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:max-w-none max-[480px]:[&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:text-[11px]!"
+    >
       <PageHeading
         eyebrow="TAKE CARE OF YOUR CORNER"
         title="A place that feels like yours."
@@ -47,17 +54,21 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
             communityId,
             channelId: community.channels[0]?.id ?? "general",
           }}
-          className="a-button secondary"
+          data-ui="a-button secondary"
+          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
         >
           <AppIcon name="left" size={17} />
           Back to the conversation
         </Link>
       </PageHeading>
-      <div className="a-tabs a-inbox-tabs">
+      <div
+        data-ui="a-tabs a-inbox-tabs"
+        className="flex gap-4.25 items-center min-w-0 [border-bottom-width:1px] [border-bottom-style:solid] border-b-(--a-border) mb-6.25 [&>button]:relative [&>button]:flex [&>button]:items-center [&>button]:justify-center [&>button]:gap-1.5 [&>button]:min-h-11.25 [&>button]:bg-transparent [&>button]:pt-0 [&>button]:pb-3.25 [&>button]:px-0.75 [&>button]:text-(--a-muted) [&>button]:text-[12px] [&>button]:whitespace-nowrap [&>button[data-ui~=active]]:text-(--a-text) [&>button[data-ui~=active]]:font-semibold [&>button[data-ui~=active]::after]:[content:''] [&>button[data-ui~=active]::after]:absolute [&>button[data-ui~=active]::after]:-bottom-px [&>button[data-ui~=active]::after]:left-0 [&>button[data-ui~=active]::after]:right-0 [&>button[data-ui~=active]::after]:h-0.5 [&>button[data-ui~=active]::after]:bg-(--a-orange) [&>button>span]:bg-(--a-soft) [&>button>span]:text-(--a-muted) [&>button>span]:py-px [&>button>span]:px-1.25 [&>button>span]:rounded-sm [&>button>span]:text-[10px] max-[1250px]:gap-3 max-[1250px]:[&>button]:text-[11px] max-[760px]:gap-5.5 max-[760px]:[&>button]:text-[12px] max-[480px]:gap-4 max-[480px]:overflow-x-auto max-[480px]:scrollbar-none max-[480px]:[&>button]:text-[11px] max-[480px]:[&>button]:shrink-0 max-[480px]:[&>button>span]:text-[9px]"
+      >
         {["overview", "channels", "members"].map((item) => (
           <button
             key={item}
-            className={tab === item ? "active" : ""}
+            data-ui={tab === item ? "active" : ""}
             aria-pressed={tab === item}
             onClick={() => setTab(item)}
           >
@@ -66,9 +77,13 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
         ))}
       </div>
       {tab === "overview" && (
-        <div className="a-community-overview">
+        <div
+          data-ui="a-community-overview"
+          className="grid grid-cols-[minmax(0,1fr)_265px] gap-11 pt-1.5 [&_[data-ui~=a-form]>[data-ui~=a-button]]:[align-self:start] [&_[data-ui~=a-form]>[data-ui~=a-button]]:mt-1.75 max-[1250px]:grid-cols-[minmax(0,1fr)_220px] max-[1250px]:gap-6.5 max-[1050px]:grid-cols-[1fr] max-[760px]:gap-7"
+        >
           <form
-            className="a-form"
+            data-ui="a-form"
+            className="flex flex-col gap-5 [&>label]:block [&>label]:font-[550] [&>label]:text-xs/normal [&_label_input]:block [&_label_input]:w-full [&_label_input]:min-h-10.5 [&_label_input]:py-2.75 [&_label_input]:px-3 [&_label_input]:mt-1.75 [&_label_input]:text-[13px] [&_label_input]:font-normal [&_label_input]:leading-[1.65] [&_label_textarea]:block [&_label_textarea]:w-full [&_label_textarea]:min-h-10.5 [&_label_textarea]:py-2.75 [&_label_textarea]:px-3 [&_label_textarea]:mt-1.75 [&_label_textarea]:text-[13px] [&_label_textarea]:font-normal [&_label_textarea]:leading-[1.65] [&_label_textarea]:resize-y [&_label_select]:block [&_label_select]:w-full [&_label_select]:min-h-10.5 [&_label_select]:py-2.75 [&_label_select]:px-3 [&_label_select]:mt-1.75 [&_label_select]:text-[13px] [&_label_select]:font-normal [&_label_select]:leading-[1.65] max-[760px]:[&_label_input]:text-[16px] max-[760px]:[&_label_textarea]:text-[16px] max-[760px]:[&_label_select]:text-[16px] max-[760px]:[&_label_input::placeholder]:text-[13px] max-[760px]:[&_label_textarea::placeholder]:text-[13px]"
             onSubmit={async (event) => {
               event.preventDefault();
               if (name.trim().length < 2) {
@@ -94,8 +109,14 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
               setError("");
             }}
           >
-            <div className="a-community-brand">
-              <span className={`a-community-icon tone-${community.color}`}>
+            <div
+              data-ui="a-community-brand"
+              className="flex items-center gap-4.25 mb-1.5 **:data-[ui~=a-community-icon]:rounded-[21px] **:data-[ui~=a-community-icon]:size-17 [&_h2]:text-[22px] [&_p]:text-[11px] [&_p]:mt-1.5 [&_p]:text-(--a-muted) max-[480px]:[&_h2]:text-[21px] max-[480px]:**:data-[ui~=a-community-icon]:rounded-[18px] max-[480px]:**:data-[ui~=a-community-icon]:size-14.5"
+            >
+              <span
+                data-ui={`a-community-icon tone-${community.color}`}
+                className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
+              >
                 <AppIcon name={community.icon} size={38} />
               </span>
               <div>
@@ -142,15 +163,26 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
               </select>
             </label>
             {error && (
-              <p role="alert" className="a-form-error">
+              <p
+                role="alert"
+                data-ui="a-form-error"
+                className="text-[#b56345] text-[12px] leading-[1.6]"
+              >
                 {error}
               </p>
             )}
-            <button className="a-button primary" type="submit">
+            <button
+              data-ui="a-button primary"
+              className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
+              type="submit"
+            >
               Save changes <AppIcon name="check" size={17} />
             </button>
           </form>
-          <aside className="a-community-settings-note">
+          <aside
+            data-ui="a-community-settings-note"
+            className="[align-self:start] mt-1 bg-(--a-soft) border border-solid border-(--a-border) p-5.75 rounded-[9px] text-(--a-green) [&>svg]:mb-4.5 [&_h3]:text-[24px] [&_h3]:leading-[1.15] [&_h3]:font-medium [&_h3]:tracking-[-0.8px] [&_p]:text-[12px] [&_p]:leading-[1.85] [&_p]:text-(--a-muted) [&_p]:my-[17px_21px] **:data-[ui~=danger-text]:text-[11px] max-[1050px]:max-w-none max-[1050px]:[&_h3_br]:hidden max-[1050px]:*:data-[ui~=a-button]:w-auto"
+          >
             <AppIcon name="leaf" size={32} />
             <h3>
               Good communities
@@ -162,14 +194,19 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
               pretty good beginning.
             </p>
             <button
-              className="a-button secondary full"
+              data-ui="a-button secondary full"
+              className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=full]:w-full [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
               onClick={() => setModal({ type: "invite", communityId })}
             >
               Invite your people <AppIcon name="userAdd" size={17} />
             </button>
-            <div className="a-settings-divider" />
+            <div
+              data-ui="a-settings-divider"
+              className="h-px bg-(--a-border) my-6.75"
+            />
             <button
-              className="a-text-link danger-text"
+              data-ui="a-text-link danger-text"
+              className="text-[#b8654b]! inline-flex items-center gap-1.75 text-[12px] font-[550] bg-transparent p-0 hover:text-(--a-orange)"
               onClick={() =>
                 setModal({
                   type: "confirm",
@@ -197,7 +234,10 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
       )}
       {tab === "channels" && (
         <>
-          <div className="a-settings-section-bar">
+          <div
+            data-ui="a-settings-section-bar"
+            className="flex items-center justify-between gap-5 mb-5.75 [&_h2]:text-[21px] [&_p]:text-[12px] [&_p]:text-(--a-muted) [&_p]:mt-1.75 max-[1050px]:[align-items:start] max-[1050px]:[&_h2]:text-[20px] max-[1050px]:*:data-[ui~=a-button]:text-[10px]! max-[760px]:[&_h2]:text-[22px] max-[480px]:flex-col max-[480px]:[align-items:start] max-[480px]:gap-4 max-[480px]:[&_h2]:text-[23px]"
+          >
             <div>
               <h2>A room for every conversation.</h2>
               <p>
@@ -205,9 +245,13 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 {getChannelCategories(community).length} categories
               </p>
             </div>
-            <div className="a-channel-settings-actions">
+            <div
+              data-ui="a-channel-settings-actions"
+              className="flex flex-wrap gap-2.25"
+            >
               <button
-                className="a-button secondary"
+                data-ui="a-button secondary"
+                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
                 onClick={() =>
                   setModal({ type: "create-category", communityId })
                 }
@@ -216,7 +260,8 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 Create category
               </button>
               <button
-                className="a-button primary"
+                data-ui="a-button primary"
+                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
                 onClick={() =>
                   setModal({ type: "create-channel", communityId })
                 }
@@ -228,11 +273,15 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
           </div>
           {getChannelCategories(community).map((group) => (
             <section
-              className="a-managed-category"
+              data-ui="a-managed-category"
+              className="mb-5.5"
               key={group}
               aria-label={group}
             >
-              <header className="a-managed-category-header">
+              <header
+                data-ui="a-managed-category-header"
+                className="flex items-center gap-2.5 py-2.75 px-3.5 border border-solid border-(--a-border) rounded-[7px] bg-(--a-soft) text-(--a-muted) [&_h3]:flex-1 [&_h3]:min-w-0 [&_h3]:wrap-anywhere [&_h3]:text-[12px] [&_h3]:tracking-[0.6px] [&_h3]:uppercase [&>svg]:shrink-0 [&>button]:shrink-0"
+              >
                 <AppIcon name="folder" size={18} />
                 <h3>{group}</h3>
                 <IconButton
@@ -246,10 +295,14 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
               {!community.channels.some(
                 (channel) => channel.group === group,
               ) && (
-                <div className="a-managed-category-empty">
+                <div
+                  data-ui="a-managed-category-empty"
+                  className="flex flex-wrap items-center justify-between gap-3 py-4.5 px-3.75 text-(--a-muted) text-[12px]"
+                >
                   <p>No channels yet.</p>
                   <button
-                    className="a-text-link"
+                    data-ui="a-text-link"
+                    className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
                     onClick={() =>
                       setModal({ type: "create-channel", communityId, group })
                     }
@@ -258,12 +311,18 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                   </button>
                 </div>
               )}
-              <div className="a-managed-channels">
+              <div
+                data-ui="a-managed-channels"
+                className="[&_strong]:wrap-anywhere [&_strong]:block [&_strong]:font-[550] [&_strong]:text-[13px] [&>div]:flex [&>div]:items-center [&>div]:gap-3.75 [&>div]:py-4.75 [&>div]:px-0.5 [&>div]:[border-bottom-width:1px] [&>div]:[border-bottom-style:solid] [&>div]:border-b-(--a-border) [&>div>span:nth-child(2)]:flex-1 [&>div>span:nth-child(2)]:min-w-0 [&_small]:text-[9px] [&_small]:text-(--a-faint) [&_small]:font-normal [&_small]:ml-3.5 [&_p]:text-[11px] [&_p]:leading-[1.6] [&_p]:text-(--a-muted) [&_p]:mt-1.25 max-[1050px]:[&_small]:hidden max-[760px]:[&_p]:text-[12px] max-[480px]:[&>div]:gap-2.25 max-[480px]:**:data-[ui~=a-icon-button]:w-7 max-[480px]:[&_p]:text-[10px] max-[480px]:[&_strong]:text-[12px]"
+              >
                 {community.channels
                   .filter((channel) => channel.group === group)
                   .map((channel) => (
                     <div key={channel.id}>
-                      <span className="a-channel-square">
+                      <span
+                        data-ui="a-channel-square"
+                        className="flex items-center justify-center border border-solid border-(--a-border) text-(--a-muted) rounded-[10px] bg-(--a-soft) shrink-0 size-9.25"
+                      >
                         <AppIcon name="hash" size={22} />
                       </span>
                       <span>
@@ -273,7 +332,8 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                       <Link
                         to="/app/community/$communityId/$channelId"
                         params={{ communityId, channelId: channel.id }}
-                        className="a-icon-button"
+                        data-ui="a-icon-button"
+                        className="inline-flex items-center justify-center shrink-0 p-0 rounded-md text-(--a-muted) bg-transparent [transition:background_0.15s,color_0.15s] size-8 hover:bg-(--a-hover) hover:text-(--a-green)"
                         aria-label={`Open ${channel.name}`}
                         title="Open channel"
                       >
@@ -325,19 +385,26 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
       )}
       {tab === "members" && (
         <>
-          <div className="a-settings-section-bar">
+          <div
+            data-ui="a-settings-section-bar"
+            className="flex items-center justify-between gap-5 mb-5.75 [&_h2]:text-[21px] [&_p]:text-[12px] [&_p]:text-(--a-muted) [&_p]:mt-1.75 max-[1050px]:[align-items:start] max-[1050px]:[&_h2]:text-[20px] max-[1050px]:*:data-[ui~=a-button]:text-[10px]! max-[760px]:[&_h2]:text-[22px] max-[480px]:flex-col max-[480px]:[align-items:start] max-[480px]:gap-4 max-[480px]:[&_h2]:text-[23px]"
+          >
             <div>
               <h2>The people who make this place.</h2>
               <p>Your community members.</p>
             </div>
             <button
-              className="a-button primary"
+              data-ui="a-button primary"
+              className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
               onClick={() => setModal({ type: "invite", communityId })}
             >
               Invite a friend <AppIcon name="userAdd" size={17} />
             </button>
           </div>
-          <label className="a-search-field a-wide-search">
+          <label
+            data-ui="a-search-field a-wide-search"
+            className="flex items-center gap-2.25 bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] min-h-10.75 py-0 px-3 text-(--a-muted) mb-6.5 max-w-150 [&_input]:w-full [&_input]:py-2.75 [&_input]:px-0 [&_input]:bg-transparent [&_input]:border-0 [&_input]:border-none [&_input]:border-[currentColor] [&_input]:rounded-none [&_input]:text-[12px] [&_input]:shadow-none! focus-within:border-[#b8c5a3] [[data-ui~=theme-dark]_&:focus-within]:border-[#888888] [[data-ui~=theme-dark]_&:focus-within]:shadow-[0_0_0_3px_#ffffff08] max-[760px]:[[data-ui~=workspace]_&_input]:text-[16px] max-[760px]:[[data-ui~=workspace]_&_input::placeholder]:text-[12px]"
+          >
             <AppIcon name="search" size={18} />
             <input
               placeholder="Find a member"
@@ -357,13 +424,20 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 .includes(query.toLowerCase()),
             )
             .map((person) => (
-              <div className="a-community-member-row" key={person.id}>
+              <div
+                data-ui="a-community-member-row"
+                className="flex items-center gap-3.25 py-4.5 px-1.25 [border-bottom-width:1px] [border-bottom-style:solid] border-b-(--a-border) [&>span:nth-child(2)]:flex-1 [&_strong]:block [&_strong]:text-[13px] [&_strong]:font-[550] [&_small]:block [&_small]:text-[11px] [&_small]:text-(--a-faint) [&_small]:mt-1.25 max-[480px]:**:data-[ui~=a-role-tag]:text-[8px] max-[480px]:**:data-[ui~=a-role-tag]:py-0.75 max-[480px]:**:data-[ui~=a-role-tag]:px-1.25 max-[480px]:gap-2.25 max-[480px]:[&_strong]:text-[12px] max-[480px]:[&_small]:text-[10px] max-[480px]:*:data-[ui~=a-icon-button]:w-6"
+                key={person.id}
+              >
                 <PersonAvatar person={person} presence />
                 <span>
                   <strong>{person.name}</strong>
                   <small>@{person.handle}</small>
                 </span>
-                <span className="a-role-tag">
+                <span
+                  data-ui="a-role-tag"
+                  className="inline-block py-0.75 px-1.75 border border-solid border-(--a-border) rounded-sm bg-(--a-soft) text-[9px] text-(--a-muted)"
+                >
                   {community.memberRoles?.[person.id] ?? "Member"}
                 </span>
                 {person.id !== "you" &&

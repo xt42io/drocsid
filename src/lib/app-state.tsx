@@ -497,12 +497,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }
   if (!ready)
     return (
-      <main className="a-loading" role="status">
+      <main
+        data-ui="a-loading"
+        className="h-full flex justify-center items-center text-(--a-muted) text-[14px]"
+        role="status"
+      >
         {error ? (
           <div>
             <p>{error}</p>
             <button
-              className="a-button primary"
+              data-ui="a-button primary"
+              className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
               onClick={() => {
                 void refresh();
               }}
@@ -558,7 +563,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }}
     >
       {(error || !connected) && (
-        <div role="status" className="a-connection-status">
+        <div
+          role="status"
+          data-ui="a-connection-status"
+          className="fixed z-100 top-2.5 left-1/2 transform-[translateX(-50%)] py-2.5 px-4.5 bg-[#f7b267] text-[#171717] rounded-lg text-[13px]"
+        >
           Reconnecting to live chat…
         </div>
       )}
