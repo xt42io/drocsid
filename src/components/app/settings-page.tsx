@@ -537,8 +537,8 @@ export function SettingsPage({ section }: { section: string }) {
                 <p>Being part of a community should feel comfortable.</p>
               </div>
               <Toggle
-                label="Direct messages from community members"
-                description="Allow people in your communities to start a conversation with you."
+                label="Message requests from community members"
+                description="Let non-friends in your communities send message requests. You decide which requests to accept."
                 checked={state.preferences.directMessages}
                 onChange={(value) => updatePreference("directMessages", value)}
               />
