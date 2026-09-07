@@ -1,6 +1,12 @@
-import { and, eq, isNull, lt, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, or } from "drizzle-orm";
 import { getDb } from "../src/server/db";
-import { attachments, avatars, events, limits } from "../src/server/db/schema";
+import {
+  attachments,
+  avatars,
+  communityIcons,
+  events,
+  limits,
+} from "../src/server/db/schema";
 import { getStorage } from "../src/server/uploads";
 
 const db = getDb();
@@ -80,6 +86,39 @@ for (const file of oldPhotos) {
   await db.delete(avatars).where(eq(avatars.id, file.id));
   photosRemoved++;
 }
+const staleIcons = or(
+  eq(communityIcons.status, "deleted"),
+  and(
+    inArray(communityIcons.status, ["pending", "ready"]),
+    lt(communityIcons.createdAt, new Date(Date.now() - 3600000)),
+  ),
+  and(eq(communityIcons.status, "active"), isNull(communityIcons.communityId)),
+);
+const oldIcons = await db
+  .select()
+  .from(communityIcons)
+  .where(staleIcons)
+  .limit(200);
+let iconsRemoved = 0;
+for (const file of oldIcons) {
+  const claimed = await db
+    .update(communityIcons)
+    .set({ status: "deleted" })
+    .where(and(eq(communityIcons.id, file.id), staleIcons))
+    .returning();
+  if (!claimed.length) continue;
+  try {
+    await storage.deleteFile(file.path);
+  } catch (error) {
+    if ((error as { status?: number }).status !== 404) {
+      console.error("Storage cleanup failed for community icon", file.id);
+      continue;
+    }
+  }
+  await db.delete(communityIcons).where(eq(communityIcons.id, file.id));
+  iconsRemoved++;
+}
+console.log(`Removed ${iconsRemoved} abandoned/replaced community icons.`);
 console.log(`Removed ${photosRemoved} abandoned/replaced avatars.`);
 await db
   .delete(events)
