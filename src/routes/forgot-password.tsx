@@ -1,7 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AuthScreen } from "../components/auth-screen";
-
+import { createFileRoute, redirect } from "@tanstack/react-router";
 export const Route = createFileRoute("/forgot-password")({
-  head: () => ({ meta: [{ title: "Find your way back — drocsid" }] }),
-  component: () => <AuthScreen mode="forgot-password" />,
+  beforeLoad: () => {
+    throw redirect({ to: "/sign-in" });
+  },
 });
