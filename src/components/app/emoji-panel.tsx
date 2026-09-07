@@ -23,9 +23,15 @@ const quickReactions = ["🧡", "👍", "😂", "🎉", "👀"];
 export function EmojiPanel({
   onSelect,
   reaction = false,
+  label: customLabel,
+  value,
+  disabled = false,
 }: {
   onSelect: (emoji: string) => void;
   reaction?: boolean;
+  label?: string;
+  value?: string;
+  disabled?: boolean;
 }) {
   const { state } = useApp();
   const [open, setOpen] = useState(false);
@@ -63,19 +69,26 @@ export function EmojiPanel({
     useDismiss(context),
     useRole(context),
   ]);
-  const label = reaction ? "Add a reaction" : "Add an emoji";
+  const label = customLabel ?? (reaction ? "Add a reaction" : "Add an emoji");
   return (
     <>
       <button
         ref={refs.setReference}
         type="button"
+        disabled={disabled}
         data-ui={`a-icon-button a-emoji-trigger ${open ? "is-active" : ""}`}
         className="inline-flex items-center justify-center shrink-0 p-0 rounded-md text-(--a-muted) bg-transparent [transition:background_0.15s,color_0.15s] size-8 hover:bg-(--a-hover) hover:text-(--a-green) data-[ui~=is-active]:bg-(--a-hover) data-[ui~=is-active]:text-(--a-green)"
         title={label}
         aria-label={label}
         {...getReferenceProps()}
       >
-        <AppIcon name="smile" size={reaction ? 17 : 20} />
+        {value ? (
+          <span className="text-xl" aria-hidden="true">
+            {value}
+          </span>
+        ) : (
+          <AppIcon name="smile" size={reaction ? 17 : 20} />
+        )}
       </button>
       {open && (
         <WorkspacePortal>
