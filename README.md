@@ -106,6 +106,12 @@ Avatars request 40, 80, or 160 px WebP crops through Byteship's media transforma
 
 Run `pnpm uploads:cleanup` periodically on the server. It removes abandoned uploads older than an hour, files belonging to deleted messages, replaced/removed profile photos, and expired verification/event/rate-limit records. Failed storage deletions remain queued for retry. This command is supplied but no OS scheduler is installed automatically.
 
+## Error monitoring
+
+Sentry captures browser and server errors, TanStack Router navigation traces, server route and server-function spans, and masked session replays. Chat text, form text, media, cookies, request bodies, query parameters, database values, and automatic user information are excluded from collection.
+
+The project DSN is configured as a public fallback and documented in `.env.example`. Set `SENTRY_DSN` and `VITE_SENTRY_DSN` to override it. Set the server-only `SENTRY_AUTH_TOKEN` in local and deployment environments to upload production source maps during `pnpm build`; builds remain functional without the token. Both `pnpm dev` and `pnpm start` preload the server instrumentation before application modules.
+
 ## Permissions and current limits
 
 Community roles are scoped to each community. Owners/admins manage channels, categories, pins, and membership. Moderators can delete other members' messages. The owner cannot leave; ownership transfer is not implemented yet. Public communities can be rejoined after removal; persistent bans and private-community invitations are future work.
