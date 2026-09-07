@@ -7,7 +7,7 @@ An open-source community chat app built with TanStack Start, React, Tailwind, Hu
 Requires Node.js 22.12+ and pnpm.
 
 1. Run `pnpm install`.
-2. Copy `.env.example` to `.env` and configure `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and `BYTESHIP_API_KEY`. Generate the auth secret with `openssl rand -hex 32`.
+2. Copy `.env.example` to `.env` and configure `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BYTESHIP_API_KEY`, `SENDBYTE_API_KEY`, and `SENDBYTE_FROM`. Generate the auth secret with `openssl rand -hex 32`.
 3. Use your existing PostgreSQL server, or start the supplied local database with `docker compose up -d postgres`.
 4. Run `pnpm db:migrate`.
 5. Run `pnpm dev` from your terminal and open http://localhost:1515.
@@ -16,7 +16,7 @@ The server uses port 1515 and exits if it is occupied. After changing dependenci
 
 Create your own account at `/sign-up`, finish your profile, then create a community from the sidebar. A new database starts empty. The landing page retains its illustrative conversation; authenticated pages use real server data.
 
-Optional development fixtures: supply `SEED_EMAIL` and `SEED_PASSWORD` and run `pnpm db:seed`. This creates one account and a community; it never runs automatically.
+Optional development fixtures: supply `SEED_EMAIL` and `SEED_PASSWORD` and run `pnpm db:seed`. This creates one account and a community; it never runs automatically. The seed account must verify its email when signing in, so use an inbox you control.
 
 ## UI styling
 
@@ -24,7 +24,7 @@ Use Tailwind v4 utilities directly in components, including responsive and state
 
 ## Connected features
 
-- Email/password registration, login, sessions, logout, and a password reset flow.
+- Email/password registration with required email verification, password or email-code login, sessions, logout, and password reset codes delivered through Sendbyte.
 - Profiles, unique usernames, appearance settings, notification preferences, activity visibility, and incoming-DM preferences.
 - Public communities, public invitation links, memberships, categories, channels, member roles, and removal.
 - Private-channel access is enforced on the server. Owners/admins can access private channels and grant explicit membership through the `channel.access` command.
@@ -74,9 +74,16 @@ Better Auth stores its users, sessions, accounts, and verification records in Po
 - `BETTER_AUTH_URL`: public origin, locally `http://localhost:1515`.
 - `BETTER_AUTH_SECRET`: random secret, at least 32 characters.
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`: optional GitHub login. Register the callback at `/api/auth/callback/github`.
-- `SMTP_URL` / `SMTP_FROM`: optional SMTP transport for password recovery. Without these, recovery returns an explicit unavailable error rather than pretending to send email.
+- `SENDBYTE_API_KEY`: server-only Sendbyte key with email sending permission.
+- `SENDBYTE_FROM`: sender on your verified domain, for example `Drocsid <hello@your-domain.com>`.
 
-Email verification is not required in this initial release. Before a public launch, configure your trusted reverse proxy/IP handling for auth rate limiting, TLS, email delivery, and backups. No email is sent by the test suite.
+Email verification is required. Signup sends a six-digit code; confirmation creates the session and continues onboarding. Existing unverified accounts must verify before accessing app APIs or WebSockets. Password login remains available, with optional “Email me a sign-in code” for existing accounts. Code login for an existing unverified account follows Better Auth’s ownership protection: it clears the old unverified password and revokes old sessions; the email owner can set a fresh password through recovery.
+
+Forgot password now sends a code and accepts a new password in the same screen. Codes are hashed in Postgres, expire in five minutes, allow five failed attempts, and are consumed once. Resends share one database-backed budget per normalized email across all sending endpoints (one request per minute), in addition to Better Auth’s IP limits. New codes replace previous ones. Password resets revoke existing sessions. Unknown-address code requests return a generic success without creating an account.
+
+Configure Sendbyte at [app.sendbyte.africa](https://app.sendbyte.africa/), verify your sender domain’s DNS, and use a live key (`sk_live_`) for inbox delivery. Sandbox keys (`sk_test_`) simulate delivery only. See the [Sendbyte setup guide](https://docs.sendbyte.africa/quickstart). Missing configuration and provider failures return an explicit error. The server uses the official SDK with bounded request attempts and idempotency keys; it never exposes the key or logs email bodies/codes. SMTP is no longer used. No new database migration is required for OTPs.
+
+Before a public launch, configure trusted reverse proxy/IP handling for auth rate limiting, TLS, and backups. The automated suite mocks Sendbyte; smoke/benchmark scripts create disposable `example.test` accounts through the real verification flow with in-memory email capture. They never deliver email. Test live delivery manually with your own inbox after configuring Sendbyte.
 
 ## Byteship
 
@@ -97,7 +104,7 @@ Profile photos accept PNG, JPEG, WebP, or GIF up to 5 MB. Uploads use private By
 
 Avatars request 40, 80, or 160 px WebP crops through Byteship's media transformation API. Chat previews fit within 420×320 or 840×640 px without enlarging small originals; `srcSet` selects the appropriate density. The app authorizes each request before transforming a signed private URL. Originals remain available for the image viewer and downloads. Animation is preserved, local upload previews and loading placeholders remain visible until delivery completes, and failed transformations fall back to the original. Only these fixed variants are accepted; API keys and signed delivery tokens stay server-side.
 
-Run `pnpm uploads:cleanup` periodically on the server. It removes abandoned uploads older than an hour, files belonging to deleted messages, replaced/removed profile photos, and expired event/rate-limit records. Failed storage deletions remain queued for retry. This command is supplied but no OS scheduler is installed automatically.
+Run `pnpm uploads:cleanup` periodically on the server. It removes abandoned uploads older than an hour, files belonging to deleted messages, replaced/removed profile photos, and expired verification/event/rate-limit records. Failed storage deletions remain queued for retry. This command is supplied but no OS scheduler is installed automatically.
 
 ## Permissions and current limits
 
