@@ -77,7 +77,8 @@ export async function accessibleConversations(db: Database, userId: string) {
     );
   return rows.filter((c) =>
     c.kind === "dm"
-      ? directIds.includes(c.id)
+      ? directIds.includes(c.id) &&
+        (c.dmStatus !== "declined" || c.dmInitiatorId === userId)
       : !!c.channelId &&
         communityIds.includes(c.communityId!) &&
         (!c.private ||
@@ -97,6 +98,7 @@ export function conversationAccess(userId: string) {
           and (not ${s.conversations.private} or m.role in ('Owner', 'Admin')
             or exists (select 1 from ${s.participants} p where p.conversation_id = ${s.conversations.id} and p.user_id = ${userId}))))
     or (${s.conversations.kind} = 'dm'
+      and (${s.conversations.dmStatus} <> 'declined' or ${s.conversations.dmInitiatorId} = ${userId})
       and exists (select 1 from ${s.participants} p where p.conversation_id = ${s.conversations.id} and p.user_id = ${userId})
       and not exists (select 1 from ${s.participants} p join ${s.blocks} b
         on (b.user_id = ${userId} and b.target_id = p.user_id) or (b.target_id = ${userId} and b.user_id = p.user_id)
@@ -121,7 +123,27 @@ export async function requireConversation(
     .select()
     .from(s.conversations)
     .where(and(eq(s.conversations.id, id), conversationAccess(userId)));
-  if (allowed) return allowed;
+  if (allowed) {
+    // Empty DMs created before message requests have no known initiator yet.
+    if (allowed.kind === "dm" && !allowed.dmInitiatorId && createDm) {
+      await db
+        .update(s.conversations)
+        .set({ dmInitiatorId: userId })
+        .where(
+          and(
+            eq(s.conversations.id, id),
+            sql`${s.conversations.dmInitiatorId} is null`,
+          ),
+        );
+      return (
+        await db
+          .select()
+          .from(s.conversations)
+          .where(eq(s.conversations.id, id))
+      )[0];
+    }
+    return allowed;
+  }
   if (!key.startsWith("dm:") || !createDm)
     throw new HttpError(
       403,
@@ -191,7 +213,12 @@ export async function requireConversation(
         );
       await db
         .insert(s.conversations)
-        .values({ id, kind: "dm" })
+        .values({
+          id,
+          kind: "dm",
+          dmInitiatorId: userId,
+          dmStatus: friend ? "accepted" : "pending",
+        })
         .onConflictDoNothing();
       await db
         .insert(s.participants)
@@ -233,4 +260,21 @@ export async function takeLimit(
       429,
       "A little too fast. Please try again in a minute.",
     );
+}
+
+// Separate reading a request from permission to reply or upload into it.
+export function conversationSendAccess(userId: string) {
+  return sql`${conversationAccess(userId)} and (${s.conversations.kind} <> 'dm' or
+    (${s.conversations.dmStatus} <> 'declined' and
+      (${s.conversations.dmStatus} = 'accepted' or ${s.conversations.dmInitiatorId} = ${userId})))`;
+}
+export function requireDmSend(
+  c: typeof s.conversations.$inferSelect,
+  userId: string,
+) {
+  if (c.kind !== "dm") return;
+  if (c.dmStatus === "declined")
+    throw new HttpError(403, "This conversation is unavailable.");
+  if (c.dmStatus === "pending" && c.dmInitiatorId !== userId)
+    throw new HttpError(403, "Accept this message request before replying.");
 }
