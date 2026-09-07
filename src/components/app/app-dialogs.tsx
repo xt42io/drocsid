@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
@@ -364,7 +364,7 @@ function CreateChannel({
   communityId: string;
   initialGroup?: string;
 }) {
-  const { state, setState, setModal, notify } = useApp();
+  const { state, createChannel, setModal, notify } = useApp();
   const navigate = useNavigate();
   const community = state.communities.find((c) => c.id === communityId);
   const categories = community ? getChannelCategories(community) : [];
@@ -377,8 +377,12 @@ function CreateChannel({
         : (categories[0] ?? "")),
   );
   const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const submitting = useRef(false);
+  const channelId = useRef<string | null>(null);
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (submitting.current) return;
     const normalized = name
       .toLowerCase()
       .trim()
@@ -393,28 +397,22 @@ function CreateChannel({
       setError("There’s already a channel with that name.");
       return;
     }
-    const id = `${normalized}-${crypto.randomUUID().slice(0, 6)}`;
-    const saved = await setState((previous) => ({
-      ...previous,
-      communities: previous.communities.map((c) =>
-        c.id === communityId
-          ? {
-              ...c,
-              channels: [
-                ...c.channels,
-                {
-                  id,
-                  name: normalized,
-                  description:
-                    description.trim() ||
-                    "A little room for a new conversation.",
-                  group,
-                },
-              ],
-            }
-          : c,
-      ),
-    }));
+    const id = (channelId.current ??= crypto.randomUUID());
+    submitting.current = true;
+    setCreating(true);
+    let saved = false;
+    try {
+      saved = await createChannel(communityId, {
+        id,
+        name: normalized,
+        description:
+          description.trim() || "A little room for a new conversation.",
+        group: group || "CHANNELS",
+      });
+    } finally {
+      submitting.current = false;
+      setCreating(false);
+    }
     if (!saved) return;
     setModal(null);
     notify(`#${normalized} is ready for its first hello.`);
@@ -449,6 +447,7 @@ function CreateChannel({
           Channel name
           <input
             autoFocus
+            disabled={creating}
             value={name}
             onChange={(event) => {
               setName(event.target.value);
@@ -462,6 +461,7 @@ function CreateChannel({
         <label>
           What’s it about?
           <input
+            disabled={creating}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder="Give people a little context"
@@ -471,6 +471,7 @@ function CreateChannel({
         <label>
           Category
           <select
+            disabled={creating}
             value={group}
             onChange={(event) => setGroup(event.target.value)}
           >
@@ -492,8 +493,11 @@ function CreateChannel({
           data-ui="a-button primary full"
           className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
           type="submit"
+          disabled={creating}
+          aria-busy={creating}
         >
-          Create channel <AppIcon name="plus" size={18} />
+          {creating ? "Creating channel…" : "Create channel"}{" "}
+          <AppIcon name="plus" size={18} />
         </button>
       </form>
     </Dialog>
