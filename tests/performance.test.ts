@@ -163,21 +163,24 @@ test("session joins use one read and still respect immediate logout", async () =
     code = otp;
   });
   const signup = await auth.handler(
-    new Request("http://localhost:1515/api/auth/sign-up/email", {
-      method: "POST",
-      headers: {
-        origin: "http://localhost:1515",
-        "content-type": "application/json",
+    new Request(
+      "http://localhost:1515/api/auth/email-otp/send-verification-otp",
+      {
+        method: "POST",
+        headers: {
+          origin: "http://localhost:1515",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Auth performance",
+          email: "auth@performance.test",
+          type: "sign-in",
+        }),
       },
-      body: JSON.stringify({
-        name: "Auth performance",
-        email: "auth@performance.test",
-        password: "isolated-password-123",
-      }),
-    }),
+    ),
   );
   assert.equal(signup.status, 200);
-  const verified = await auth.api.verifyEmailOTP({
+  const verified = await auth.api.signInEmailOTP({
     body: { email: "auth@performance.test", otp: code },
     asResponse: true,
   });
