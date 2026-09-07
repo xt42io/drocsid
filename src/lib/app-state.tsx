@@ -57,6 +57,7 @@ const empty: AppState = {
   communities: [],
   messages: [],
   friends: [],
+  dmConversations: [],
   pending: [],
   outgoing: [],
   blocked: [],
