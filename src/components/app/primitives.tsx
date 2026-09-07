@@ -53,8 +53,12 @@ import {
   InformationCircleIcon,
   Folder01Icon,
   Flag01Icon,
+  File01Icon,
+  Download01Icon,
 } from "@hugeicons/core-free-icons";
 export const icons = {
+  file: File01Icon,
+  download: Download01Icon,
   home: Home01Icon,
   message: Message01Icon,
   people: UserGroupIcon,
@@ -149,7 +153,7 @@ export function PersonAvatar({
 }) {
   return (
     <span className={`a-avatar ${large ? "a-avatar-large" : ""}`}>
-      <Avatar name={person.name} color={person.color} />
+      <Avatar name={person.name} color={person.color} src={person.avatarUrl} />
       {presence && <i className={`a-presence ${person.status}`} />}
     </span>
   );
@@ -290,7 +294,7 @@ export function PageHeading({
 export function PreviewNote() {
   return (
     <span className="a-preview-note">
-      <span /> PREVIEW · JUST ON THIS DEVICE
+      <span /> YOUR COMMUNITY · CONNECTED
     </span>
   );
 }
