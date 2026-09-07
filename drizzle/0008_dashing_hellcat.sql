@@ -1,0 +1,1 @@
+ALTER TABLE "conversations" ADD COLUMN "icon" text DEFAULT '' NOT NULL;
