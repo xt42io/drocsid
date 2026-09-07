@@ -26,18 +26,13 @@ export function requireEmailConfiguration() {
 export function authEmailContent({ otp, type }: AuthEmail) {
   if (!/^\d{6}$/.test(otp))
     throw new Error("Invalid authentication code format");
-  const title =
-    type === "forget-password"
-      ? "Reset your password"
-      : type === "sign-in"
-        ? "Your sign-in code"
-        : "Verify your email";
+  if (type !== "sign-in")
+    throw new APIError("BAD_REQUEST", {
+      message: "Only sign-in codes are supported.",
+    });
+  const title = "Your sign-in code";
   const explanation =
-    type === "forget-password"
-      ? "Enter this code in Drocsid to choose a new password."
-      : type === "sign-in"
-        ? "Enter this code in Drocsid to sign in."
-        : "Enter this code in Drocsid to confirm your email address.";
+    "Enter this code in Drocsid to continue. If you’re new, this will verify your email and create your account.";
   return {
     subject: `${title} — Drocsid`,
     text: `${title}\n\n${explanation}\n\n${otp}\n\nThis code expires in 5 minutes and can only be used once. Never share it. If you did not request it, you can ignore this email.`,
