@@ -26,39 +26,43 @@ export function makeAuth(
     advanced: { database: { joins: true } },
     baseURL: process.env.BETTER_AUTH_URL || "http://localhost:1515",
     database: drizzleAdapter(db, { provider: "pg", schema }),
-    emailAndPassword: {
-      enabled: true,
-      minPasswordLength: 8,
-      maxPasswordLength: 128,
-      revokeSessionsOnPasswordReset: true,
-      requireEmailVerification: true,
-    },
-    emailVerification: {
-      sendOnSignUp: true,
-      sendOnSignIn: false,
-      autoSignInAfterVerification: true,
-    },
+    emailAndPassword: { enabled: false },
+    disabledPaths: [
+      "/sign-in/email",
+      "/sign-up/email",
+      "/change-password",
+      "/set-password",
+      "/request-password-reset",
+      "/reset-password",
+      "/email-otp/request-password-reset",
+      "/forget-password/email-otp",
+      "/email-otp/reset-password",
+    ],
     plugins: [
       emailOTP({
         otpLength: 6,
         expiresIn: 300,
         allowedAttempts: 5,
         storeOTP: "hashed",
-        disableSignUp: true,
-        overrideDefaultEmailVerification: true,
+        disableSignUp: false,
         rateLimit: { window: 60, max: 5 },
         sendVerificationOTP: deliverEmail,
       }),
     ],
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        const sending = [
-          "/sign-up/email",
-          "/email-otp/send-verification-otp",
-          "/email-otp/request-password-reset",
-          "/forget-password/email-otp",
-          "/send-verification-email",
-        ].includes(ctx.path);
+        if (
+          ctx.path.includes("password") ||
+          ctx.path === "/sign-in/email" ||
+          ctx.path === "/sign-up/email"
+        )
+          throw new APIError("FORBIDDEN", {
+            code: "PASSWORD_AUTH_DISABLED",
+            message: "Use an email code to sign in.",
+          });
+        const sending = ctx.path === "/email-otp/send-verification-otp";
+        if (sending && ctx.body?.type !== "sign-in")
+          throw new APIError("BAD_REQUEST", { message: "Use a sign-in code." });
         if (!sending) return;
         if (deliverEmail === sendAuthEmail) requireEmailConfiguration();
         const email =
