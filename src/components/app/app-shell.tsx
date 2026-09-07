@@ -12,12 +12,27 @@ import {
   normalDirectMessages,
 } from "../../lib/direct-messages";
 import { AppDialogs } from "./app-dialogs";
+import { usePostHog } from "@posthog/react";
 
 export function AppShell() {
-  const { state, setState, setModal, toast, findPerson } = useApp();
+  const { state, setState, setModal, toast, findPerson, ready } = useApp();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [drawer, setDrawer] = useState(false);
+
+  // Identify the user in PostHog once the app state is ready.
+  // This useEffect is intentionally used to sync with PostHog (an external system)
+  // when the authenticated profile becomes available.
+  useEffect(() => {
+    if (!ready || !state.profile.id || state.profile.id === "you") return;
+    posthog.identify(state.profile.id, {
+      username: state.profile.handle,
+      display_name: state.profile.name,
+      color: state.profile.color,
+      role: state.profile.role,
+    });
+  }, [ready, state.profile.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const communityId = pathname.startsWith("/app/community/")
     ? pathname.split("/")[3]
     : null;
