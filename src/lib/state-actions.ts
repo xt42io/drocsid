@@ -40,6 +40,7 @@ export function stateActions(previous: AppState, next: AppState): Action[] {
     if (!old) {
       actions.push({
         type: "community.create",
+        iconUploadId: c.iconUploadId,
         id: c.id,
         community: details(c),
         channels: c.channels,
@@ -70,12 +71,14 @@ export function stateActions(previous: AppState, next: AppState): Action[] {
         id,
         name,
         description,
+        icon,
         group,
         private: isPrivate,
       }: typeof channel) => ({
         id,
         name,
         description,
+        icon,
         group,
         private: isPrivate,
       });
