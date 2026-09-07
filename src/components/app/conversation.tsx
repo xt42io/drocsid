@@ -1,8 +1,16 @@
+import { showChannelWelcome } from "../../lib/channels";
+import { ChannelWelcome } from "./channel-welcome";
+import {
+  ChannelIcon,
+  ChannelIconEditor,
+  CommunityIconEditor,
+} from "./channel-icons";
+import { VirtualMessages } from "./virtual-messages";
 import { dmMessagingBlocked, dmReadOnly } from "../../lib/direct-messages";
-import { useEffect, useRef, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent, ReactNode, RefObject } from "react";
 import { Link } from "@tanstack/react-router";
-import { useApp } from "../../lib/app-state";
+import { useApp, useDraft } from "../../lib/app-state";
 import type { Message, Community, Person } from "../../types/app";
 import { personName } from "../../lib/people";
 import {
@@ -93,15 +101,22 @@ export function Conversation({
   const conversation = personId
     ? `dm:${personId}`
     : `${communityId}:${channelId}`;
-  const allMessages = state.messages.filter(
-    (m) => m.conversation === conversation,
+  const allMessages = useMemo(
+    () => state.messages.filter((m) => m.conversation === conversation),
+    [state.messages, conversation],
   );
-  const mainMessages = allMessages.filter((m) => !m.threadOf);
+  const mainMessages = useMemo(
+    () => allMessages.filter((m) => !m.threadOf),
+    [allMessages],
+  );
   const [panel, setPanel] = useState<"members" | "pins" | "thread" | null>(
     null,
   );
   const [thread, setThread] = useState<string | null>(null);
   const [editingTopic, setEditingTopic] = useState(false);
+  const [editingIcon, setEditingIcon] = useState(false);
+  const [editingCommunityIcon, setEditingCommunityIcon] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastConversation = useRef("");
   const lastTarget = useRef("");
@@ -129,20 +144,25 @@ export function Conversation({
     .filter((m) => !m.sending && !m.sendError)
     .at(-1)?.createdAt;
   useEffect(() => {
-    const key = `${conversation}:${newest}`;
-    if (
-      (!personId || dm?.status === "accepted") &&
-      newest &&
-      lastRead.current !== key &&
-      document.visibilityState === "visible"
-    ) {
-      lastRead.current = key;
-      void command({
-        type: "conversation.read",
-        conversation,
-        through: newest,
-      });
-    }
+    const mark = () => {
+      const key = `${conversation}:${newest}`;
+      if (
+        (!personId || dm?.status === "accepted") &&
+        newest &&
+        lastRead.current !== key &&
+        document.visibilityState === "visible"
+      ) {
+        lastRead.current = key;
+        void command({
+          type: "conversation.read",
+          conversation,
+          through: newest,
+        });
+      }
+    };
+    mark();
+    document.addEventListener("visibilitychange", mark);
+    return () => document.removeEventListener("visibilitychange", mark);
   }, [conversation, newest, command, personId, dm?.status]);
   useEffect(() => {
     if (lastConversation.current !== conversation) {
@@ -165,8 +185,6 @@ export function Conversation({
             `${selected?.threadOf ? "thread-message" : "message"}-${messageId}`,
           )
           ?.scrollIntoView({ block: "center" });
-      else if (scrollRef.current)
-        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     });
     return () => cancelAnimationFrame(frame);
   }, [
@@ -185,6 +203,13 @@ export function Conversation({
     media.addEventListener("change", resize);
     return () => media.removeEventListener("change", resize);
   }, []);
+  const openThread = useCallback(
+    (id: string) => {
+      setThread(id);
+      setPanel("thread");
+    },
+    [conversation, loadMessages],
+  );
   if (
     (!personId && (!community || !channel || !community.joined)) ||
     (personId && !person)
@@ -205,10 +230,14 @@ export function Conversation({
       </EmptyState>
     );
   const title = person?.name ?? channel!.name;
-  function openThread(id: string) {
-    setThread(id);
-    setPanel("thread");
-  }
+  const canManage =
+    !!community &&
+    ["Owner", "Admin"].includes(community.memberRoles?.you ?? "");
+  const welcome =
+    !!community &&
+    !!channel &&
+    showChannelWelcome(community, channel, allMessages);
+
   return (
     <div data-ui="a-conversation-page" className="flex flex-col h-full">
       <header
@@ -230,7 +259,15 @@ export function Conversation({
             </button>
           ) : (
             <span data-ui="a-header-hash" className="flex text-(--a-muted)">
-              <AppIcon name="hash" size={25} />
+              <button
+                type="button"
+                aria-label={canManage ? "Edit channel icon" : "Channel icon"}
+                disabled={!canManage}
+                className="inline-flex rounded-md p-1 enabled:hover:bg-(--a-hover)"
+                onClick={() => setEditingIcon(true)}
+              >
+                <ChannelIcon channel={channel!} size={25} />
+              </button>
             </span>
           )}
           <div>
@@ -332,17 +369,10 @@ export function Conversation({
                 disabled={loadingHistory}
                 onClick={async () => {
                   setLoadingHistory(true);
-                  const node = scrollRef.current;
-                  const height = node?.scrollHeight ?? 0;
-                  const offset = node?.scrollTop ?? 0;
                   setHasMore(
                     await loadMessages(conversation, allMessages[0]?.id),
                   );
                   setLoadingHistory(false);
-                  requestAnimationFrame(() => {
-                    if (node)
-                      node.scrollTop = offset + node.scrollHeight - height;
-                  });
                 }}
               >
                 {loadingHistory ? "Loading…" : "Load earlier messages"}
@@ -369,26 +399,16 @@ export function Conversation({
                   View profile
                 </button>
               </div>
-            ) : (
-              <div
-                data-ui="a-channel-intro"
-                className="flex items-center gap-3.5 mt-7.75 mb-7 mx-7.5 [&>span]:flex [&>span]:items-center [&>span]:justify-center [&>span]:rounded-[15px] [&>span]:bg-(--a-soft) [&>span]:text-[#829267] [&>span]:shrink-0 [&>span]:size-12.25 [&_h2]:text-[23px] [&_h2]:tracking-[-0.8px] [&_p]:text-(--a-muted) [&_p]:text-[12px] [&_p]:mt-1.25 [&_p]:leading-[1.6] in-data-[ui~=density-compact]:my-5 [[data-ui~=theme-dark]_&>span]:text-(--a-muted) min-[1600px]:mx-9.5 max-[760px]:mt-6.25 max-[760px]:mb-5.25 max-[760px]:mx-5.25 max-[760px]:[&_h2]:text-[23px] max-[760px]:[&_p]:text-[12px] max-[760px]:[&>span]:rounded-[13px] max-[760px]:[&>span]:size-11 max-[480px]:mt-5.5 max-[480px]:mb-5 max-[480px]:mx-4.25 max-[480px]:gap-3 max-[480px]:[&_h2]:text-[21px] max-[480px]:[&_p]:text-[11px]"
-              >
-                <span>
-                  <AppIcon
-                    name={channelId === "welcome" ? "sun" : "hash"}
-                    size={29}
-                  />
-                </span>
-                <div>
-                  <h2>
-                    {channelId === "welcome"
-                      ? "You’re in good company."
-                      : `Welcome to #${channel!.name}.`}
-                  </h2>
-                  <p>{channel!.description}</p>
-                </div>
-              </div>
+            ) : null}
+            {welcome && (
+              <ChannelWelcome
+                community={community!}
+                onInvite={() =>
+                  setModal({ type: "invite", communityId: community!.id })
+                }
+                onIcon={() => setEditingCommunityIcon(true)}
+                onCompose={() => composerRef.current?.focus()}
+              />
             )}
             {mainMessages.length > 0 && (
               <div
@@ -398,15 +418,14 @@ export function Conversation({
                 <span>THE CONVERSATION SO FAR</span>
               </div>
             )}
-            {mainMessages.map((message) => (
-              <MessageCard
-                key={message.id}
-                message={message}
-                highlighted={message.id === messageId}
-                onThread={openThread}
-              />
-            ))}
-            {mainMessages.length === 0 && (
+            <VirtualMessages
+              key={conversation}
+              messages={mainMessages}
+              scrollRef={scrollRef}
+              highlighted={selected?.threadOf ?? messageId}
+              onThread={openThread}
+            />
+            {mainMessages.length === 0 && !welcome && (
               <div
                 data-ui="a-first-message"
                 className="flex items-center justify-center flex-col gap-3.75 min-h-65 text-center text-(--a-muted) text-[14px] leading-[1.8] [&_strong]:font-medium"
@@ -474,6 +493,7 @@ export function Conversation({
                 </p>
               )}
               <Composer
+                inputRef={composerRef}
                 key={conversation}
                 conversation={conversation}
                 placeholder={
@@ -567,6 +587,20 @@ export function Conversation({
           />
         )}
       </div>
+      {editingIcon && channel && community && (
+        <ChannelIconEditor
+          key={`${community.id}:${channel.id}`}
+          communityId={community.id}
+          channel={channel}
+          onClose={() => setEditingIcon(false)}
+        />
+      )}
+      {editingCommunityIcon && community && (
+        <CommunityIconEditor
+          community={community}
+          onClose={() => setEditingCommunityIcon(false)}
+        />
+      )}
       {editingTopic && channel && community && (
         <EditTopic
           name={channel.name}
@@ -586,7 +620,13 @@ function MessageText({
   text: string;
   conversation: string;
 }) {
-  const { state } = useApp();
+  const context = useApp((app) => ({
+    profile: app.state.profile,
+    people: app.state.people,
+    communities: app.state.communities,
+    preferences: app.state.preferences,
+  }));
+  const state = context as Parameters<typeof mentionTargets>[0];
   const targets = mentionTargets(state, conversation);
   const channels = conversationChannels(state, conversation);
   const communityId = conversation.startsWith("dm:")
@@ -648,7 +688,7 @@ function MessageText({
     </div>
   );
 }
-export function MessageCard({
+export const MessageCard = memo(function MessageCard({
   message,
   onThread,
   compact = false,
@@ -660,7 +700,10 @@ export function MessageCard({
   highlighted?: boolean;
 }) {
   const {
-    state,
+    readOnly,
+    author,
+    mentioned,
+    replies,
     findPerson,
     setModal,
     react,
@@ -668,12 +711,26 @@ export function MessageCard({
     deleteMessage,
     retryMessage,
     notify,
-  } = useApp();
-  const readOnly = dmReadOnly(state, message.conversation);
-  const author = findPerson(message.author);
+  } = useApp((app) => ({
+    readOnly: dmReadOnly(app.state, message.conversation),
+    author: app.findPerson(message.author),
+    mentioned:
+      message.text.includes("@") &&
+      isMentioned(
+        message.text,
+        mentionTargets(app.state, message.conversation),
+      ),
+    replies: app.replies.get(message.id) ?? noReplies,
+    findPerson: app.findPerson,
+    setModal: app.setModal,
+    react: app.react,
+    updateMessage: app.updateMessage,
+    deleteMessage: app.deleteMessage,
+    retryMessage: app.retryMessage,
+    notify: app.notify,
+  }));
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(message.text);
-  const replies = state.messages.filter((m) => m.threadOf === message.id);
   async function copy() {
     try {
       await navigator.clipboard.writeText(message.text);
@@ -697,7 +754,7 @@ export function MessageCard({
             ? "Message failed"
             : undefined
       }
-      data-ui={`a-message ${message.sending ? "a-message-pending" : ""} ${compact ? "compact-message" : ""} ${highlighted ? "highlighted" : ""} ${isMentioned(message.text, mentionTargets(state, message.conversation)) ? "mentioned" : ""}`}
+      data-ui={`a-message ${message.sending ? "a-message-pending" : ""} ${compact ? "compact-message" : ""} ${highlighted ? "highlighted" : ""} ${mentioned ? "mentioned" : ""}`}
       className="flex gap-3 relative py-2.75 px-7.5 scroll-m-7.5 hover:bg-[#879e5a06] focus-within:bg-[#879e5a06] data-[ui~=mentioned]:bg-[#eee4b222] data-[ui~=mentioned]:[border-left-width:2px] data-[ui~=mentioned]:[border-left-style:solid] data-[ui~=mentioned]:border-l-[#d6b578] data-[ui~=mentioned]:pl-7 data-[ui~=highlighted]:bg-[#f2cd9940] data-[ui~=highlighted]:[outline:1px_solid_#d6b57855] [&:hover_[data-ui~=a-message-toolbar]]:opacity-100 [&:hover_[data-ui~=a-message-toolbar]]:pointer-events-auto [&:focus-within_[data-ui~=a-message-toolbar]]:opacity-100 [&:focus-within_[data-ui~=a-message-toolbar]]:pointer-events-auto in-data-[ui~=density-compact]:py-1.25 [[data-ui~=theme-dark]_&:hover]:bg-[#ffffff04] [[data-ui~=theme-dark]_&:focus-within]:bg-[#ffffff04] [[data-ui~=theme-dark]_&[data-ui~=mentioned]]:bg-[#f45e380c] [[data-ui~=theme-dark]_&[data-ui~=mentioned]]:border-l-(--a-orange) [[data-ui~=theme-dark]_&[data-ui~=highlighted]]:bg-[#f45e381c] [[data-ui~=theme-dark]_&[data-ui~=highlighted]]:outline-[#f45e3840] min-[1600px]:px-9.5 min-[1600px]:data-[ui~=mentioned]:pl-9 max-[1250px]:px-6 max-[1250px]:data-[ui~=mentioned]:pl-5.5 max-[760px]:py-3.25 max-[760px]:px-5.25 max-[760px]:gap-2.75 max-[760px]:data-[ui~=mentioned]:pl-4.75 max-[480px]:py-3.25 max-[480px]:px-4.25 max-[480px]:gap-2.5 max-[480px]:flex-wrap max-[480px]:data-[ui~=mentioned]:pl-3.75 max-[480px]:**:data-[ui~=avatar]:rounded-[10px] max-[480px]:**:data-[ui~=avatar]:text-[12px] max-[480px]:**:data-[ui~=avatar]:size-8 max-[480px]:[&:focus-within_[data-ui~=a-message-toolbar]]:flex max-[480px]:[&:focus-within_[data-ui~=a-message-toolbar]]:m-0 max-[480px]:[&:hover_[data-ui~=a-message-toolbar]]:flex max-[480px]:[&:hover_[data-ui~=a-message-toolbar]]:m-0 [&[data-ui~=a-message-pending]>[data-ui~=a-avatar-button]]:opacity-45 [&[data-ui~=a-message-pending]>[data-ui~=a-message-content]]:opacity-45"
     >
       <button
@@ -997,8 +1054,11 @@ export function MessageCard({
       )}
     </article>
   );
-}
+});
+const noReplies: Message[] = [];
+const ignoreThread = () => {};
 function Composer({
+  inputRef,
   typingEnabled = true,
   conversation,
   placeholder,
@@ -1007,17 +1067,11 @@ function Composer({
   conversation: string;
   placeholder: string;
   typingEnabled?: boolean;
+  inputRef?: RefObject<HTMLTextAreaElement | null>;
   threadOf?: string;
 }) {
-  const {
-    state,
-    setState,
-    sendMessage,
-    notify,
-    observeRoom,
-    setTyping,
-    typingPeople,
-  } = useApp();
+  const { state, sendMessage, notify, observeRoom, setTyping, typingPeople } =
+    useApp();
   useEffect(
     () => (typingEnabled ? observeRoom({ conversation, threadOf }) : undefined),
     [conversation, threadOf, observeRoom, typingEnabled],
@@ -1039,14 +1093,12 @@ function Composer({
   const files = useAttachments(conversation);
   const picker = useRef<HTMLInputElement>(null);
   const draftKey = threadOf ? `thread:${threadOf}` : conversation;
-  const draft = state.drafts[draftKey] ?? "";
-  const textarea = useRef<HTMLTextAreaElement>(null);
+  const [draft, writeDraft] = useDraft(draftKey);
+  const localTextarea = useRef<HTMLTextAreaElement>(null);
+  const textarea = inputRef ?? localTextarea;
   const setDraft = (text: string) => {
     if (typingEnabled) setTyping({ conversation, threadOf }, !!text.trim());
-    return setState((previous) => ({
-      ...previous,
-      drafts: { ...previous.drafts, [draftKey]: text.slice(0, 4000) },
-    }));
+    writeDraft(text.slice(0, 4000));
   };
   useEffect(() => {
     if (textarea.current) {
@@ -1059,6 +1111,7 @@ function Composer({
     if (!files.ready || (!draft.trim() && !files.files.length)) return;
     const attachments = files.take();
     setTyping({ conversation, threadOf }, false);
+    writeDraft("");
     void sendMessage(conversation, draft, threadOf, attachments);
     textarea.current?.focus();
   }
@@ -1372,13 +1425,17 @@ function ThreadPanel({
   parentId: string;
   onClose: () => void;
 }) {
-  const { state } = useApp();
-  const parent = state.messages.find((m) => m.id === parentId);
-  const replies = state.messages.filter((m) => m.threadOf === parentId);
-  const scroll = useRef<HTMLDivElement>(null);
+  const { parent, replies, loadMessages, readOnly } = useApp((app) => ({
+    parent: app.state.messages.find((m) => m.id === parentId),
+    readOnly: dmReadOnly(app.state, conversation),
+    replies: app.replies.get(parentId) ?? noReplies,
+    loadMessages: app.loadMessages,
+  }));
   useEffect(() => {
-    if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
-  }, [replies.length, parentId]);
+    void loadMessages(conversation, undefined, parentId);
+  }, [conversation, parentId, loadMessages]);
+  const scroll = useRef<HTMLDivElement>(null);
+
   return (
     <aside
       data-ui="a-detail-panel a-thread-panel"
@@ -1399,7 +1456,7 @@ function ThreadPanel({
       >
         {parent ? (
           <>
-            <MessageCard message={parent} onThread={() => {}} compact />
+            <MessageCard message={parent} onThread={ignoreThread} compact />
             <div
               data-ui="a-date-divider"
               className="flex items-center gap-3.5 my-4.75 mx-7.5 text-(--a-faint) font-mono text-[8px] tracking-[0.6px] before:[content:''] before:flex-1 before:h-px before:bg-(--a-border) after:[content:''] after:flex-1 after:h-px after:bg-(--a-border) max-[760px]:mx-5.25 max-[480px]:mx-4.25 max-[480px]:text-[7px]"
@@ -1408,14 +1465,13 @@ function ThreadPanel({
                 {replies.length} {replies.length === 1 ? "REPLY" : "REPLIES"}
               </span>
             </div>
-            {replies.map((reply) => (
-              <MessageCard
-                key={reply.id}
-                message={reply}
-                onThread={() => {}}
-                compact
-              />
-            ))}
+            <VirtualMessages
+              key={parentId}
+              messages={replies}
+              scrollRef={scroll}
+              onThread={ignoreThread}
+              compact
+            />
             {replies.length === 0 && (
               <div
                 data-ui="a-thread-empty"
@@ -1433,7 +1489,7 @@ function ThreadPanel({
           />
         )}
       </div>
-      {parent && dmReadOnly(state, conversation) ? (
+      {parent && readOnly ? (
         <p className="shrink-0 border-t border-(--a-border) p-4 text-sm text-(--a-muted)">
           You can read this thread, but replies are unavailable.
         </p>
