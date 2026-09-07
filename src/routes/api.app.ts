@@ -1,13 +1,16 @@
+import { fastAction } from "../server/fast-actions";
+import { invalidateActions } from "../server/invalidation";
+import { markRead } from "../server/read-state";
+import { actionScope } from "../lib/action-scope";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 import { getDb, type Database } from "../server/db";
-import { events, user } from "../server/db/schema";
 import { actionSchema } from "../lib/contracts";
 import { mutate } from "../server/actions";
 import { putChannel } from "../server/channels";
 import { snapshot } from "../server/queries";
-import { ensureProfile, takeLimit } from "../server/access";
+import { takeLimit } from "../server/access";
 import {
   endpoint,
   json,
@@ -25,7 +28,9 @@ export const Route = createFileRoute("/api/app")({
             await snapshot(
               getDb(),
               await requireUser(request),
-              Number(new URL(request.url).searchParams.get("limit")) || 500,
+              new URL(request.url).searchParams.get("history") === "none"
+                ? 0
+                : 500,
             ),
           ),
         ),
@@ -50,42 +55,54 @@ export const Route = createFileRoute("/api/app")({
             );
             return response;
           }
-          await ensureProfile(db, viewer);
+          if (actions.every((action) => action.type === "conversation.read")) {
+            await Promise.all(
+              actions.map((action) =>
+                markRead(
+                  db,
+                  viewer.id,
+                  action as Extract<
+                    typeof action,
+                    { type: "conversation.read" }
+                  >,
+                ),
+              ),
+            );
+            return json({ ok: true });
+          }
+          if (
+            actions.length === 1 &&
+            (await fastAction(db, viewer.id, actions[0]))
+          ) {
+            if (actions[0].type === "community.join") {
+              const id = actions[0].id;
+              const next = await snapshot(db, viewer, 0);
+              return json({
+                ok: true,
+                community: next.communities.find((c) => c.id === id),
+                people: next.people,
+              });
+            }
+            return json({ ok: true });
+          }
           await takeLimit(db, viewer.id, "actions", 120);
           await db.transaction(async (tx) => {
-            // Serialize actions from multiple tabs for the same account.
+            // Same entity edits remain ordered across tabs; unrelated work runs independently.
+            const keys = [
+              ...new Set(
+                actions.map((action) => `${viewer.id}:${actionScope(action)}`),
+              ),
+            ].sort();
             await tx.execute(
-              sql`select pg_advisory_xact_lock(hashtext(${viewer.id}))`,
+              sql`select pg_advisory_xact_lock(hashtext(key)) from unnest(${sql.param(keys)}::text[]) as keys(key) order by key`,
             );
             for (const action of actions)
               await mutate(tx as unknown as Database, viewer.id, action);
-            // Message triggers deliver narrow updates; reads don't need a full snapshot.
-            if (
-              actions.every((action) =>
-                [
-                  "message.send",
-                  "message.update",
-                  "message.delete",
-                  "reaction",
-                  "conversation.read",
-                ].includes(action.type),
-              )
-            )
-              return;
-            // Payload-free invalidation for this small, single-service release. Reads always reauthorize.
-            const onlyPersonal = actions.every((action) =>
-              ["conversation.read", "notification.read"].includes(action.type),
+            await invalidateActions(
+              tx as unknown as Parameters<typeof invalidateActions>[0],
+              viewer.id,
+              actions,
             );
-            const recipients = onlyPersonal
-              ? [{ id: viewer.id }]
-              : await tx.select({ id: user.id }).from(user);
-            if (recipients.length)
-              await tx.insert(events).values(
-                recipients.map((r) => ({
-                  id: crypto.randomUUID(),
-                  userId: r.id,
-                })),
-              );
           });
           return json({ ok: true });
         }),
