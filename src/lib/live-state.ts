@@ -1,3 +1,4 @@
+import { shallowEqual } from "./selection-store";
 import type { AppState } from "../types/app";
 import type { MessageUpdate } from "./realtime-protocol";
 
@@ -17,29 +18,18 @@ export function applyLiveMessage(
       a.id.localeCompare(b.id),
   );
   const person = update.person;
-  const people =
-    !person || person.id === "you"
-      ? state.people
-      : [
-          ...state.people.filter((p) => p.id !== person.id),
-          // Presence has its own socket updates. A delayed DB heartbeat must not replace it.
-          {
-            ...person,
-            status:
-              state.people.find((p) => p.id === person.id)?.status ??
-              person.status,
-          },
-        ];
+  let people = state.people;
+  if (person && person.id !== "you") {
+    const previous = people.find((p) => p.id === person.id);
+    const next = { ...person, status: previous?.status ?? person.status };
+    if (!shallowEqual(previous, next))
+      people = previous
+        ? people.map((p) => (p.id === next.id ? next : p))
+        : [...people, next];
+  }
   const communities =
     update.conversation && update.unread !== undefined
-      ? state.communities.map((c) => ({
-          ...c,
-          channels: c.channels.map((ch) =>
-            `${c.id}:${ch.id}` === update.conversation
-              ? { ...ch, unread: update.unread }
-              : ch,
-          ),
-        }))
+      ? updateUnread(state.communities, update.conversation, update.unread)
       : state.communities;
   let dmConversations = state.dmConversations;
   if (update.dmConversation) {
@@ -86,11 +76,29 @@ export function applyLiveRead(
   ).length;
   return {
     ...state,
-    communities: state.communities.map((c) => ({
-      ...c,
-      channels: c.channels.map((ch) =>
-        `${c.id}:${ch.id}` === conversation ? { ...ch, unread } : ch,
-      ),
-    })),
+    communities: updateUnread(state.communities, conversation, unread),
   };
+}
+
+function updateUnread(
+  communities: AppState["communities"],
+  conversation: string,
+  unread: number,
+) {
+  const index = communities.findIndex((c) =>
+    c.channels.some(
+      (ch) => `${c.id}:${ch.id}` === conversation && ch.unread !== unread,
+    ),
+  );
+  if (index < 0) return communities;
+  return communities.map((c, i) =>
+    i !== index
+      ? c
+      : {
+          ...c,
+          channels: c.channels.map((ch) =>
+            `${c.id}:${ch.id}` === conversation ? { ...ch, unread } : ch,
+          ),
+        },
+  );
 }
