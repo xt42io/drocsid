@@ -56,7 +56,14 @@ export function applyLiveMessage(
         : incoming;
     dmConversations = [
       ...dmConversations.filter((d) => d.personId !== incoming.personId),
-      decision,
+      // Block/unblock changes arrive in authoritative snapshots. A late message
+      // frame must not re-enable the composer after a block has been applied.
+      {
+        ...decision,
+        messagingBlocked: !!(
+          previous?.messagingBlocked || decision.messagingBlocked
+        ),
+      },
     ];
     if (decision.incoming && decision.status === "declined")
       messages = messages.filter(
