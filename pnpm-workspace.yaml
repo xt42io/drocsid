@@ -1,0 +1,2 @@
+patchedDependencies:
+  '@tanstack/start-server-core@1.169.31': patches/@tanstack__start-server-core@1.169.31.patch
