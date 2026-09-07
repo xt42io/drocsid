@@ -23,6 +23,7 @@ import { Route as ApiMessagesRouteImport } from './routes/api.messages'
 import { Route as ApiReactionsRouteImport } from './routes/api.reactions'
 import { Route as ApiSessionRouteImport } from './routes/api.session'
 import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
+import { Route as ApiUsernameRouteImport } from './routes/api.username'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppDiscoverRouteImport } from './routes/app.discover'
 import { Route as AppFriendsRouteImport } from './routes/app.friends'
@@ -110,6 +111,11 @@ const ApiSessionRoute = ApiSessionRouteImport.update({
 const ApiUploadsRoute = ApiUploadsRouteImport.update({
   id: '/api/uploads',
   path: '/api/uploads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUsernameRoute = ApiUsernameRouteImport.update({
+  id: '/api/username',
+  path: '/api/username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/api/username': typeof ApiUsernameRoute
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/api/username': typeof ApiUsernameRoute
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
   '/api/uploads': typeof ApiUploadsRoute
+  '/api/username': typeof ApiUsernameRoute
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/api/reactions'
     | '/api/session'
     | '/api/uploads'
+    | '/api/username'
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/api/reactions'
     | '/api/session'
     | '/api/uploads'
+    | '/api/username'
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/api/reactions'
     | '/api/session'
     | '/api/uploads'
+    | '/api/username'
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
@@ -426,6 +438,7 @@ export interface RootRouteChildren {
   ApiReactionsRoute: typeof ApiReactionsRoute
   ApiSessionRoute: typeof ApiSessionRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
+  ApiUsernameRoute: typeof ApiUsernameRoute
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -528,6 +541,13 @@ declare module '@tanstack/react-router' {
       path: '/api/uploads'
       fullPath: '/api/uploads'
       preLoaderRoute: typeof ApiUploadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/username': {
+      id: '/api/username'
+      path: '/api/username'
+      fullPath: '/api/username'
+      preLoaderRoute: typeof ApiUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -742,6 +762,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiReactionsRoute: ApiReactionsRoute,
   ApiSessionRoute: ApiSessionRoute,
   ApiUploadsRoute: ApiUploadsRoute,
+  ApiUsernameRoute: ApiUsernameRoute,
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
