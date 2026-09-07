@@ -1,5 +1,6 @@
+import { useUsernameAvailability } from "../../lib/use-username-availability";
 import { CommunityIcon } from "./community-icon";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import { Logo } from "../ui";
@@ -12,22 +13,51 @@ export function WelcomePage() {
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(1);
   const [name, setName] = useState(state.profile.name);
+  const [username, setUsername] = useState(
+    /^user_[a-z0-9]{19}$/.test(state.profile.handle)
+      ? ""
+      : state.profile.handle,
+  );
+  const [error, setError] = useState("");
+  const availability = useUsernameAvailability(username);
+  const canSave =
+    name.trim().length >= 2 &&
+    name.trim().length <= 40 &&
+    availability.status === "available" &&
+    !saving &&
+    !uploading;
   const [color, setColor] = useState(state.profile.color);
   const [selected, setSelected] = useState<string[]>([]);
-  useEffect(() => {
-    setName(state.profile.name);
-    setColor(state.profile.color);
-  }, [state.profile.name, state.profile.color]);
+  async function saveProfile() {
+    if (!canSave) return;
+    setSaving(true);
+    setError("");
+    try {
+      const saved = await setState((previous) => ({
+        ...previous,
+        profile: {
+          ...previous.profile,
+          name: name.trim(),
+          handle: username,
+          color,
+        },
+      }));
+      if (saved) setStep(2);
+      else {
+        setError(
+          "Couldn’t save your profile. Check your username and try again.",
+        );
+        availability.retry();
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
   async function finish(mode: "join" | "skip" | "create" = "join") {
     if (saving || uploading) return;
     setSaving(true);
     const saved = await setState((previous) => ({
       ...previous,
-      profile: {
-        ...previous.profile,
-        name: name.trim().length >= 2 ? name.trim() : previous.profile.name,
-        color,
-      },
       communities: previous.communities.map((c) =>
         mode === "join" && selected.includes(c.id) ? { ...c, joined: true } : c,
       ),
@@ -50,15 +80,17 @@ export function WelcomePage() {
     >
       <header>
         <Logo />
-        <button
-          type="button"
-          data-ui="a-text-link"
-          className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
-          disabled={saving || uploading}
-          onClick={() => void finish("skip")}
-        >
-          Skip for now <AppIcon name="right" size={17} />
-        </button>
+        {step === 2 && (
+          <button
+            type="button"
+            data-ui="a-text-link"
+            className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
+            disabled={saving || uploading}
+            onClick={() => void finish("skip")}
+          >
+            Skip for now <AppIcon name="right" size={17} />
+          </button>
+        )}
       </header>
       <div
         data-ui="a-welcome-content"
@@ -100,7 +132,7 @@ export function WelcomePage() {
             className="flex flex-col gap-5 max-w-86.25 mt-8 mb-0 mx-auto [&>label]:block [&>label]:font-[550] [&>label]:text-left [&>label]:text-xs/normal [&_label_input]:block [&_label_input]:w-full [&_label_input]:min-h-10.5 [&_label_input]:py-2.75 [&_label_input]:px-3 [&_label_input]:mt-1.75 [&_label_input]:text-[13px] [&_label_input]:font-normal [&_label_input]:leading-[1.65] [&_label_textarea]:block [&_label_textarea]:w-full [&_label_textarea]:min-h-10.5 [&_label_textarea]:py-2.75 [&_label_textarea]:px-3 [&_label_textarea]:mt-1.75 [&_label_textarea]:text-[13px] [&_label_textarea]:font-normal [&_label_textarea]:leading-[1.65] [&_label_textarea]:resize-y [&_label_select]:block [&_label_select]:w-full [&_label_select]:min-h-10.5 [&_label_select]:py-2.75 [&_label_select]:px-3 [&_label_select]:mt-1.75 [&_label_select]:text-[13px] [&_label_select]:font-normal [&_label_select]:leading-[1.65] *:data-[ui~=a-avatar]:self-center [&_[data-ui~=a-color-field]>div]:justify-center [&_[data-ui~=a-color-field]>div]:mt-px [&_[data-ui~=a-color-field]>div]:mb-2 max-[760px]:[&_label_input]:text-[16px] max-[760px]:[&_label_textarea]:text-[16px] max-[760px]:[&_label_select]:text-[16px] max-[760px]:[&_label_input::placeholder]:text-[13px] max-[760px]:[&_label_textarea::placeholder]:text-[13px]"
             onSubmit={(event) => {
               event.preventDefault();
-              if (name.trim().length >= 2 && !uploading) setStep(2);
+              void saveProfile();
             }}
           >
             <AvatarUpload
@@ -128,23 +160,74 @@ export function WelcomePage() {
               </div>
             </div>
             <label>
-              What should we call you?
+              Username
               <input
+                name="username"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                value={username}
+                onChange={(event) => {
+                  setUsername(event.target.value.toLowerCase());
+                  setError("");
+                }}
+                placeholder="Choose a username"
+                minLength={3}
+                maxLength={24}
+                pattern="[a-z0-9_]{3,24}"
+                aria-invalid={["invalid", "taken"].includes(
+                  availability.status,
+                )}
+                aria-describedby="welcome-username-status"
+                disabled={saving}
+                required
+              />
+              <span
+                id="welcome-username-status"
+                role="status"
+                aria-live="polite"
+                data-status={availability.status}
+                className="mt-2 block text-xs font-normal leading-5 text-(--a-muted) data-[status=available]:text-emerald-500 data-[status=taken]:text-red-500 data-[status=invalid]:text-red-500 data-[status=error]:text-red-500"
+              >
+                {availability.message}
+              </span>
+            </label>
+            {availability.status === "error" && (
+              <button
+                type="button"
+                onClick={availability.retry}
+                className="self-start text-xs text-(--a-orange) underline underline-offset-4"
+              >
+                Check again
+              </button>
+            )}
+            <label>
+              Profile name
+              <input
+                name="name"
+                autoComplete="nickname"
+                disabled={saving}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Your name"
+                placeholder="What should we call you?"
                 minLength={2}
                 maxLength={40}
                 required
               />
             </label>
+            {error && (
+              <p role="alert" className="text-left text-sm text-red-500">
+                {error}
+              </p>
+            )}
             <button
               data-ui="a-button primary full"
               className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
               type="submit"
-              disabled={name.trim().length < 2 || uploading}
+              disabled={!canSave}
             >
-              That’s me. What’s next? <AppIcon name="right" size={18} />
+              {saving ? "Saving profile…" : "Continue"}{" "}
+              <AppIcon name="right" size={18} />
             </button>
           </form>
         ) : (
