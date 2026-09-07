@@ -1,41 +1,28 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { authClient } from "../lib/auth-client";
+import { OtpInput } from "./otp-input";
 
-export type EmailCodePurpose =
-  "email-verification" | "sign-in" | "forget-password";
-
-export async function requestEmailCode(
-  email: string,
-  purpose: EmailCodePurpose,
-) {
-  return purpose === "forget-password"
-    ? authClient.emailOtp.requestPasswordReset({ email })
-    : authClient.emailOtp.sendVerificationOtp({ email, type: purpose });
+export async function requestEmailCode(email: string) {
+  return authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
 }
 
 export function EmailCodeForm({
   email,
-  purpose,
   onBack,
   onVerified,
 }: {
   email: string;
-  purpose: EmailCodePurpose;
   onBack: () => void;
   onVerified: () => void;
 }) {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const [otp, setOtp] = useState("");
-  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [remaining, setRemaining] = useState(60);
-  const [complete, setComplete] = useState(false);
-  const reset = purpose === "forget-password";
   useEffect(() => {
     input.current?.focus();
   }, []);
@@ -45,25 +32,6 @@ export function EmailCodeForm({
     return () => clearTimeout(timer);
   }, [remaining]);
 
-  if (complete)
-    return (
-      <div className="space-y-5">
-        <h2 className="text-3xl font-semibold tracking-tight">
-          Your password is updated.
-        </h2>
-        <p role="status" className="text-sm leading-6 text-[#707662]">
-          You can now sign in with your new password. Your other sessions have
-          been signed out.
-        </p>
-        <Link
-          to="/sign-in"
-          className="inline-flex rounded-lg bg-orange px-5 py-3 text-sm font-semibold text-[#3e2118]"
-        >
-          Back to log in
-        </Link>
-      </div>
-    );
-
   return (
     <div className="space-y-6">
       <header className="space-y-3">
@@ -71,16 +39,10 @@ export function EmailCodeForm({
           CHECK YOUR INBOX
         </span>
         <h2 className="text-4xl font-semibold tracking-tight">
-          {reset
-            ? "A fresh set of keys."
-            : purpose === "sign-in"
-              ? "Your code. Your space."
-              : "One last step."}
+          Your code. Your space.
         </h2>
         <p className="text-sm leading-6 text-[#707662]">
-          {purpose === "email-verification"
-            ? "Enter the six-digit verification code for"
-            : "If an account exists, we’ll send a six-digit code to"}{" "}
+          Enter the six-digit code sent to{" "}
           <strong className="wrap-anywhere font-semibold text-[#424938]">
             {email}
           </strong>
@@ -101,15 +63,10 @@ export function EmailCodeForm({
           setError("");
           setNotice("");
           try {
-            const result = reset
-              ? await authClient.emailOtp.resetPassword({
-                  email,
-                  otp,
-                  password,
-                })
-              : purpose === "sign-in"
-                ? await authClient.signIn.emailOtp({ email, otp })
-                : await authClient.emailOtp.verifyEmail({ email, otp });
+            const result = await authClient.signIn.emailOtp({
+              email,
+              otp,
+            });
             if (result.error) {
               setError(
                 result.error.message ||
@@ -118,9 +75,7 @@ export function EmailCodeForm({
               return;
             }
             setOtp("");
-            setPassword("");
-            if (reset) setComplete(true);
-            else onVerified();
+            onVerified();
           } catch {
             setError("Could not reach the server. Please try again.");
           } finally {
@@ -132,53 +87,22 @@ export function EmailCodeForm({
           <label htmlFor={`${id}-code`} className="block text-sm font-semibold">
             Verification code
           </label>
-          <input
-            ref={input}
+          <OtpInput
+            firstInputRef={input}
             id={`${id}-code`}
-            name="otp"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]{6}"
-            maxLength={6}
-            required
             value={otp}
             disabled={busy || resending}
-            onChange={(event) => {
-              setOtp(event.target.value.replace(/\D/g, "").slice(0, 6));
+            onChange={(value) => {
+              setOtp(value);
               setError("");
             }}
-            aria-invalid={!!error}
-            aria-describedby={`${id}-hint${error ? ` ${id}-error` : ""}`}
-            className="h-16 w-full rounded-xl border border-[#dcded2] bg-[#fcfcf8] px-4 text-center font-mono text-3xl tracking-[0.4em] text-[#424938] focus:border-[#e58965] focus:outline-2 focus:outline-[#f45e3830] disabled:opacity-60"
+            invalid={!!error}
+            describedBy={`${id}-hint${error ? ` ${id}-error` : ""}`}
           />
           <p id={`${id}-hint`} className="text-xs text-[#707662]">
             Expires in 5 minutes. Use the most recent code.
           </p>
         </div>
-        {reset && (
-          <div className="space-y-2">
-            <label
-              htmlFor={`${id}-password`}
-              className="block text-sm font-semibold"
-            >
-              New password
-            </label>
-            <input
-              id={`${id}-password`}
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              maxLength={128}
-              value={password}
-              disabled={busy || resending}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="At least 8 characters"
-              className="h-12 w-full rounded-lg border border-[#dcded2] bg-[#fcfcf8] px-4 text-base text-[#424938] focus:border-[#e58965] focus:outline-2 focus:outline-[#f45e3830]"
-            />
-          </div>
-        )}
         {error && (
           <p
             id={`${id}-error`}
@@ -204,13 +128,7 @@ export function EmailCodeForm({
               className="size-4 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin"
             />
           )}
-          {busy
-            ? "Checking…"
-            : reset
-              ? "Update password"
-              : purpose === "sign-in"
-                ? "Sign in"
-                : "Verify email & continue"}
+          {busy ? "Checking…" : "Verify & continue"}
         </button>
       </form>
       <div className="space-y-4 text-center text-sm">
@@ -224,7 +142,7 @@ export function EmailCodeForm({
             setError("");
             setNotice("");
             try {
-              const result = await requestEmailCode(email, purpose);
+              const result = await requestEmailCode(email);
               setRemaining(60);
               if (result.error) {
                 setError(result.error.message || "Could not resend your code.");
@@ -258,14 +176,6 @@ export function EmailCodeForm({
             Use a different email
           </button>
         </div>
-        {purpose === "email-verification" && (
-          <p className="text-xs text-[#707662]">
-            Already have an account?{" "}
-            <Link to="/sign-in" className="underline underline-offset-4">
-              Log in
-            </Link>
-          </p>
-        )}
       </div>
     </div>
   );
