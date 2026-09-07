@@ -1,4 +1,4 @@
-import type { Channel, DemoState, Person } from "./demo-data";
+import type { Channel, AppState, Person } from "../types/app";
 
 export type ComposerQuery = {
   kind: "mention" | "channel";
@@ -18,7 +18,7 @@ export type MentionTarget =
     };
 
 export function conversationPeople(
-  state: DemoState,
+  state: AppState,
   conversation: string,
 ): Person[] {
   const profile = {
@@ -33,13 +33,19 @@ export function conversationPeople(
     );
   const community = state.communities.find((item) => item.id === communityId);
   if (!community) return [];
-  return people.filter(
-    (person) => !community.memberIds || community.memberIds.includes(person.id),
-  ).map(person => ({ ...person, role: community.memberRoles?.[person.id] ?? person.role }));
+  return people
+    .filter(
+      (person) =>
+        !community.memberIds || community.memberIds.includes(person.id),
+    )
+    .map((person) => ({
+      ...person,
+      role: community.memberRoles?.[person.id] ?? person.role,
+    }));
 }
 
 export function mentionTargets(
-  state: DemoState,
+  state: AppState,
   conversation: string,
 ): MentionTarget[] {
   const people = conversationPeople(state, conversation);
@@ -114,7 +120,7 @@ export function mentionAtCaret(
 }
 
 export function conversationChannels(
-  state: DemoState,
+  state: AppState,
   conversation: string,
 ): Channel[] {
   if (conversation.startsWith("dm:")) return [];
