@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
+import { usePostHog } from "@posthog/react";
 import {
   ArrowLeft01Icon,
   ArrowRight01Icon,
@@ -54,6 +55,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
   const id = useId();
   const content = copy[mode];
   const signup = mode === "sign-up";
+  const posthog = usePostHog();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,6 +80,9 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
         return;
       }
       setCodeStep({ email: address });
+      posthog.capture(signup ? "sign_up_started" : "sign_in_started", {
+        mode,
+      });
     } catch {
       setServerError("Could not reach the server. Please try again.");
     } finally {
@@ -250,6 +255,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     disabled={busy}
                     onClick={async () => {
                       setBusy(true);
+                      posthog.capture("github_sign_in_clicked", { mode });
                       try {
                         const result = await authClient.signIn.social({
                           provider: "github",
