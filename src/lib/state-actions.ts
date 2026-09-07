@@ -1,5 +1,5 @@
 import type { Action } from "./contracts";
-import type { Community, DemoState } from "./demo-data";
+import type { Community, AppState } from "../types/app";
 const changed = (a: unknown, b: unknown) =>
   JSON.stringify(a) !== JSON.stringify(b);
 const details = (c: Community) => ({
@@ -10,7 +10,7 @@ const details = (c: Community) => ({
   category: c.category,
 });
 // Translate UI edits into narrow commands; the server never accepts arbitrary state.
-export function stateActions(previous: DemoState, next: DemoState): Action[] {
+export function stateActions(previous: AppState, next: AppState): Action[] {
   const actions: Action[] = [];
   if (changed(previous.profile, next.profile)) {
     const { name, handle, color, bio, activity, status } = next.profile;
