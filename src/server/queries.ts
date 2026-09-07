@@ -19,7 +19,7 @@ import {
   isBlocked,
   requireConversation,
 } from "./access";
-import type { Community, DemoState, Message, Person } from "../lib/demo-data";
+import type { Community, AppState, Message, Person } from "../types/app";
 import { HttpError } from "./http";
 
 function uiKey(
@@ -133,7 +133,7 @@ export async function snapshot(
   db: Database,
   viewer: { id: string; name: string },
   messageLimit = 500,
-): Promise<DemoState> {
+): Promise<AppState> {
   await ensureProfile(db, viewer);
   const userId = viewer.id;
   const allowed = await visibleConversations(db, userId);
