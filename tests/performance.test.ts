@@ -158,7 +158,10 @@ test("joined communities survive the discovery bound; reconnect sync retains old
 
 test("session joins use one read and still respect immediate logout", async () => {
   process.env.BETTER_AUTH_SECRET = "performance-test-" + "a".repeat(40);
-  const auth = makeAuth(db);
+  let code = "";
+  const auth = makeAuth(db, async ({ otp }) => {
+    code = otp;
+  });
   const signup = await auth.handler(
     new Request("http://localhost:1515/api/auth/sign-up/email", {
       method: "POST",
@@ -174,7 +177,11 @@ test("session joins use one read and still respect immediate logout", async () =
     }),
   );
   assert.equal(signup.status, 200);
-  const cookie = signup.headers.get("set-cookie")!.split(";")[0];
+  const verified = await auth.api.verifyEmailOTP({
+    body: { email: "auth@performance.test", otp: code },
+    asResponse: true,
+  });
+  const cookie = verified.headers.get("set-cookie")!.split(";")[0];
   queries = 0;
   const session = await auth.api.getSession({
     headers: new Headers({ cookie }),
@@ -571,16 +578,14 @@ test("PostgreSQL can use the committed full-text index for prefix searches", asy
 
 test("joining a community is one atomic write and repeated joins do not invalidate it again", async () => {
   const id = "fast-join-room";
-  await db
-    .insert(schema.communities)
-    .values({
-      id,
-      name: "Join",
-      description: "",
-      icon: "sun",
-      color: "purple",
-      category: "Tests",
-    });
+  await db.insert(schema.communities).values({
+    id,
+    name: "Join",
+    description: "",
+    icon: "sun",
+    color: "purple",
+    category: "Tests",
+  });
   await db
     .insert(schema.members)
     .values({ communityId: id, userId: "owner", role: "Owner" });
