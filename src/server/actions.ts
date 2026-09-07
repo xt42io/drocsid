@@ -242,7 +242,13 @@ export async function mutate(db: Database, userId: string, action: Action) {
       if (duplicate) {
         if (duplicate.authorId !== userId || duplicate.conversationId !== c.id)
           throw new HttpError(409, "Message ID is already in use.");
-        return;
+        return {
+          message: duplicate,
+          attachments: await db
+            .select()
+            .from(s.attachments)
+            .where(eq(s.attachments.messageId, duplicate.id)),
+        };
       }
       if (action.threadOf) {
         const [parent] = await db
@@ -280,13 +286,16 @@ export async function mutate(db: Database, userId: string, action: Action) {
           400,
           "An attachment is unavailable or belongs to another message.",
         );
-      await db.insert(s.messages).values({
-        id: action.id,
-        authorId: userId,
-        conversationId: c.id,
-        content: action.text,
-        parentId: action.threadOf,
-      });
+      const [message] = await db
+        .insert(s.messages)
+        .values({
+          id: action.id,
+          authorId: userId,
+          conversationId: c.id,
+          content: action.text,
+          parentId: action.threadOf,
+        })
+        .returning();
       if (files.length)
         await db
           .update(s.attachments)
@@ -305,7 +314,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
         action.text,
         action.threadOf,
       );
-      break;
+      return { message, attachments: files };
     }
     case "message.update":
     case "message.delete":
@@ -530,55 +539,69 @@ async function createMentions(
       (m) => m[1].toLowerCase(),
     ),
   );
-  let targets: { userId: string; role: string }[];
-  if (c.communityId)
-    targets = await db
-      .select({ userId: s.members.userId, role: s.members.role })
-      .from(s.members)
-      .where(eq(s.members.communityId, c.communityId));
-  else
-    targets = (
-      await db
-        .select()
-        .from(s.participants)
-        .where(eq(s.participants.conversationId, c.id))
-    ).map((p) => ({ userId: p.userId, role: "Member" }));
-  // Group mentions are available to community managers; individual mentions to members.
+  if (!handles.size && !parentId) return;
+  // Group mentions remain restricted to community managers.
   if ((handles.has("everyone") || handles.has("admin")) && c.communityId)
     await requireManager(db, userId, c.communityId);
   const parent = parentId
     ? (await db.select().from(s.messages).where(eq(s.messages.id, parentId)))[0]
     : undefined;
-  for (const target of targets) {
+  const notBlocked = sql`not exists (select 1 from ${s.blocks} b where
+    (b.user_id = ${userId} and b.target_id = ${s.profiles.userId}) or
+    (b.target_id = ${userId} and b.user_id = ${s.profiles.userId}))`;
+  const targets = c.communityId
+    ? await db
+        .select({ profile: s.profiles, role: s.members.role })
+        .from(s.profiles)
+        .innerJoin(
+          s.members,
+          and(
+            eq(s.members.userId, s.profiles.userId),
+            eq(s.members.communityId, c.communityId),
+          ),
+        )
+        .where(
+          and(
+            notBlocked,
+            c.private
+              ? sql`(${s.members.role} in ('Owner', 'Admin') or exists
+        (select 1 from ${s.participants} p where p.conversation_id = ${c.id} and p.user_id = ${s.profiles.userId}))`
+              : undefined,
+          ),
+        )
+    : await db
+        .select({ profile: s.profiles, role: sql<string>`'Member'` })
+        .from(s.profiles)
+        .innerJoin(
+          s.participants,
+          and(
+            eq(s.participants.userId, s.profiles.userId),
+            eq(s.participants.conversationId, c.id),
+          ),
+        )
+        .where(notBlocked);
+  const notices = targets.flatMap(({ profile, role }) => {
     if (
-      target.userId === userId ||
-      (await isBlocked(db, userId, target.userId))
+      profile.userId === userId ||
+      !profile.preferences.notifications ||
+      !profile.preferences.mentions
     )
-      continue;
-    const [profile] = await db
-      .select()
-      .from(s.profiles)
-      .where(eq(s.profiles.userId, target.userId));
-    if (!profile?.preferences.notifications || !profile.preferences.mentions)
-      continue;
+      return [];
     const mentioned =
       handles.has(profile.handle) ||
       (!!c.communityId &&
         (handles.has("everyone") ||
-          (handles.has("admin") && ["Owner", "Admin"].includes(target.role))));
-    if (!mentioned && parent?.authorId !== target.userId) continue;
-    if (
-      !(await accessibleConversations(db, target.userId)).some(
-        (item) => item.id === c.id,
-      )
-    )
-      continue;
-    await db.insert(s.notifications).values({
-      id: crypto.randomUUID(),
-      userId: target.userId,
-      actorId: userId,
-      messageId,
-      type: mentioned ? "mention" : "reply",
-    });
-  }
+          (handles.has("admin") && ["Owner", "Admin"].includes(role))));
+    if (!mentioned && parent?.authorId !== profile.userId) return [];
+    return [
+      {
+        id: crypto.randomUUID(),
+        userId: profile.userId,
+        actorId: userId,
+        messageId,
+        type: mentioned ? ("mention" as const) : ("reply" as const),
+      },
+    ];
+  });
+  if (notices.length) await db.insert(s.notifications).values(notices);
 }
