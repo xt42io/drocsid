@@ -22,7 +22,7 @@ export function requireOrigin(request: Request) {
   if (origin !== expected)
     throw new HttpError(403, "This request must come from Drocsid.");
 }
-export async function readJson(request: Request) {
+export async function readJson(request: Request, maxBytes = 128_000) {
   if (!request.headers.get("content-type")?.startsWith("application/json"))
     throw new HttpError(415, "Expected JSON.");
   // Stream the body with a hard bound, including chunked requests.
@@ -34,7 +34,7 @@ export async function readJson(request: Request) {
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > 128_000) {
+    if (size > maxBytes) {
       await reader.cancel();
       throw new HttpError(413, "Request is too large.");
     }
