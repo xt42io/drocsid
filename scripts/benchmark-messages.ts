@@ -1,3 +1,4 @@
+import { createAuthFixture } from "./auth-fixture";
 // Run after building; creates and removes only its own database fixtures.
 import assert from "node:assert/strict";
 import { eq } from "drizzle-orm";
@@ -25,14 +26,12 @@ async function request(path: string, body?: unknown) {
 }
 const db = getDb();
 try {
-  const signup = await request("/api/auth/sign-up/email", {
-    email: `send-benchmark-${communityId}@example.test`,
-    name: "Send benchmark",
-    password: crypto.randomUUID(),
-  });
-  assert.equal(signup.status, 200);
-  userId = (await signup.json()).user.id;
-  cookie = signup.headers.get("set-cookie")!.split(";")[0];
+  const fixture = await createAuthFixture(
+    `send-benchmark-${communityId}@example.test`,
+    "Send benchmark",
+  );
+  userId = fixture.user.id;
+  cookie = fixture.cookie;
   const setup = await request("/api/app", [
     {
       type: "community.create",
