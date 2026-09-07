@@ -88,20 +88,53 @@ export async function accessibleConversations(db: Database, userId: string) {
           )),
   );
 }
+// Check one conversation in SQL instead of loading every membership and channel.
+export function conversationAccess(userId: string) {
+  return sql`(
+    (${s.conversations.kind} = 'channel' and ${s.conversations.channelId} is not null
+      and exists (select 1 from ${s.members} m
+        where m.community_id = ${s.conversations.communityId} and m.user_id = ${userId}
+          and (not ${s.conversations.private} or m.role in ('Owner', 'Admin')
+            or exists (select 1 from ${s.participants} p where p.conversation_id = ${s.conversations.id} and p.user_id = ${userId}))))
+    or (${s.conversations.kind} = 'dm'
+      and exists (select 1 from ${s.participants} p where p.conversation_id = ${s.conversations.id} and p.user_id = ${userId})
+      and not exists (select 1 from ${s.participants} p join ${s.blocks} b
+        on (b.user_id = ${userId} and b.target_id = p.user_id) or (b.target_id = ${userId} and b.user_id = p.user_id)
+        where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId}))
+  )`;
+}
+export function conversationIdFor(userId: string, key: string) {
+  if (!key.startsWith("dm:")) return key;
+  const target = key.slice(3);
+  if (!/^[a-zA-Z0-9_-]{1,160}$/.test(target) || target === userId)
+    throw new HttpError(400, "Choose another person.");
+  return `dm:${[userId, target].sort().join(":")}`;
+}
 export async function requireConversation(
   db: Database,
   userId: string,
   key: string,
   createDm = false,
 ) {
-  let id = key;
+  const id = conversationIdFor(userId, key);
+  const [allowed] = await db
+    .select()
+    .from(s.conversations)
+    .where(and(eq(s.conversations.id, id), conversationAccess(userId)));
+  if (allowed) return allowed;
+  if (!key.startsWith("dm:") || !createDm)
+    throw new HttpError(
+      403,
+      key.startsWith("dm:")
+        ? "This conversation is unavailable."
+        : "You do not have access to this conversation.",
+    );
   if (key.startsWith("dm:")) {
     const target = key.slice(3);
     if (!/^[a-zA-Z0-9_-]{1,160}$/.test(target) || target === userId)
       throw new HttpError(400, "Choose another person.");
     if (await isBlocked(db, userId, target))
       throw new HttpError(403, "This conversation is unavailable.");
-    id = `dm:${[userId, target].sort().join(":")}`;
     const [existing] = await db
       .select()
       .from(s.conversations)
@@ -169,20 +202,12 @@ export async function requireConversation(
         .onConflictDoNothing();
     }
   }
-  const conversation = (await accessibleConversations(db, userId)).find(
-    (c) => c.id === id,
-  );
+  const [conversation] = await db
+    .select()
+    .from(s.conversations)
+    .where(and(eq(s.conversations.id, id), conversationAccess(userId)));
   if (!conversation)
     throw new HttpError(403, "You do not have access to this conversation.");
-  if (conversation.kind === "dm") {
-    const participants = await db
-      .select()
-      .from(s.participants)
-      .where(eq(s.participants.conversationId, id));
-    for (const p of participants)
-      if (p.userId !== userId && (await isBlocked(db, userId, p.userId)))
-        throw new HttpError(403, "This conversation is unavailable.");
-  }
   return conversation;
 }
 export async function takeLimit(
