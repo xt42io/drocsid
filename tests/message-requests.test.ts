@@ -18,6 +18,7 @@ import { applyLiveMessage } from "../src/lib/live-state";
 import {
   incomingMessageRequests,
   normalDirectMessages,
+  dmReadOnly,
 } from "../src/lib/direct-messages";
 
 const engine = new PGlite();
@@ -331,4 +332,60 @@ test("migration moves old one-way non-friend DMs to requests without moving reci
   } finally {
     await legacy.close();
   }
+});
+
+test("blocking a pending request preserves its preview without accepting it or allowing replies", async () => {
+  const sent = await send("carl", "bob", "Request history stays visible");
+  const { setReaction } = await import("../src/server/reactions");
+  await assert.rejects(
+    () =>
+      setReaction(db, "bob", {
+        id: sent.message!.id,
+        emoji: "👍",
+        active: true,
+      }),
+    /unavailable/,
+  );
+  await action("bob", { type: "friend", id: "carl", operation: "block" });
+  for (const [from, to] of [
+    ["bob", "carl"],
+    ["carl", "bob"],
+  ]) {
+    const snapshot = await state(from);
+    assert.equal(dmReadOnly(snapshot, `dm:${to}`), true);
+    assert.ok(snapshot.messages.some((m) => m.id === sent.message!.id));
+    assert.equal(
+      snapshot.dmConversations.find((d) => d.personId === to)?.status,
+      "pending",
+    );
+    await assert.rejects(() => send(from, to), /unavailable/);
+    await assert.rejects(
+      () => authorizeRoom(db, from, { conversation: `dm:${to}` }),
+      /unavailable/,
+    );
+  }
+  assert.ok(
+    incomingMessageRequests(await state("bob")).some(
+      (d) => d.personId === "carl",
+    ),
+  );
+  assert.ok(
+    !normalDirectMessages(await state("bob")).some((p) => p.id === "carl"),
+  );
+  await assert.rejects(
+    () =>
+      action("bob", {
+        type: "dm.request",
+        personId: "carl",
+        operation: "accept",
+      }),
+    /unavailable/,
+  );
+  await action("bob", { type: "friend", id: "carl", operation: "unblock" });
+  assert.equal(dmReadOnly(await state("bob"), "dm:carl"), true);
+  assert.equal(dmReadOnly(await state("carl"), "dm:bob"), false);
+  await assert.rejects(
+    () => send("bob", "carl"),
+    /Accept this message request/,
+  );
 });
