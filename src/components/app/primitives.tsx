@@ -115,10 +115,10 @@ export function AppIcon({
   name,
   size = 20,
 }: {
-  name: IconName;
+  name: IconName | "";
   size?: number;
 }) {
-  return <Icon icon={icons[name]} size={size} />;
+  return <Icon icon={icons[name || "hash"]} size={size} />;
 }
 export function IconButton({
   name,
