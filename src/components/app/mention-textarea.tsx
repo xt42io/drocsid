@@ -1,3 +1,4 @@
+import { ChannelIcon } from "./channel-icons";
 import { useEffect, useId, useRef, useState } from "react";
 import type { ComponentProps, RefObject } from "react";
 import {
@@ -280,10 +281,7 @@ export function MentionTextarea({
                       data-ui="a-mention-group-icon"
                       className="rounded-[10px] text-[13px] flex items-center justify-center shrink-0 text-(--a-green) bg-(--a-soft) size-8"
                     >
-                      <AppIcon
-                        name={match.channel.private ? "lock" : "hash"}
-                        size={20}
-                      />
+                      <ChannelIcon channel={match.channel} size={20} />
                     </span>
                   ) : match.target.kind === "person" ? (
                     <PersonAvatar person={match.target.person} presence />
