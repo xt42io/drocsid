@@ -1,3 +1,6 @@
+import { workspaceTheme } from "./workspace-theme";
+import { CommunityIcon } from "./community-icon";
+import { ChannelIcon } from "./channel-icons";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
@@ -63,7 +66,7 @@ export function AppShell() {
   return (
     <div
       data-ui={`workspace theme-${state.preferences.theme} density-${state.preferences.density} text-${state.preferences.fontSize} ${standalone ? "workspace-standalone" : ""}`}
-      className="[--a-bg:#fbfaf7] [--a-surface:#fffefa] [--a-soft:#f3f3ec] [--a-sidebar:#eff0e7] [--a-rail:#e5e9da] [--a-border:#e3e5d9] [--a-text:#30362b] [--a-muted:#7b836f] [--a-faint:#949b86] [--a-hover:#e8ecdf] [--a-green:#596b42] [--a-selected:#e0e7d2] [--a-orange:#f45e38] [--a-font:14px] flex w-full h-svh overflow-hidden bg-(--a-bg) text-(--a-text) font-sans text-(length:--a-font) data-[ui~=theme-dark]:scheme-dark data-[ui~=theme-dark]:[--a-bg:#171717] data-[ui~=theme-dark]:[--a-surface:#1f1f1f] data-[ui~=theme-dark]:[--a-soft:#242424] data-[ui~=theme-dark]:[--a-sidebar:#1b1b1b] data-[ui~=theme-dark]:[--a-rail:#111111] data-[ui~=theme-dark]:[--a-border:#343434] data-[ui~=theme-dark]:[--a-text:#ededed] data-[ui~=theme-dark]:[--a-muted:#aaaaaa] data-[ui~=theme-dark]:[--a-faint:#929292] data-[ui~=theme-dark]:[--a-hover:#292929] data-[ui~=theme-dark]:[--a-green:#d0d0d0] data-[ui~=theme-dark]:[--a-selected:#343434] data-[ui~=text-large]:[--a-font:16px] [&_button:disabled]:opacity-45 [&_button:disabled]:cursor-not-allowed [&_input:focus]:border-[#a7b78c] [&_input:focus]:shadow-[0_0_0_3px_#80985616] [&_textarea:focus]:border-[#a7b78c] [&_textarea:focus]:shadow-[0_0_0_3px_#80985616] [&_select:focus]:border-[#a7b78c] [&_select:focus]:shadow-[0_0_0_3px_#80985616] [&_input::placeholder]:text-(--a-faint) [&_textarea::placeholder]:text-(--a-faint) **:[::-webkit-scrollbar]:size-1.25 **:[::-webkit-scrollbar-thumb]:bg-[#b6c0a54d] **:[::-webkit-scrollbar-thumb]:rounded-lg [&_summary::-webkit-details-marker]:hidden data-[ui~=workspace-standalone]:overflow-y-auto [&[data-ui~=workspace-standalone]_[data-ui~=a-main]]:overflow-auto [&[data-ui~=theme-dark]_::-webkit-scrollbar-thumb]:bg-[#ffffff26] [&[data-ui~=theme-dark]_input:focus]:border-[#888888] [&[data-ui~=theme-dark]_input:focus]:shadow-[0_0_0_3px_#ffffff08] [&[data-ui~=theme-dark]_textarea:focus]:border-[#888888] [&[data-ui~=theme-dark]_textarea:focus]:shadow-[0_0_0_3px_#ffffff08] [&[data-ui~=theme-dark]_select:focus]:border-[#888888] [&[data-ui~=theme-dark]_select:focus]:shadow-[0_0_0_3px_#ffffff08] max-[760px]:flex-col"
+      className={`${workspaceTheme} flex w-full h-svh overflow-hidden bg-(--a-bg) text-(--a-text) font-sans text-(length:--a-font) data-[ui~=text-large]:[--a-font:16px] [&_button:disabled]:opacity-45 [&_button:disabled]:cursor-not-allowed [&_input:focus]:border-[#a7b78c] [&_input:focus]:shadow-[0_0_0_3px_#80985616] [&_textarea:focus]:border-[#a7b78c] [&_textarea:focus]:shadow-[0_0_0_3px_#80985616] [&_select:focus]:border-[#a7b78c] [&_select:focus]:shadow-[0_0_0_3px_#80985616] [&_input::placeholder]:text-(--a-faint) [&_textarea::placeholder]:text-(--a-faint) **:[::-webkit-scrollbar]:size-1.25 **:[::-webkit-scrollbar-thumb]:bg-[#b6c0a54d] **:[::-webkit-scrollbar-thumb]:rounded-lg [&_summary::-webkit-details-marker]:hidden data-[ui~=workspace-standalone]:overflow-y-auto [&[data-ui~=workspace-standalone]_[data-ui~=a-main]]:overflow-auto [&[data-ui~=theme-dark]_::-webkit-scrollbar-thumb]:bg-[#ffffff26] [&[data-ui~=theme-dark]_input:focus]:border-[#888888] [&[data-ui~=theme-dark]_input:focus]:shadow-[0_0_0_3px_#ffffff08] [&[data-ui~=theme-dark]_textarea:focus]:border-[#888888] [&[data-ui~=theme-dark]_textarea:focus]:shadow-[0_0_0_3px_#ffffff08] [&[data-ui~=theme-dark]_select:focus]:border-[#888888] [&[data-ui~=theme-dark]_select:focus]:shadow-[0_0_0_3px_#ffffff08] max-[760px]:flex-col`}
     >
       {!standalone && (
         <>
@@ -80,7 +83,7 @@ export function AppShell() {
             <Link
               to="/app"
               data-ui="a-mobile-brand"
-              className="max-[760px]:flex max-[760px]:items-center max-[760px]:gap-1.5 max-[760px]:text-[20px] max-[760px]:font-[750] max-[760px]:tracking-[-1px] max-[760px]:**:data-[ui~=logo-mark]:[--logo-eyes:var(--a-sidebar)] max-[760px]:**:data-[ui~=logo-mark]:text-(--a-green) max-[760px]:**:data-[ui~=logo-mark]:size-5.75"
+              className="max-[760px]:flex max-[760px]:items-center max-[760px]:gap-1.5 max-[760px]:text-[20px] max-[760px]:font-[750] max-[760px]:tracking-[-1px] max-[760px]:**:data-[ui~=logo-mark]:text-(--a-green) max-[760px]:**:data-[ui~=logo-mark]:size-5.75"
             >
               <LogoMark /> drocsid.
             </Link>
@@ -108,7 +111,7 @@ export function AppShell() {
               <Link
                 to="/app/friends"
                 data-ui={`a-rail-logo ${!community ? "active" : ""}`}
-                className="flex items-center justify-center w-10.75 h-10 text-(--a-green) mb-px **:data-[ui~=logo-mark]:[--logo-eyes:var(--a-rail)] **:data-[ui~=logo-mark]:size-7.5 hover:text-(--a-orange)"
+                className="flex items-center justify-center w-10.75 h-10 text-(--a-green) mb-px **:data-[ui~=logo-mark]:size-7.5 hover:text-(--a-orange)"
                 title="Your people"
                 aria-label="Your people"
               >
@@ -136,7 +139,7 @@ export function AppShell() {
                     data-ui={`a-community-icon tone-${c.color} ${community?.id === c.id ? "selected" : ""}`}
                     className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl data-[ui~=selected]:[outline:1px_solid_#c48b61] data-[ui~=selected]:-outline-offset-2 [&[data-ui~=selected]::before]:[content:''] [&[data-ui~=selected]::before]:absolute [&[data-ui~=selected]::before]:-left-3.5 [&[data-ui~=selected]::before]:h-6 [&[data-ui~=selected]::before]:w-1 [&[data-ui~=selected]::before]:rounded-[0_4px_4px_0] [&[data-ui~=selected]::before]:bg-(--a-green) max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
                   >
-                    <AppIcon name={c.icon} size={25} />
+                    <CommunityIcon community={c} size={25} />
                     {c.id === "creative" && !community && (
                       <span
                         data-ui="a-rail-dot"
@@ -426,10 +429,7 @@ export function AppShell() {
                                 data-ui={`a-channel-link ${pathname === `/app/community/${community.id}/${channel.id}` ? "active" : ""}`}
                                 className="flex items-center rounded-md text-[13px] text-(--a-muted) gap-2 mb-0.75 py-1.75 px-2.5 hover:bg-(--a-hover) hover:text-(--a-text) data-[ui~=active]:bg-(--a-selected) data-[ui~=active]:text-(--a-green) data-[ui~=active]:font-[650] [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:truncate [&>svg]:text-(--a-faint) [&>svg]:shrink-0 [&[data-ui~=active]>svg]:text-(--a-green)"
                               >
-                                <AppIcon
-                                  name={channel.private ? "lock" : "hash"}
-                                  size={19}
-                                />
+                                <ChannelIcon channel={channel} size={19} />
                                 <span>{channel.name}</span>
                                 {!!channel.unread && (
                                   <span
