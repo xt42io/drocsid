@@ -2,7 +2,12 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { getAuth } from "../auth";
 import { getDb, type Database } from "../db";
 import * as s from "../db/schema";
-import { conversationAccess, requireConversation } from "../access";
+import {
+  conversationAccess,
+  requireConversation,
+  requireDmUnblocked,
+  dmUnblocked,
+} from "../access";
 import { HttpError } from "../http";
 import { sendMessage } from "../send-message";
 import type { MessageUpdate, Room } from "../../lib/realtime-protocol";
@@ -33,6 +38,7 @@ export async function liveMessage(
     select case when ${s.conversations.kind} = 'dm' then json_build_object(
       'personId', (select p.user_id from conversation_members p where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId} limit 1),
       'hasMessages', exists(select 1 from messages d where d.conversation_id = ${s.conversations.id} and d.deleted_at is null),
+      'messagingBlocked', not (${dmUnblocked(userId)}),
       'status', ${s.conversations.dmStatus}, 'incoming', ${s.conversations.dmInitiatorId} <> ${userId}
     ) else null end as "dmConversation",
     case when m.id is null or m.deleted_at is not null then null else json_build_object(
@@ -75,6 +81,8 @@ export async function liveMessage(
 }
 export async function authorizeRoom(db: Database, userId: string, room: Room) {
   const conversation = await requireConversation(db, userId, room.conversation);
+  if (conversation.kind === "dm")
+    await requireDmUnblocked(db, conversation.id, userId);
   if (conversation.kind === "dm" && conversation.dmStatus !== "accepted")
     throw new HttpError(
       403,
