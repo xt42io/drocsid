@@ -5,9 +5,16 @@
   "scripts": {
     "dev": "vite --port 1515",
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx --env-file=.env scripts/seed.ts",
+    "uploads:cleanup": "tsx --env-file=.env scripts/cleanup.ts"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.3",
+    "@byteship/js": "^0.1.5",
     "@floating-ui/react": "^0.27.20",
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource/dm-mono": "^5.3.0",
@@ -15,17 +22,32 @@
     "@hugeicons/react": "^1.1.10",
     "@tanstack/react-router": "^1.170.32",
     "@tanstack/react-start": "^1.168.49",
+    "@tanstack/router-core": "1.171.27",
+    "@tanstack/start-client-core": "1.170.27",
+    "@tanstack/start-server-core": "1.169.31",
+    "@tanstack/start-storage-context": "1.167.29",
+    "better-auth": "^1.7.3",
+    "drizzle-orm": "^0.45.2",
     "emoji-picker-react": "^4.20.1",
+    "nodemailer": "^10.0.0",
+    "pg": "^8.23.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.4.1",
+    "@types/nodemailer": "^8.0.1",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "vite": "^8.2.2"
   }
