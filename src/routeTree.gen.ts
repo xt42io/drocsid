@@ -12,8 +12,15 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as ApiAppRouteImport } from './routes/api.app'
+import { Route as ApiAvatarsRouteImport } from './routes/api.avatars'
+import { Route as ApiEventsRouteImport } from './routes/api.events'
+import { Route as ApiMessagesRouteImport } from './routes/api.messages'
+import { Route as ApiSessionRouteImport } from './routes/api.session'
+import { Route as ApiUploadsRouteImport } from './routes/api.uploads'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppDiscoverRouteImport } from './routes/app.discover'
 import { Route as AppFriendsRouteImport } from './routes/app.friends'
@@ -22,6 +29,9 @@ import { Route as AppSavedRouteImport } from './routes/app.saved'
 import { Route as AppSearchRouteImport } from './routes/app.search'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppWelcomeRouteImport } from './routes/app.welcome'
+import { Route as ApiAttachmentsIdRouteImport } from './routes/api.attachments.$id'
+import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
+import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
 import { Route as AppDmPersonIdRouteImport } from './routes/app.dm.$personId'
 import { Route as AppInviteCommunityIdRouteImport } from './routes/app.invite.$communityId'
 import { Route as AppCommunityCommunityIdChannelIdRouteImport } from './routes/app.community.$communityId.$channelId'
@@ -42,6 +52,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -50,6 +65,36 @@ const SignInRoute = SignInRouteImport.update({
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAppRoute = ApiAppRouteImport.update({
+  id: '/api/app',
+  path: '/api/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAvatarsRoute = ApiAvatarsRouteImport.update({
+  id: '/api/avatars',
+  path: '/api/avatars',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEventsRoute = ApiEventsRouteImport.update({
+  id: '/api/events',
+  path: '/api/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMessagesRoute = ApiMessagesRouteImport.update({
+  id: '/api/messages',
+  path: '/api/messages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSessionRoute = ApiSessionRouteImport.update({
+  id: '/api/session',
+  path: '/api/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUploadsRoute = ApiUploadsRouteImport.update({
+  id: '/api/uploads',
+  path: '/api/uploads',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -92,6 +137,21 @@ const AppWelcomeRoute = AppWelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiAttachmentsIdRoute = ApiAttachmentsIdRouteImport.update({
+  id: '/api/attachments/$id',
+  path: '/api/attachments/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAvatarsIdRoute = ApiAvatarsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiAvatarsRoute,
+} as any)
 const AppDmPersonIdRoute = AppDmPersonIdRouteImport.update({
   id: '/dm/$personId',
   path: '/dm/$personId',
@@ -119,8 +179,15 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/api/app': typeof ApiAppRoute
+  '/api/avatars': typeof ApiAvatarsRouteWithChildren
+  '/api/events': typeof ApiEventsRoute
+  '/api/messages': typeof ApiMessagesRoute
+  '/api/session': typeof ApiSessionRoute
+  '/api/uploads': typeof ApiUploadsRoute
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
@@ -129,6 +196,9 @@ export interface FileRoutesByFullPath {
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
   '/app/': typeof AppIndexRoute
+  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
   '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
@@ -137,8 +207,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/api/app': typeof ApiAppRoute
+  '/api/avatars': typeof ApiAvatarsRouteWithChildren
+  '/api/events': typeof ApiEventsRoute
+  '/api/messages': typeof ApiMessagesRoute
+  '/api/session': typeof ApiSessionRoute
+  '/api/uploads': typeof ApiUploadsRoute
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
@@ -147,6 +224,9 @@ export interface FileRoutesByTo {
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
   '/app': typeof AppIndexRoute
+  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
   '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
@@ -157,8 +237,15 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/api/app': typeof ApiAppRoute
+  '/api/avatars': typeof ApiAvatarsRouteWithChildren
+  '/api/events': typeof ApiEventsRoute
+  '/api/messages': typeof ApiMessagesRoute
+  '/api/session': typeof ApiSessionRoute
+  '/api/uploads': typeof ApiUploadsRoute
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
@@ -167,6 +254,9 @@ export interface FileRoutesById {
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
   '/app/': typeof AppIndexRoute
+  '/api/attachments/$id': typeof ApiAttachmentsIdRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
   '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
@@ -178,8 +268,15 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/forgot-password'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/api/app'
+    | '/api/avatars'
+    | '/api/events'
+    | '/api/messages'
+    | '/api/session'
+    | '/api/uploads'
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
@@ -188,6 +285,9 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/welcome'
     | '/app/'
+    | '/api/attachments/$id'
+    | '/api/auth/$'
+    | '/api/avatars/$id'
     | '/app/dm/$personId'
     | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
@@ -196,8 +296,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/forgot-password'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/api/app'
+    | '/api/avatars'
+    | '/api/events'
+    | '/api/messages'
+    | '/api/session'
+    | '/api/uploads'
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
@@ -206,6 +313,9 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/welcome'
     | '/app'
+    | '/api/attachments/$id'
+    | '/api/auth/$'
+    | '/api/avatars/$id'
     | '/app/dm/$personId'
     | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
@@ -215,8 +325,15 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/forgot-password'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/api/app'
+    | '/api/avatars'
+    | '/api/events'
+    | '/api/messages'
+    | '/api/session'
+    | '/api/uploads'
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
@@ -225,6 +342,9 @@ export interface FileRouteTypes {
     | '/app/settings'
     | '/app/welcome'
     | '/app/'
+    | '/api/attachments/$id'
+    | '/api/auth/$'
+    | '/api/avatars/$id'
     | '/app/dm/$personId'
     | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
@@ -235,8 +355,17 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  ApiAppRoute: typeof ApiAppRoute
+  ApiAvatarsRoute: typeof ApiAvatarsRouteWithChildren
+  ApiEventsRoute: typeof ApiEventsRoute
+  ApiMessagesRoute: typeof ApiMessagesRoute
+  ApiSessionRoute: typeof ApiSessionRoute
+  ApiUploadsRoute: typeof ApiUploadsRoute
+  ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -262,6 +391,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-in': {
       id: '/sign-in'
       path: '/sign-in'
@@ -274,6 +410,48 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/app': {
+      id: '/api/app'
+      path: '/api/app'
+      fullPath: '/api/app'
+      preLoaderRoute: typeof ApiAppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/avatars': {
+      id: '/api/avatars'
+      path: '/api/avatars'
+      fullPath: '/api/avatars'
+      preLoaderRoute: typeof ApiAvatarsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/events': {
+      id: '/api/events'
+      path: '/api/events'
+      fullPath: '/api/events'
+      preLoaderRoute: typeof ApiEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/messages': {
+      id: '/api/messages'
+      path: '/api/messages'
+      fullPath: '/api/messages'
+      preLoaderRoute: typeof ApiMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/session': {
+      id: '/api/session'
+      path: '/api/session'
+      fullPath: '/api/session'
+      preLoaderRoute: typeof ApiSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/uploads': {
+      id: '/api/uploads'
+      path: '/api/uploads'
+      fullPath: '/api/uploads'
+      preLoaderRoute: typeof ApiUploadsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -331,6 +509,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/welcome'
       preLoaderRoute: typeof AppWelcomeRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/api/attachments/$id': {
+      id: '/api/attachments/$id'
+      path: '/api/attachments/$id'
+      fullPath: '/api/attachments/$id'
+      preLoaderRoute: typeof ApiAttachmentsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/avatars/$id': {
+      id: '/api/avatars/$id'
+      path: '/$id'
+      fullPath: '/api/avatars/$id'
+      preLoaderRoute: typeof ApiAvatarsIdRouteImport
+      parentRoute: typeof ApiAvatarsRoute
     }
     '/app/dm/$personId': {
       id: '/app/dm/$personId'
@@ -395,12 +594,33 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ApiAvatarsRouteChildren {
+  ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
+}
+
+const ApiAvatarsRouteChildren: ApiAvatarsRouteChildren = {
+  ApiAvatarsIdRoute: ApiAvatarsIdRoute,
+}
+
+const ApiAvatarsRouteWithChildren = ApiAvatarsRoute._addFileChildren(
+  ApiAvatarsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  ApiAppRoute: ApiAppRoute,
+  ApiAvatarsRoute: ApiAvatarsRouteWithChildren,
+  ApiEventsRoute: ApiEventsRoute,
+  ApiMessagesRoute: ApiMessagesRoute,
+  ApiSessionRoute: ApiSessionRoute,
+  ApiUploadsRoute: ApiUploadsRoute,
+  ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
