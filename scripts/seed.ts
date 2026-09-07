@@ -1,22 +1,24 @@
-import { getAuth } from "../src/server/auth";
+import { user } from "../src/server/db/schema";
 import { getDb, type Database } from "../src/server/db";
 import { ensureProfile } from "../src/server/access";
 import { mutate } from "../src/server/actions";
 
 if (process.env.NODE_ENV === "production")
   throw new Error("Seed is for development only.");
-if (!process.env.SEED_EMAIL || !process.env.SEED_PASSWORD)
+if (!process.env.SEED_EMAIL)
   throw new Error(
-    "Set SEED_EMAIL and SEED_PASSWORD to create an optional development account.",
+    "Set SEED_EMAIL to an inbox you control for the development account.",
   );
-const result = await getAuth().api.signUpEmail({
-  body: {
-    name: "Community host",
-    email: process.env.SEED_EMAIL,
-    password: process.env.SEED_PASSWORD,
-  },
-});
 const db = getDb();
+const [created] = await db
+  .insert(user)
+  .values({
+    id: crypto.randomUUID(),
+    name: "Community host",
+    email: process.env.SEED_EMAIL.trim().toLowerCase(),
+  })
+  .returning();
+const result = { user: created };
 await ensureProfile(db, result.user);
 await db.transaction(async (tx) => {
   await mutate(tx as unknown as Database, result.user.id, {
@@ -46,6 +48,6 @@ await db.transaction(async (tx) => {
   });
 });
 console.log(
-  "Development account and community created. Sign in with the SEED_EMAIL and SEED_PASSWORD you supplied.",
+  "Development account and community created. Sign in with an email code sent to your SEED_EMAIL inbox.",
 );
 process.exit(0);
