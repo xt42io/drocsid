@@ -470,6 +470,33 @@ test("upload ownership, private visibility, actual bytes and message binding are
       () => attachmentResponse(db, "outsider", upload.id, storage),
       /access/,
     );
+    let imageFetches = 0;
+    globalThis.fetch = async (input) => {
+      imageFetches++;
+      assert.match(
+        new URL(String(input)).searchParams.get("tr") ?? "",
+        /w:420/,
+      );
+      return new Response("webp", {
+        headers: { "content-type": "image/webp" },
+      });
+    };
+    const thumbnail = await attachmentResponse(
+      db,
+      "member",
+      upload.id,
+      storage,
+      "chat-420",
+    );
+    assert.equal(thumbnail.headers.get("content-type"), "image/webp");
+    assert.equal(thumbnail.headers.get("content-length"), null);
+    assert.equal(await thumbnail.text(), "webp");
+    await assert.rejects(
+      () => attachmentResponse(db, "outsider", upload.id, storage, "chat-420"),
+      /access/,
+    );
+    assert.equal(imageFetches, 1); // Authorization must precede contacting Byteship.
+
     await assert.rejects(
       () =>
         action("owner", {
@@ -613,6 +640,25 @@ test("avatar ownership, image validation, persistence, replacement and removal",
       ),
       "image/png",
     );
+    const originalFetch = globalThis.fetch;
+    let imageFetches = 0;
+    globalThis.fetch = async (input) => {
+      imageFetches++;
+      assert.match(new URL(String(input)).searchParams.get("tr") ?? "", /w:80/);
+      return new Response("webp", {
+        headers: { "content-type": "image/webp" },
+      });
+    };
+    const avatar = await avatarResponse(db, upload.id, storage, "avatar-80");
+    assert.equal(avatar.headers.get("content-type"), "image/webp");
+    assert.equal(avatar.headers.get("content-length"), null);
+    assert.equal(await avatar.text(), "webp");
+    await assert.rejects(
+      () => avatarResponse(db, crypto.randomUUID(), storage, "avatar-80"),
+      /not found/,
+    );
+    assert.equal(imageFetches, 1);
+    globalThis.fetch = originalFetch;
     await discardAvatar(db, "owner", upload.id); // Cancellation cannot remove an active photo.
     await avatarResponse(db, upload.id, storage);
     const replacement = await prepareAvatar(
