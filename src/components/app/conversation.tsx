@@ -11,6 +11,7 @@ import {
   resolveChannel,
   resolveMention,
 } from "../../lib/mentions";
+import { MessageRequestActions } from "./message-requests";
 import { EmojiPanel } from "./emoji-panel";
 import { ChannelMention, Mention } from "./mention";
 import { MentionTextarea } from "./mention-textarea";
@@ -105,6 +106,9 @@ export function Conversation({
   const lastTarget = useRef("");
   const selected = allMessages.find((m) => m.id === messageId);
   const blocked = !!personId && state.blocked.includes(personId);
+  const dm = state.dmConversations.find((d) => d.personId === personId);
+  const incomingRequest = dm?.incoming && dm.status === "pending";
+  const unavailableDm = dm?.status === "declined";
   const muted = state.muted.includes(conversation);
   const [hasMore, setHasMore] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -125,6 +129,7 @@ export function Conversation({
   useEffect(() => {
     const key = `${conversation}:${newest}`;
     if (
+      (!personId || dm?.status === "accepted") &&
       newest &&
       lastRead.current !== key &&
       document.visibilityState === "visible"
@@ -136,7 +141,7 @@ export function Conversation({
         through: newest,
       });
     }
-  }, [conversation, newest, command]);
+  }, [conversation, newest, command, personId, dm?.status]);
   useEffect(() => {
     if (lastConversation.current !== conversation) {
       setPanel(personId || window.innerWidth <= 1050 ? null : "members");
@@ -436,16 +441,44 @@ export function Conversation({
                 Unblock
               </button>
             </div>
+          ) : incomingRequest ? (
+            <section
+              aria-label="Message request"
+              className="shrink-0 space-y-3 border-t border-(--a-border) bg-(--a-soft) p-5"
+            >
+              <h2 className="text-base! font-semibold">
+                {person?.name} wants to message you
+              </h2>
+              <p className="text-sm text-(--a-muted)">
+                Accept to reply. Reading this request won’t send read or typing
+                activity. Accepting won’t add them as a friend.
+              </p>
+              <MessageRequestActions personId={personId!} />
+            </section>
+          ) : unavailableDm ? (
+            <p className="shrink-0 border-t border-(--a-border) p-5 text-sm text-(--a-muted)">
+              This conversation is unavailable.
+            </p>
           ) : (
-            <Composer
-              key={conversation}
-              conversation={conversation}
-              placeholder={
-                person
-                  ? `Message @${person.handle}`
-                  : `Message #${channel!.name}`
-              }
-            />
+            <div className="shrink-0">
+              {personId && dm?.status === "pending" && (
+                <p role="status" className="px-6 pt-3 text-xs text-(--a-muted)">
+                  {dm.hasMessages
+                    ? `Message request sent. You can chat normally once ${person?.name} accepts.`
+                    : `Your first message will go to ${person?.name}’s message requests.`}
+                </p>
+              )}
+              <Composer
+                key={conversation}
+                conversation={conversation}
+                placeholder={
+                  person
+                    ? `Message @${person.handle}`
+                    : `Message #${channel!.name}`
+                }
+                typingEnabled={!personId || dm?.status === "accepted"}
+              />
+            </div>
           )}
         </div>
         {panel === "members" && community && (
@@ -631,6 +664,13 @@ export function MessageCard({
     retryMessage,
     notify,
   } = useApp();
+  const dm = message.conversation.startsWith("dm:")
+    ? state.dmConversations.find(
+        (d) => d.personId === message.conversation.slice(3),
+      )
+    : undefined;
+  const readOnly =
+    dm?.status === "declined" || (dm?.incoming && dm.status === "pending");
   const author = findPerson(message.author);
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(message.text);
@@ -799,6 +839,7 @@ export function MessageCard({
                 data-ui={reaction.mine ? "selected" : ""}
                 aria-label={`${reaction.mine ? "Remove" : "Add"} ${reaction.emoji} reaction, ${reaction.count} reactions`}
                 aria-pressed={!!reaction.mine}
+                disabled={readOnly}
                 onClick={() => react(message.id, reaction.emoji)}
               >
                 <span>{reaction.emoji}</span>
@@ -807,7 +848,7 @@ export function MessageCard({
             ))}
           </div>
         )}
-        {replies.length > 0 && !compact && (
+        {replies.length > 0 && !compact && !readOnly && (
           <button
             data-ui="a-thread-link"
             className="flex items-center gap-2 mt-2.75 p-0 bg-transparent text-(--a-green) text-[10px] [&>span:not([data-ui~=a-thread-avatars])]:text-(--a-faint) [&>span:not([data-ui~=a-thread-avatars])]:text-[9px] hover:underline max-[480px]:gap-1.5 max-[480px]:[&>span:not([data-ui~=a-thread-avatars])]:text-[8px]"
@@ -831,7 +872,7 @@ export function MessageCard({
           </button>
         )}
       </div>
-      {!editing && !message.sending && !message.sendError && (
+      {!readOnly && !editing && !message.sending && !message.sendError && (
         <div
           data-ui="a-message-toolbar"
           className="flex items-center absolute right-5.5 -top-3.75 p-0.75 bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] shadow-[0_3px_7px_#1d2c0907] opacity-0 pointer-events-none z-5 [&:has(details[open])]:opacity-100 [&:has(details[open])]:pointer-events-auto **:data-[ui~=a-icon-button]:w-7 **:data-[ui~=a-icon-button]:h-6.75 [&_[data-ui~=a-icon-button]_svg]:w-4 max-[760px]:right-4.5 max-[760px]:-top-3 max-[760px]:**:data-[ui~=a-icon-button]:w-7.5 max-[760px]:**:data-[ui~=a-icon-button]:h-7.25 max-[480px]:shadow-none max-[480px]:self-end max-[480px]:absolute max-[480px]:top-2 max-[480px]:right-1.75 max-[480px]:flex max-[480px]:opacity-100 max-[480px]:pointer-events-auto max-[480px]:p-0 max-[480px]:border-0 max-[480px]:border-none max-[480px]:border-[currentColor] max-[480px]:bg-transparent max-[480px]:m-0 max-[480px]:*:data-[ui~=a-icon-button]:hidden max-[480px]:[&_[data-ui~=a-message-menu]>summary]:size-6 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:opacity-100 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:pointer-events-auto max-[480px]:*:data-[ui~=a-emoji-trigger]:flex"
@@ -955,12 +996,14 @@ export function MessageCard({
   );
 }
 function Composer({
+  typingEnabled = true,
   conversation,
   placeholder,
   threadOf,
 }: {
   conversation: string;
   placeholder: string;
+  typingEnabled?: boolean;
   threadOf?: string;
 }) {
   const {
@@ -973,11 +1016,14 @@ function Composer({
     typingPeople,
   } = useApp();
   useEffect(
-    () => observeRoom({ conversation, threadOf }),
-    [conversation, threadOf, observeRoom],
+    () => (typingEnabled ? observeRoom({ conversation, threadOf }) : undefined),
+    [conversation, threadOf, observeRoom, typingEnabled],
   );
   const typing = typingPeople.filter(
-    (p) => p.conversation === conversation && p.threadOf === threadOf,
+    (p) =>
+      typingEnabled &&
+      p.conversation === conversation &&
+      p.threadOf === threadOf,
   );
   const typingText =
     typing.length > 2
@@ -993,7 +1039,7 @@ function Composer({
   const draft = state.drafts[draftKey] ?? "";
   const textarea = useRef<HTMLTextAreaElement>(null);
   const setDraft = (text: string) => {
-    setTyping({ conversation, threadOf }, !!text.trim());
+    if (typingEnabled) setTyping({ conversation, threadOf }, !!text.trim());
     return setState((previous) => ({
       ...previous,
       drafts: { ...previous.drafts, [draftKey]: text.slice(0, 4000) },
