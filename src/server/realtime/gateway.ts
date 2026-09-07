@@ -1,6 +1,7 @@
 import type { IncomingMessage } from "node:http";
 import type { EventEmitter } from "node:events";
 import type { Duplex } from "node:stream";
+import * as Sentry from "@sentry/tanstackstart-react";
 import { WebSocket, WebSocketServer } from "ws";
 import {
   clientFrameSchema,
@@ -167,7 +168,13 @@ export function attachRealtime(
             if (frame) send(peer, frame);
           }
         }
-      } catch {
+      } catch (error) {
+        Sentry.captureException(error, {
+          tags: {
+            area: "realtime",
+            operation: "message_projection",
+          },
+        });
         for (const peer of peers)
           if (
             [...peer.rooms.values()].some((room) => room.id === conversationId)
@@ -340,6 +347,13 @@ export function attachRealtime(
       }
     } catch (error) {
       const status = (error as { status?: number }).status ?? 400;
+      if (status >= 500)
+        Sentry.captureException(error, {
+          tags: {
+            area: "realtime",
+            operation: "client_frame",
+          },
+        });
       send(peer, {
         type: "error",
         requestId,
