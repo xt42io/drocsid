@@ -5,7 +5,7 @@ export function applyLiveMessage(
   state: AppState,
   update: MessageUpdate,
 ): AppState {
-  const messages = state.messages.filter(
+  let messages = state.messages.filter(
     (m) =>
       m.id !== update.id &&
       (update.message !== null || m.threadOf !== update.id),
@@ -41,7 +41,29 @@ export function applyLiveMessage(
           ),
         }))
       : state.communities;
-  return { ...state, messages, people, communities };
+  let dmConversations = state.dmConversations;
+  if (update.dmConversation) {
+    const incoming = update.dmConversation;
+    const previous = dmConversations.find(
+      (d) => d.personId === incoming.personId,
+    );
+    // Decisions are monotonic: only an explicit friendship can turn declined into accepted.
+    // A delayed pre-decision message frame must not reopen a request or undo acceptance.
+    const rank = { pending: 0, declined: 1, accepted: 2 };
+    const decision =
+      previous && rank[previous.status] > rank[incoming.status]
+        ? { ...incoming, status: previous.status }
+        : incoming;
+    dmConversations = [
+      ...dmConversations.filter((d) => d.personId !== incoming.personId),
+      decision,
+    ];
+    if (decision.incoming && decision.status === "declined")
+      messages = messages.filter(
+        (m) => m.conversation !== `dm:${decision.personId}`,
+      );
+  }
+  return { ...state, messages, people, communities, dmConversations };
 }
 
 export function applyLiveRead(
