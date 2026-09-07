@@ -54,6 +54,7 @@ export function attachRealtime(
   let ready = false;
   let closed = false;
   let validating = false;
+  let accessRevision = 0;
 
   function send(peer: Peer, frame: ServerFrame) {
     if (peer.ws.readyState !== WebSocket.OPEN) return;
@@ -124,18 +125,18 @@ export function attachRealtime(
     });
   }
   function enqueue(
-    userId: string,
+    conversationId: string,
     event: Extract<BusEvent, { type: "message" }>,
   ) {
-    let job = jobs.get(userId);
+    let job = jobs.get(conversationId);
     if (!job) {
       job = { running: false, ids: new Map() };
-      jobs.set(userId, job);
+      jobs.set(conversationId, job);
     }
     job.ids.set(event.id, event);
     if (job.ids.size > 500) {
       for (const peer of peers)
-        if (peer.identity.userId === userId)
+        if ([...peer.rooms.values()].some((room) => room.id === conversationId))
           peer.ws.close(1013, "Reconnect to catch up");
       job.ids.clear();
     }
@@ -147,25 +148,40 @@ export function attachRealtime(
         while (task.ids.size && !closed) {
           const [id, next] = task.ids.entries().next().value!;
           task.ids.delete(id);
-          const frame = await data.message(userId, next.conversationId, id);
-          if (frame)
-            for (const peer of peers)
-              if (peer.identity.userId === userId) send(peer, frame);
+          const revision = accessRevision;
+          const users = [
+            ...new Set([...peers].map((peer) => peer.identity.userId)),
+          ];
+          // PostgreSQL filters recipients and projects their personalized frames
+          // together: one query per event, not one per connected account.
+          const updates = await data.messages(users, next.conversationId, id);
+          if (revision !== accessRevision) {
+            task.ids.set(id, next);
+            continue;
+          }
+          const byUser = new Map(
+            updates.map((update) => [update.userId, update.frame]),
+          );
+          for (const peer of peers) {
+            const frame = byUser.get(peer.identity.userId);
+            if (frame) send(peer, frame);
+          }
         }
       } catch {
         for (const peer of peers)
-          if (peer.identity.userId === userId)
+          if (
+            [...peer.rooms.values()].some((room) => room.id === conversationId)
+          )
             peer.ws.close(1012, "Reconnect to catch up");
       } finally {
-        jobs.delete(userId);
+        jobs.delete(conversationId);
       }
     })();
   }
   function receive(event: BusEvent) {
     if (closed) return;
     if (event.type === "message") {
-      for (const id of new Set([...peers].map((p) => p.identity.userId)))
-        enqueue(id, event);
+      if (peers.size) enqueue(event.conversationId, event);
     } else if (event.type === "invalidate") {
       for (const peer of peers)
         if (peer.identity.userId === event.userId)
@@ -179,14 +195,43 @@ export function attachRealtime(
             through: event.through,
           });
     } else if (event.type === "access") {
-      // Membership, channel access and blocks invalidate all cached subscriptions.
-      // Reconnecting reauthorizes both the session and the selected rooms.
-      typing.clear();
+      accessRevision++;
+      // Clear cached typing from every gateway, including remote connections.
+      // Fresh watch/typing frames will restore only currently allowed rooms.
+      let removedTyping = false;
+      for (const [key, value] of typing) {
+        const affected = event.userIds
+          ? event.userIds.includes(value.userId)
+          : event.conversationId
+            ? value.conversationId === event.conversationId
+            : event.communityId
+              ? value.conversationId.startsWith(`${event.communityId}:`)
+              : true;
+        if (affected) {
+          typing.delete(key);
+          removedTyping = true;
+        }
+      }
       for (const peer of peers) {
+        const affected = event.userIds
+          ? event.userIds.includes(peer.identity.userId)
+          : [...peer.rooms.values()].some((room) =>
+              event.conversationId
+                ? room.id === event.conversationId
+                : event.communityId
+                  ? room.id.startsWith(`${event.communityId}:`)
+                  : true,
+            );
+        if (!affected) continue;
+        // Revoke cached typing permissions immediately, including in-flight watches.
+        // The client re-watches its desired rooms on the same authenticated socket.
+        stopTyping(peer);
         peer.rooms.clear();
         peer.watchVersion++;
-        peer.ws.close(1012, "Permissions changed");
+        sendTyping(peer);
+        send(peer, { type: "access" });
       }
+      if (removedTyping) for (const peer of peers) sendTyping(peer);
     } else if (event.type === "session") {
       for (const peer of peers)
         if (peer.identity.sessionId === event.id)
