@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowDown01Icon,
   ArrowUpRight01Icon,
-  FavouriteIcon,
   HashtagIcon,
   Add01Icon,
   Search01Icon,
@@ -222,10 +221,6 @@ export function ChatPreview() {
             <Avatar name="Sam" color="green" small />
             <span>Sam</span>
             <i className="online-dot" />
-          </div>
-          <div className="sidebar-bottom">
-            <span>A little corner. A lot of possibility.</span>
-            <Icon icon={FavouriteIcon} size={14} />
           </div>
         </aside>
         <section
