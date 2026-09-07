@@ -13,7 +13,7 @@ export function Logo({ light = false }: { light?: boolean }) {
   return (
     <Link
       to="/"
-      aria-label="drocsid home"
+      aria-label="Drocsid home"
       data-ui={`logo ${light ? "logo-light" : ""}`}
       className="inline-flex items-center gap-2 text-[29px] leading-none font-extrabold tracking-[-1.5px] w-fit max-[580px]:text-[26px]"
     >
