@@ -3,12 +3,14 @@ import { CommunityIcon } from "./community-icon";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
+import { usePostHog } from "@posthog/react";
 import { Logo } from "../ui";
 import { AppIcon } from "./primitives";
 import { AvatarUpload } from "./avatar-upload";
 export function WelcomePage() {
   const { state, setState, notify, setModal } = useApp();
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(1);
@@ -42,8 +44,13 @@ export function WelcomePage() {
           color,
         },
       }));
-      if (saved) setStep(2);
-      else {
+      if (saved) {
+        posthog.capture("profile_saved", {
+          username_length: username.length,
+          color,
+        });
+        setStep(2);
+      } else {
         setError(
           "Couldn’t save your profile. Check your username and try again.",
         );
@@ -65,6 +72,10 @@ export function WelcomePage() {
     }));
     setSaving(false);
     if (!saved) return;
+    posthog.capture("onboarding_completed", {
+      mode,
+      communities_joined: mode === "join" ? selected.length : 0,
+    });
     if (mode === "create") {
       await navigate({ to: "/app" });
       setModal({ type: "create-community" });
