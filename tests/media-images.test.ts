@@ -138,3 +138,23 @@ test("private transformations preserve signed tokens, animation and original del
   );
   assert.equal(requested.length, 4);
 });
+
+test("community icons render uploaded images with small Byteship variants", async () => {
+  const { CommunityIcon } =
+    await import("../src/components/app/community-icon");
+  const html = renderToStaticMarkup(
+    createElement(CommunityIcon, {
+      community: { icon: "sun", iconUrl: "/api/community-icons/photo" },
+      size: 25,
+    }),
+  );
+  assert.match(html, /src="\/api\/community-icons\/photo\?variant=avatar-40"/);
+  assert.match(html, /avatar-80 2x/);
+  const preview = renderToStaticMarkup(
+    createElement(CommunityIcon, {
+      community: { icon: "", iconUrl: "blob:local-icon" },
+    }),
+  );
+  assert.match(preview, /src="blob:local-icon"/);
+  assert.doesNotMatch(preview, /variant=/);
+});
