@@ -89,7 +89,7 @@ export function DiscoverPage() {
         </h2>
         <span>
           {communities.length}{" "}
-          {communities.length === 1 ? "community" : "communities"} · sample
+          {communities.length === 1 ? "community" : "communities"}
           directory
         </span>
       </div>
@@ -120,13 +120,14 @@ export function DiscoverPage() {
                 </span>
                 <button
                   className={`a-button ${community.joined ? "secondary" : "primary"} small`}
-                  onClick={() => {
-                    joinCommunity(community.id);
+                  onClick={async () => {
+                    const joined = await joinCommunity(community.id);
+                    if (!joined) return;
                     void navigate({
                       to: "/app/community/$communityId/$channelId",
                       params: {
                         communityId: community.id,
-                        channelId: "general",
+                        channelId: joined.channels.find(c => c.id === 'general')?.id ?? joined.channels[0]?.id ?? 'general',
                       },
                     });
                   }}
@@ -178,7 +179,7 @@ export function InvitePage({ communityId }: { communityId: string }) {
         <EmptyState
           icon="mail"
           title="This invitation wandered off."
-          description="This local preview invitation isn’t available in your browser."
+          description="This community invitation is no longer available."
         >
           <Link to="/app/discover" className="a-button primary">
             Explore communities
@@ -207,15 +208,16 @@ export function InvitePage({ communityId }: { communityId: string }) {
           </span>
           <button
             className="a-button primary full"
-            onClick={() => {
-              joinCommunity(community.id);
+            onClick={async () => {
+              const joined = await joinCommunity(community.id);
+              if (!joined) return;
               void navigate({
                 to: "/app/community/$communityId/$channelId",
                 params: {
                   communityId: community.id,
-                  channelId: community.channels.some((c) => c.id === "general")
+                  channelId: joined.channels.some((c) => c.id === "general")
                     ? "general"
-                    : community.channels[0].id,
+                    : joined.channels[0]?.id ?? 'general',
                 },
               });
             }}
@@ -224,8 +226,7 @@ export function InvitePage({ communityId }: { communityId: string }) {
             <AppIcon name="right" size={18} />
           </button>
           <p className="a-form-footnote">
-            This is a local preview invitation. Joining changes this browser’s
-            sample data only.
+            Join this community to see its channels and meet the people here.
           </p>
         </div>
       </div>
