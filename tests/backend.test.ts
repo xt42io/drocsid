@@ -309,7 +309,7 @@ test("mentions resolve on the server, and invalid group mentions roll back the m
     0,
   );
 });
-test("friend acceptance cannot be forged and blocking revokes DM access", async () => {
+test("blocking preserves DM history and attachments while rejecting interaction in both directions", async (t) => {
   await assert.rejects(
     () =>
       action("outsider", { type: "friend", id: "owner", operation: "accept" }),
@@ -339,18 +339,195 @@ test("friend acceptance cannot be forged and blocking revokes DM access", async 
     ),
   );
   await action("outsider", { type: "friend", id: "owner", operation: "block" });
+  const { liveMessage, authorizeRoom } =
+    await import("../src/server/realtime/data");
+  const { normalDirectMessages, dmReadOnly } =
+    await import("../src/lib/direct-messages");
+  const { applyLiveMessage } = await import("../src/lib/live-state");
+  const conversationId = "dm:outsider:owner";
+  const attachmentId = crypto.randomUUID();
+  await db.insert(schema.attachments).values({
+    id: attachmentId,
+    conversationId,
+    uploaderId: "owner",
+    messageId: id,
+    path: `test/${attachmentId}`,
+    originalName: "history.png",
+    contentType: "image/png",
+    byteSize: 8,
+    status: "ready",
+  });
+  let downloads = 0;
+  const storage = {
+    async createSignedUrl() {
+      return { signedUrl: { url: "https://storage.example.test/history" } };
+    },
+    async createFileUpload() {
+      assert.fail("Blocked users must not get an upload session");
+    },
+  } as unknown as Parameters<typeof prepareUpload>[3];
+  t.mock.method(globalThis, "fetch", async () => {
+    downloads++;
+    return new Response("original", {
+      headers: { "content-type": "image/png" },
+    });
+  });
+  for (const [from, to, viewer] of [
+    ["owner", "outsider", viewers[0]],
+    ["outsider", "owner", viewers[2]],
+  ] as const) {
+    const key = `dm:${to}`;
+    assert.equal((await requireConversation(db, from, key)).id, conversationId);
+    const state = await snapshot(db, viewer);
+    assert.ok(state.messages.some((m) => m.id === id));
+    assert.ok(normalDirectMessages(state).some((p) => p.id === to));
+    assert.equal(
+      state.dmConversations.find((d) => d.personId === to)?.messagingBlocked,
+      true,
+    );
+    assert.equal(dmReadOnly(state, key), true);
+    assert.ok(
+      (await messagePage(db, from, key)).messages.some((m) => m.id === id),
+    );
+    assert.ok(
+      (await searchMessages(db, from, "Private hello")).some(
+        (m) => m.id === id,
+      ),
+    );
+    const live = await liveMessage(db, from, conversationId, id);
+    assert.equal(live?.message?.id, id);
+    assert.equal(live?.dmConversation?.messagingBlocked, true);
+    assert.equal(
+      dmReadOnly(
+        applyLiveMessage(state, {
+          ...live!,
+          dmConversation: { ...live!.dmConversation!, messagingBlocked: false },
+        }),
+        key,
+      ),
+      true,
+    );
+    assert.equal(
+      await (await attachmentResponse(db, from, attachmentId, storage)).text(),
+      "original",
+    );
+    for (const extra of [
+      { text: "Fast path" },
+      { text: "Slow @mention path" },
+      { text: "Thread reply", threadOf: id },
+      { text: "Attachment", attachments: [attachmentId] },
+    ]) {
+      const rejectedId = crypto.randomUUID();
+      await assert.rejects(
+        () =>
+          send(db, from, {
+            type: "message.send",
+            id: rejectedId,
+            conversation: key,
+            attachments: [],
+            ...extra,
+          }),
+        /unavailable/,
+      );
+      assert.equal(
+        (
+          await db
+            .select()
+            .from(schema.messages)
+            .where(eq(schema.messages.id, rejectedId))
+        ).length,
+        0,
+      );
+    }
+    await assert.rejects(
+      () =>
+        action(from, {
+          type: "message.send",
+          id: crypto.randomUUID(),
+          conversation: key,
+          text: "Direct HTTP action",
+          attachments: [],
+        }),
+      /unavailable/,
+    );
+    await assert.rejects(
+      () => action(from, { type: "reaction", id, emoji: "👍" }),
+      /unavailable/,
+    );
+    await assert.rejects(
+      () => authorizeRoom(db, from, { conversation: key }),
+      /unavailable/,
+    );
+    await assert.rejects(
+      () =>
+        prepareUpload(
+          db,
+          from,
+          {
+            conversation: key,
+            filename: "new.png",
+            contentType: "image/png",
+            byteSize: 8,
+          },
+          storage,
+        ),
+      /unavailable/,
+    );
+  }
+  assert.equal(downloads, 2);
   await assert.rejects(
-    () => requireConversation(db, "owner", "dm:outsider"),
-    /unavailable/,
+    () => attachmentResponse(db, "member", attachmentId, storage),
+    /access/,
   );
-  assert.ok(
-    !(await snapshot(db, viewers[0])).messages.some((m) => m.id === id),
+  assert.equal(downloads, 2);
+  assert.equal(
+    (await snapshot(db, viewers[0])).blocked.includes("outsider"),
+    false,
   );
+  assert.equal(
+    (await snapshot(db, viewers[2])).blocked.includes("owner"),
+    true,
+  );
+  // One person's unblock cannot override the other person's block.
+  await action("owner", { type: "friend", id: "outsider", operation: "block" });
   await action("outsider", {
     type: "friend",
     id: "owner",
     operation: "unblock",
   });
+  await assert.rejects(
+    () =>
+      send(db, "outsider", {
+        type: "message.send",
+        id: crypto.randomUUID(),
+        conversation: "dm:owner",
+        text: "Still blocked",
+        attachments: [],
+      }),
+    /unavailable/,
+  );
+  await action("owner", {
+    type: "friend",
+    id: "outsider",
+    operation: "unblock",
+  });
+  assert.equal(
+    (await snapshot(db, viewers[0])).dmConversations.find(
+      (d) => d.personId === "outsider",
+    )?.messagingBlocked,
+    false,
+  );
+  assert.ok(
+    (
+      await send(db, "outsider", {
+        type: "message.send",
+        id: crypto.randomUUID(),
+        conversation: "dm:owner",
+        text: "Unblocked",
+        attachments: [],
+      })
+    ).message,
+  );
 });
 test("message cursors have no duplicates or gaps for equal timestamps", async () => {
   const id = await community();
@@ -972,6 +1149,326 @@ test("database notifications publish committed messages, never rolled-back write
     await send(db, "owner", input);
     assert.equal(received.filter((e) => e.id === input.id).length, 1);
   } finally {
+    await unlisten();
+  }
+});
+
+test("reaction writes use one query, are idempotent, publish live updates and enforce access and quota", async () => {
+  const { setReaction } = await import("../src/server/reactions");
+  const room = await community();
+  await action("member", { type: "community.join", id: room });
+  const id = crypto.randomUUID();
+  await action("owner", {
+    type: "message.send",
+    id,
+    conversation: `${room}:general`,
+    text: "React here",
+    attachments: [],
+  });
+  let calls = 0;
+  const measured = {
+    execute: (query: Parameters<Database["execute"]>[0]) => {
+      calls++;
+      return db.execute(query);
+    },
+  } as Database;
+  const input = { id, emoji: "👍", active: true };
+  const events: string[] = [];
+  const unlisten = await engine.listen("drocsid_live", (payload) =>
+    events.push(payload),
+  );
+  try {
+    assert.deepEqual(await setReaction(measured, "member", input), {
+      ...input,
+      count: 1,
+    });
+    assert.equal(calls, 1);
+    assert.ok(events.some((event) => JSON.parse(event).id === id));
+    const eventCount = events.length;
+    assert.equal((await setReaction(db, "member", input)).count, 1);
+    assert.equal(
+      events.length,
+      eventCount,
+      "An idempotent retry does not publish a second change",
+    );
+    assert.equal((await setReaction(db, "owner", input)).count, 2);
+    assert.equal(
+      (await setReaction(db, "member", { ...input, active: false })).count,
+      1,
+    );
+    assert.equal(
+      (await setReaction(db, "member", { ...input, active: false })).count,
+      1,
+    );
+    await assert.rejects(
+      () => setReaction(db, "outsider", input),
+      /unavailable/,
+    );
+    const secret = crypto.randomUUID();
+    await action("owner", {
+      type: "message.send",
+      id: secret,
+      conversation: `${room}:private`,
+      text: "Private",
+      attachments: [],
+    });
+    await assert.rejects(
+      () => setReaction(db, "member", { ...input, id: secret }),
+      /unavailable/,
+    );
+    await db
+      .insert(schema.limits)
+      .values({ key: "actions:member", count: 120 })
+      .onConflictDoUpdate({
+        target: schema.limits.key,
+        set: { count: 120, windowStart: new Date() },
+      });
+    await assert.rejects(() => setReaction(db, "member", input), /too fast/);
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.reactions)
+          .where(
+            and(
+              eq(schema.reactions.messageId, id),
+              eq(schema.reactions.userId, "member"),
+            ),
+          )
+      ).length,
+      0,
+    );
+    await db
+      .delete(schema.limits)
+      .where(eq(schema.limits.key, "actions:member"));
+    await action("owner", { type: "message.delete", id });
+    await assert.rejects(() => setReaction(db, "member", input), /unavailable/);
+    await assert.rejects(
+      () => setReaction(db, "member", { ...input, id: crypto.randomUUID() }),
+      /unavailable/,
+    );
+    const dm = await send(db, "owner", {
+      type: "message.send",
+      id: crypto.randomUUID(),
+      conversation: "dm:outsider",
+      text: "DM reactions",
+      attachments: [],
+    });
+    await action("outsider", {
+      type: "friend",
+      id: "owner",
+      operation: "block",
+    });
+    for (const userId of ["owner", "outsider"])
+      await assert.rejects(
+        () => setReaction(db, userId, { ...input, id: dm.message!.id }),
+        /unavailable/,
+      );
+    await action("outsider", {
+      type: "friend",
+      id: "owner",
+      operation: "unblock",
+    });
+  } finally {
+    await unlisten();
+  }
+});
+
+test("channel writes commit in one query, preserve permissions and notify only community members", async () => {
+  const { putChannel } = await import("../src/server/channels");
+  const room = await community();
+  await action("member", { type: "community.join", id: room });
+  let calls = 0;
+  const measured = {
+    execute: (query: Parameters<Database["execute"]>[0]) => {
+      calls++;
+      return db.execute(query);
+    },
+  } as Database;
+  const input = {
+    type: "channel.put" as const,
+    communityId: room,
+    channel: {
+      id: "fast-channel",
+      name: "fast-channel",
+      description: "New topic",
+      group: "NEW CATEGORY",
+      private: false,
+    },
+  };
+  const events: { type: string; userId?: string }[] = [];
+  const unlisten = await engine.listen("drocsid_live", (payload) =>
+    events.push(JSON.parse(payload)),
+  );
+  try {
+    const result = await putChannel(measured, "owner", input);
+    assert.equal(calls, 1);
+    assert.deepEqual(result, { communityId: room, channel: input.channel });
+    assert.deepEqual(
+      events
+        .filter((e) => e.type === "invalidate")
+        .map((e) => e.userId)
+        .sort(),
+      ["member", "owner"],
+    );
+    assert.ok(
+      !events.some((e) => e.type === "access"),
+      "Creating a channel must not disconnect every socket",
+    );
+    assert.ok(
+      (await snapshot(db, viewers[1])).communities
+        .find((c) => c.id === room)
+        ?.channels.some((c) => c.id === input.channel.id),
+    );
+    events.length = 0;
+    await putChannel(db, "owner", input);
+    assert.equal(
+      events.length,
+      0,
+      "Retrying the same channel must not invalidate or disconnect clients",
+    );
+    for (const userId of ["member", "outsider"])
+      await assert.rejects(
+        () =>
+          putChannel(db, userId, {
+            ...input,
+            channel: {
+              ...input.channel,
+              id: `denied-${userId}`,
+              name: `denied-${userId}`,
+              group: "DENIED CATEGORY",
+            },
+          }),
+        /owners and admins/,
+      );
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.categories)
+          .where(
+            and(
+              eq(schema.categories.communityId, room),
+              eq(schema.categories.name, "DENIED CATEGORY"),
+            ),
+          )
+      ).length,
+      0,
+    );
+    const edited = await putChannel(db, "owner", {
+      ...input,
+      channel: {
+        ...input.channel,
+        description: "Updated",
+        private: true,
+        group: "MOVED",
+      },
+    });
+    assert.equal(edited.channel.private, true);
+    assert.equal(edited.channel.group, "MOVED");
+    await assert.rejects(
+      () => requireConversation(db, "member", `${room}:${input.channel.id}`),
+      /access/,
+    );
+    await action("owner", {
+      type: "member.role",
+      communityId: room,
+      userId: "member",
+      role: "Admin",
+    });
+    await putChannel(db, "member", {
+      ...input,
+      channel: { ...input.channel, id: "admin-channel", name: "admin-channel" },
+    });
+    await assert.rejects(() =>
+      putChannel(db, "owner", {
+        ...input,
+        channel: {
+          ...input.channel,
+          id: "duplicate",
+          group: "SHOULD ROLL BACK",
+        },
+      }),
+    );
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.categories)
+          .where(
+            and(
+              eq(schema.categories.communityId, room),
+              eq(schema.categories.name, "SHOULD ROLL BACK"),
+            ),
+          )
+      ).length,
+      0,
+    );
+    await action("owner", {
+      type: "channel.delete",
+      communityId: room,
+      id: input.channel.id,
+    });
+    await assert.rejects(
+      () =>
+        putChannel(db, "owner", {
+          ...input,
+          channel: { ...input.channel, group: "NO RESURRECTION" },
+        }),
+      /no longer available/,
+    );
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.categories)
+          .where(
+            and(
+              eq(schema.categories.communityId, room),
+              eq(schema.categories.name, "NO RESURRECTION"),
+            ),
+          )
+      ).length,
+      0,
+    );
+    await db
+      .insert(schema.limits)
+      .values({ key: "actions:owner", count: 120 })
+      .onConflictDoUpdate({
+        target: schema.limits.key,
+        set: { count: 120, windowStart: new Date() },
+      });
+    await assert.rejects(
+      () =>
+        putChannel(db, "owner", {
+          ...input,
+          channel: {
+            ...input.channel,
+            id: "limited",
+            name: "limited",
+            group: "QUOTA CATEGORY",
+          },
+        }),
+      /too fast/,
+    );
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(schema.categories)
+          .where(
+            and(
+              eq(schema.categories.communityId, room),
+              eq(schema.categories.name, "QUOTA CATEGORY"),
+            ),
+          )
+      ).length,
+      0,
+    );
+  } finally {
+    await db
+      .delete(schema.limits)
+      .where(eq(schema.limits.key, "actions:owner"));
     await unlisten();
   }
 });
