@@ -81,7 +81,10 @@ async function community() {
 test("real Better Auth sign-up, password hashing, session, wrong-password rejection and logout", async () => {
   process.env.BETTER_AUTH_SECRET = "test-only-" + "a".repeat(40);
   process.env.BETTER_AUTH_URL = "http://localhost:1515";
-  const auth = makeAuth(db);
+  let code = "";
+  const auth = makeAuth(db, async ({ otp }) => {
+    code = otp;
+  });
   const request = (path: string, body?: unknown, cookie?: string) =>
     new Request(`http://localhost:1515/api/auth/${path}`, {
       method: body ? "POST" : "GET",
@@ -100,7 +103,15 @@ test("real Better Auth sign-up, password hashing, session, wrong-password reject
     }),
   );
   assert.equal(signup.status, 200);
-  const cookie = signup.headers.get("set-cookie")!.split(";")[0];
+  assert.equal(signup.headers.get("set-cookie"), null);
+  const verified = await auth.handler(
+    request("email-otp/verify-email", {
+      email: "auth@example.test",
+      otp: code,
+    }),
+  );
+  assert.equal(verified.status, 200);
+  const cookie = verified.headers.get("set-cookie")!.split(";")[0];
   assert.ok(cookie.includes("session_token"));
   const me = await auth.handler(request("get-session", undefined, cookie));
   assert.equal((await me.json()).user.email, "auth@example.test");
