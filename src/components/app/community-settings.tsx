@@ -1,3 +1,6 @@
+import { CommunityIcon } from "./community-icon";
+import { CommunityIconUpload } from "./community-icon-upload";
+import { ChannelIcon } from "./channel-icons";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
@@ -117,13 +120,19 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 data-ui={`a-community-icon tone-${community.color}`}
                 className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
               >
-                <AppIcon name={community.icon} size={38} />
+                <CommunityIcon community={community} size={38} />
               </span>
               <div>
                 <h2>{community.name}</h2>
                 <p>Made of people, not algorithms.</p>
               </div>
             </div>
+            {["Owner", "Admin"].includes(community.memberRoles?.you ?? "") && (
+              <CommunityIconUpload
+                community={community}
+                communityId={community.id}
+              />
+            )}
             <label>
               Community name
               <input
@@ -323,7 +332,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                         data-ui="a-channel-square"
                         className="flex items-center justify-center border border-solid border-(--a-border) text-(--a-muted) rounded-[10px] bg-(--a-soft) shrink-0 size-9.25"
                       >
-                        <AppIcon name="hash" size={22} />
+                        <ChannelIcon channel={channel} size={22} />
                       </span>
                       <span>
                         <strong>{channel.name}</strong>
