@@ -1,59 +1,119 @@
-import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight01Icon,
-  ArrowDown01Icon,
   ArrowUpRight01Icon,
-  SourceCodeIcon,
-  HashtagIcon,
-  HeartCheckIcon,
-  Menu01Icon,
-  Cancel01Icon,
-  Add01Icon,
   GithubIcon,
+  HeartCheckIcon,
+  StarIcon,
 } from "@hugeicons/core-free-icons";
-import { Icon, Logo, LogoMark } from "../components/ui";
 import { ChatPreview } from "../components/chat-preview";
+import { Icon, Logo } from "../components/ui";
 
 export const Route = createFileRoute("/")({ component: LandingPage });
 
-const faqs = [
+const avatarRows = [
   [
-    "What is drocsid?",
-    "An open-source alternative to Discord, focused on text chat. A home for your friends, projects, and communities, with familiar channels and a little less noise.",
+    { seed: "Amara", style: "lorelei" },
+    { seed: "Milo", style: "adventurer" },
+    { seed: "Lena", style: "micah" },
+    { seed: "Kofi", style: "notionists" },
+    { seed: "Iris", style: "avataaars" },
+    { seed: "Theo", style: "personas" },
+    { seed: "Nia", style: "open-peeps" },
+    { seed: "Remy", style: "big-smile" },
   ],
   [
-    "Is it free to use?",
-    "The goal is a free, open-source chat experience. We’re still building the first version, and will share hosting options as the project takes shape.",
+    { seed: "Zuri", style: "dylan" },
+    { seed: "Noah", style: "miniavs" },
+    { seed: "Aya", style: "toon-head" },
+    { seed: "Finn", style: "fun-emoji" },
+    { seed: "Sage", style: "pixel-art" },
+    { seed: "Luca", style: "clay" },
+    { seed: "Maya", style: "cameo" },
+    { seed: "Jules", style: "line-face" },
   ],
   [
-    "Will there be voice or video calls?",
-    "We’re starting with text and giving it our full attention. Voice and video aren’t part of this first version.",
+    { seed: "Arlo", style: "big-ears" },
+    { seed: "Imani", style: "croodles" },
+    { seed: "Eden", style: "cutouts" },
+    { seed: "Kai", style: "moods" },
+    { seed: "Cleo", style: "initial-face" },
+    { seed: "Owen", style: "thumbs" },
+    { seed: "Nova", style: "sprouts" },
+    { seed: "Bea", style: "bottts" },
   ],
   [
-    "Can I host my own community?",
-    "Self-hosting is part of the vision. Setup instructions and the public source repository will be shared when the first working release is ready.",
+    { seed: "Ravi", style: "critters" },
+    { seed: "Mae", style: "gaze" },
+    { seed: "Sol", style: "voxel-art" },
+    { seed: "Tobi", style: "pixelbot" },
+    { seed: "Hana", style: "adventurer-neutral" },
+    { seed: "Enzo", style: "lorelei-neutral" },
+    { seed: "Ada", style: "avataaars-neutral" },
+    { seed: "Max", style: "notionists-neutral" },
   ],
 ];
 
-function LandingPage() {
-  const [menuOpen, setMenuOpen] = useState(false);
+function PeopleMarquee() {
   return (
-    <div data-ui="landing-page" className="">
+    <div
+      data-ui="people-marquee"
+      className="group relative h-96 w-110 max-w-full overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_center,#f2ede5_0%,#f8f7f4_68%)] py-5 [mask-image:radial-gradient(ellipse_at_center,black_42%,rgba(0,0,0,0.92)_60%,transparent_84%)] max-[800px]:h-84 max-[800px]:w-82 max-[580px]:mx-auto max-[580px]:h-92 max-[580px]:w-full"
+      aria-hidden="true"
+    >
+      <div className="flex h-full flex-col justify-center gap-3 -rotate-3 scale-110">
+        {avatarRows.map((row, rowIndex) => (
+          <div
+            key={row[0].seed}
+            className={`flex w-max motion-reduce:animate-none group-hover:[animation-play-state:paused] ${
+              rowIndex % 2 === 1
+                ? "[animation:people-marquee_30s_linear_infinite_reverse]"
+                : "[animation:people-marquee_34s_linear_infinite]"
+            }`}
+          >
+            {[0, 1].map((copy) => (
+              <div key={copy} className="flex gap-3 pr-3">
+                {row.map((avatar, avatarIndex) => (
+                  <div
+                    key={`${copy}-${avatar.seed}`}
+                    className={`grid size-20 shrink-0 place-items-end overflow-hidden rounded-[20px] border border-white/80 shadow-[0_8px_24px_rgba(67,55,41,0.10)] max-[800px]:size-17 max-[580px]:size-19 ${
+                      (avatarIndex + rowIndex) % 4 === 0
+                        ? "bg-[#ffd9ca]"
+                        : (avatarIndex + rowIndex) % 4 === 1
+                          ? "bg-[#dcd8ff]"
+                          : (avatarIndex + rowIndex) % 4 === 2
+                            ? "bg-[#cceedd]"
+                            : "bg-[#ffe9af]"
+                    }`}
+                  >
+                    <img
+                      src={`https://api.dicebear.com/10.x/${avatar.style}/svg?seed=${avatar.seed}`}
+                      className="size-full object-cover"
+                      width="80"
+                      height="80"
+                      loading="lazy"
+                      decoding="async"
+                      alt=""
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LandingPage() {
+  return (
+    <div data-ui="landing-page">
       <header
         data-ui="site-header content-width"
-        className="w-[calc(100%-112px)] max-w-300 mx-auto h-25.5 flex items-center justify-between [border-bottom-width:1px] [border-bottom-style:solid] border-b-line gap-7.5 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:h-20.5 max-[580px]:w-[calc(100%-36px)] max-[580px]:h-19 max-[580px]:gap-2.5"
+        className="mx-auto flex h-25.5 w-[calc(100%-112px)] max-w-300 items-center justify-between gap-7.5 max-[1100px]:w-[calc(100%-72px)] max-[800px]:h-20.5 max-[800px]:w-[calc(100%-48px)] max-[580px]:h-19 max-[580px]:w-[calc(100%-36px)] max-[580px]:gap-2.5"
       >
         <Logo />
-        <nav
-          data-ui="desktop-nav"
-          className="flex items-center gap-8 text-[13px] font-medium ml-9 [&_a]:[transition:color_0.2s] [&_a:hover]:text-[#cc4826] max-[1100px]:gap-4.75 max-[1100px]:ml-0 max-[1100px]:text-[12px] max-[800px]:hidden"
-          aria-label="Main navigation"
-        >
-          <a href="#features">The good stuff</a>
-          <a href="#open-source">Open by nature</a>
-          <a href="#faq">A few questions</a>
-        </nav>
         <div
           data-ui="header-actions"
           className="flex items-center gap-6 max-[1100px]:gap-4.5 max-[800px]:ml-auto max-[580px]:gap-2 max-[580px]:**:data-[ui~=button]:hidden"
@@ -61,64 +121,57 @@ function LandingPage() {
           <Link
             to="/sign-in"
             data-ui="login-link"
-            className="[transition:color_0.2s] text-[13px] font-semibold hover:text-[#cc4826] max-[580px]:text-[13px]"
+            className="text-[13px] font-semibold transition-colors hover:text-[#cc4826]"
           >
             Log in
           </Link>
           <Link
             to="/app"
             data-ui="button button-dark button-small"
-            className="inline-flex items-center justify-center gap-3 border border-solid border-transparent font-semibold rounded-[7px] [transition:background_0.2s,transform_0.2s,box-shadow_0.2s] whitespace-nowrap bg-ink text-white min-h-10.5 py-2.5 px-4 text-[13px] hover:transform-[translateY(-2px)] hover:bg-[#42433d] active:transform-[translateY(0)] motion-reduce:hover:transform-none"
+            className="inline-flex min-h-10.5 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-4 py-2.5 text-[13px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
           >
-            Open drocsid <Icon icon={ArrowUpRight01Icon} size={17} />
+            Open Drocsid <Icon icon={ArrowUpRight01Icon} size={17} />
           </Link>
-          <button
-            data-ui="mobile-menu-button"
-            className="hidden border-0 border-none border-[currentColor] bg-transparent p-2.5 max-[580px]:flex"
-            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-            aria-expanded={menuOpen}
-            aria-controls="mobile-menu"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            <Icon icon={menuOpen ? Cancel01Icon : Menu01Icon} />
-          </button>
         </div>
       </header>
-      {menuOpen && (
-        <nav
-          id="mobile-menu"
-          data-ui="mobile-menu"
-          className="hidden max-[580px]:flex max-[580px]:flex-col max-[580px]:absolute max-[580px]:top-18.75 max-[580px]:left-4.5 max-[580px]:right-4.5 max-[580px]:z-10 max-[580px]:bg-paper max-[580px]:border max-[580px]:border-solid max-[580px]:border-line max-[580px]:p-3 max-[580px]:rounded-[0_0_8px_8px] max-[580px]:shadow-[0_12px_20px_#0000000b] max-[580px]:[&_a]:py-3.25 max-[580px]:[&_a]:px-2.5 max-[580px]:[&_a]:text-[14px] max-[580px]:[&_a]:rounded-[5px] max-[580px]:[&_a:hover]:bg-[#eeeee6]"
-          aria-label="Mobile navigation"
-        >
-          <a href="#features" onClick={() => setMenuOpen(false)}>
-            The good stuff
-          </a>
-          <a href="#open-source" onClick={() => setMenuOpen(false)}>
-            Open by nature
-          </a>
-          <a href="#faq" onClick={() => setMenuOpen(false)}>
-            A few questions
-          </a>
-          <Link to="/sign-up">Find your people ↗</Link>
-        </nav>
-      )}
+
       <main id="main">
         <section
           data-ui="hero content-width"
-          className="w-[calc(100%-112px)] max-w-300 mx-auto relative text-center pt-17 pb-13.75 [&_h1]:relative [&_h1]:w-fit [&_h1]:mt-5.75 [&_h1]:mb-5.5 [&_h1]:mx-auto [&_h1]:text-[clamp(72px,6.9vw,100px)] [&_h1]:leading-[0.99] [&_h1]:tracking-[-0.071em] [&_h1]:font-[650] [&_h1>span:not([data-ui~=headline-spark])]:text-orange max-[1100px]:w-[calc(100%-72px)] max-[1100px]:[&_h1]:text-[83px] max-[800px]:w-[calc(100%-48px)] max-[800px]:pt-14.75 max-[800px]:[&_h1]:text-[78px] max-[580px]:w-[calc(100%-36px)] max-[580px]:pt-12 max-[580px]:pb-9.25 max-[580px]:px-0 max-[580px]:[&_h1]:text-[clamp(57px,13.8vw,80px)] max-[580px]:[&_h1]:mt-6.25 max-[580px]:[&_h1]:mb-5.25 max-[580px]:[&_h1]:tracking-[-0.066em] max-[360px]:[&_h1]:text-[52px]"
+          className="relative isolate mx-auto mb-12 w-[calc(100%-112px)] max-w-300 overflow-hidden rounded-[36px] pt-17 pb-20 text-center [&_h1]:relative [&_h1]:z-1 [&_h1]:mx-auto [&_h1]:mt-5.75 [&_h1]:mb-5.5 [&_h1]:w-fit [&_h1]:text-[clamp(72px,6.9vw,100px)] [&_h1]:leading-[0.99] [&_h1]:font-[650] [&_h1]:tracking-[-0.071em] [&_h1>span:not([data-ui~=headline-spark])]:text-orange max-[1100px]:w-[calc(100%-72px)] max-[1100px]:[&_h1]:text-[83px] max-[800px]:mb-10 max-[800px]:w-[calc(100%-48px)] max-[800px]:pt-14.75 max-[800px]:pb-17 max-[800px]:[&_h1]:text-[78px] max-[580px]:mb-8 max-[580px]:w-[calc(100%-36px)] max-[580px]:rounded-[24px] max-[580px]:px-0 max-[580px]:pt-12 max-[580px]:pb-14 max-[580px]:[&_h1]:mt-6.25 max-[580px]:[&_h1]:mb-5.25 max-[580px]:[&_h1]:text-[clamp(57px,13.8vw,80px)] max-[580px]:[&_h1]:tracking-[-0.066em] max-[360px]:[&_h1]:text-[52px]"
         >
           <div
-            data-ui="hero-eyebrow"
-            className="flex items-center justify-center gap-2 font-mono text-[10px] tracking-[1.5px] **:data-[ui~=little-asterisk]:text-[20px] max-[580px]:text-[9px] max-[580px]:tracking-[1px]"
+            data-ui="hero-decoration"
+            className="pointer-events-none absolute inset-0 -z-1 overflow-hidden"
+            aria-hidden="true"
           >
-            <span
-              data-ui="little-asterisk"
-              className="text-orange text-[28px] leading-none"
-            >
-              ✳
-            </span>{" "}
-            OPEN SOURCE. OPEN DOOR.
+            <span className="absolute top-24 left-[5%] grid size-16 -rotate-12 place-items-center overflow-hidden rounded-[19px] border border-white/90 bg-[#dcd8ff] shadow-[0_14px_34px_rgba(83,70,150,0.13)] [animation:hero-float_6s_ease-in-out_infinite] motion-reduce:animate-none max-[800px]:left-[2%] max-[800px]:size-13 max-[580px]:hidden">
+              <img
+                src="https://api.dicebear.com/10.x/notionists/svg?seed=HeroAmara"
+                className="size-full object-cover"
+                width="64"
+                height="64"
+                alt=""
+              />
+            </span>
+            <span className="absolute top-31 right-[5%] grid size-17 rotate-10 place-items-center overflow-hidden rounded-[22px] border border-white/90 bg-[#cceedd] shadow-[0_14px_34px_rgba(33,111,81,0.13)] [animation:hero-float_7s_ease-in-out_-2s_infinite] motion-reduce:animate-none max-[800px]:right-[1%] max-[800px]:size-13 max-[580px]:hidden">
+              <img
+                src="https://api.dicebear.com/10.x/adventurer/svg?seed=HeroKofi"
+                className="size-full object-cover"
+                width="68"
+                height="68"
+                alt=""
+              />
+            </span>
+            <span className="absolute bottom-14 left-[13%] grid size-12 rotate-8 place-items-center overflow-hidden rounded-[15px] border border-white/90 bg-[#ffe9af] shadow-[0_12px_28px_rgba(133,93,29,0.12)] [animation:hero-float_5.5s_ease-in-out_-1s_infinite] motion-reduce:animate-none max-[800px]:left-[5%] max-[580px]:hidden">
+              <img
+                src="https://api.dicebear.com/10.x/micah/svg?seed=HeroNia"
+                className="size-full object-cover"
+                width="48"
+                height="48"
+                alt=""
+              />
+            </span>
           </div>
           <h1>
             A place for
@@ -126,7 +179,7 @@ function LandingPage() {
             <span>your people.</span>
             <span
               data-ui="headline-spark"
-              className="absolute -right-16.5 top-4 text-orange text-[64px] leading-none font-normal transform-[rotate(7deg)] max-[800px]:text-[50px] max-[800px]:-right-12.75 max-[580px]:top-1.75 max-[580px]:-right-7 max-[580px]:text-[30px] max-[360px]:text-[24px] max-[360px]:-right-4.25 max-[360px]:-top-2"
+              className="absolute -right-16.5 top-4 rotate-[7deg] text-[64px] leading-none font-normal text-orange max-[800px]:-right-12.75 max-[800px]:text-[50px] max-[580px]:top-1.75 max-[580px]:-right-7 max-[580px]:text-[30px] max-[360px]:-top-2 max-[360px]:-right-4.25 max-[360px]:text-[24px]"
               aria-hidden="true"
             >
               ✳
@@ -134,7 +187,7 @@ function LandingPage() {
           </h1>
           <p
             data-ui="hero-description"
-            className="text-[#6c6e65] text-[16px] leading-[1.65] tracking-[-0.15px] m-0 max-[800px]:text-[15px] max-[580px]:text-[14px] max-[580px]:max-w-82.5 max-[580px]:mx-auto max-[580px]:leading-[1.7]"
+            className="relative z-1 m-0 text-[16px] leading-[1.65] tracking-[-0.15px] text-[#6c6e65] max-[800px]:text-[15px] max-[580px]:mx-auto max-[580px]:max-w-82.5 max-[580px]:text-[14px] max-[580px]:leading-[1.7]"
           >
             For the late-night ideas, the niche obsessions,
             <br data-ui="desktop-break" className="max-[580px]:hidden" /> and
@@ -142,36 +195,28 @@ function LandingPage() {
           </p>
           <div
             data-ui="hero-actions"
-            className="flex justify-center gap-3 mt-7 max-[580px]:gap-2.25 max-[580px]:mt-6.25 max-[580px]:**:data-[ui~=button]:text-[11px] max-[580px]:**:data-[ui~=button]:gap-2 max-[580px]:**:data-[ui~=button]:py-3 max-[580px]:**:data-[ui~=button]:px-3.25 max-[580px]:**:data-[ui~=button]:min-h-11.5 max-[580px]:[&_svg]:w-4"
+            className="relative z-1 mt-7 flex justify-center gap-3 max-[580px]:mt-6.25 max-[580px]:gap-2.25 max-[580px]:**:data-[ui~=button]:min-h-11.5 max-[580px]:**:data-[ui~=button]:gap-2 max-[580px]:**:data-[ui~=button]:px-3.25 max-[580px]:**:data-[ui~=button]:py-3 max-[580px]:**:data-[ui~=button]:text-[11px] max-[580px]:[&_svg]:w-4"
           >
             <Link
               to="/sign-up"
               data-ui="button button-orange"
-              className="inline-flex items-center justify-center gap-3 border border-solid border-transparent min-h-13 py-3.5 px-5.5 text-[14px] font-semibold rounded-[7px] [transition:background_0.2s,transform_0.2s,box-shadow_0.2s] whitespace-nowrap bg-orange text-[#3e2118] shadow-[0_2px_0_#d842201c] hover:transform-[translateY(-2px)] hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:transform-[translateY(0)] motion-reduce:hover:transform-none"
+              className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-orange px-5.5 py-3.5 text-[14px] font-semibold text-[#3e2118] shadow-[0_2px_0_#d842201c] transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
               Find your people <Icon icon={ArrowUpRight01Icon} size={20} />
             </Link>
             <a
-              href="#preview"
+              href="https://github.com/xt42io/drocsid"
+              target="_blank"
+              rel="noreferrer"
               data-ui="button button-outline"
-              className="inline-flex items-center justify-center gap-3 border border-solid min-h-13 py-3.5 px-5.5 text-[14px] font-semibold rounded-[7px] [transition:background_0.2s,transform_0.2s,box-shadow_0.2s] whitespace-nowrap border-[#d9d8d0] bg-transparent hover:transform-[translateY(-2px)] hover:bg-[#efeee9] hover:border-[#b7b7af] active:transform-[translateY(0)] motion-reduce:hover:transform-none"
+              className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-[#d9d8d0] bg-transparent px-5.5 py-3.5 text-[14px] font-semibold transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:border-[#b7b7af] hover:bg-[#efeee9] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
-              Take a look around <Icon icon={ArrowDown01Icon} size={18} />
+              Star on GitHub <Icon icon={GithubIcon} size={19} />
             </a>
           </div>
           <div
-            data-ui="hero-footnote"
-            className="flex items-center justify-center gap-2 text-[#83857c] text-[11px] mt-4.5 max-[580px]:text-[9px] max-[580px]:mt-4.25"
-          >
-            <span>Free to be yourself.</span>
-            <span data-ui="footnote-dot" className="text-[#b2b3ab]">
-              ·
-            </span>
-            <span>Yours to make your own.</span>
-          </div>
-          <div
             data-ui="hero-margin-note"
-            className="absolute right-5.5 bottom-4 text-[14px] leading-[1.45] italic text-[#6e7464] transform-[rotate(9deg)] max-[1100px]:right-0 max-[1100px]:text-[12px] max-[800px]:hidden"
+            className="absolute right-5.5 bottom-4 rotate-[9deg] text-[14px] leading-[1.45] text-[#6e7464] italic max-[1100px]:right-0 max-[1100px]:text-[12px] max-[800px]:hidden"
           >
             <span>
               less scrolling.
@@ -180,198 +225,49 @@ function LandingPage() {
             </span>
             <span
               data-ui="note-arrow"
-              className="block ml-17.5 text-[43px] leading-[0.9] transform-[rotate(10deg)]"
+              className="ml-17.5 block rotate-[10deg] text-[43px] leading-[0.9]"
               aria-hidden="true"
             >
               ⤵
             </span>
           </div>
         </section>
+
         <div
           data-ui="preview-container content-width"
-          className="w-[calc(100%-112px)] mx-auto max-w-277.5 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[580px]:w-[calc(100%-28px)]"
+          className="mx-auto w-[calc(100%-112px)] max-w-277.5 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[580px]:w-[calc(100%-28px)]"
         >
           <ChatPreview />
         </div>
+
         <section
           data-ui="manifesto-strip content-width"
-          className="w-[calc(100%-112px)] max-w-300 mx-auto min-h-31.5 flex items-center justify-between gap-6 [border-bottom-width:1px] [border-bottom-style:solid] border-b-line [&>span:first-child]:font-mono [&>span:first-child]:text-[9px] [&>span:first-child]:tracking-[1px] [&>span:first-child]:text-[#929387] [&>div]:text-[#8a8c80] [&>div]:text-[16px] [&>div]:tracking-[-0.3px] [&_strong]:font-medium [&_strong]:text-[#484d3e] **:data-[ui~=little-asterisk]:text-[#687254] **:data-[ui~=little-asterisk]:text-[24px] max-[1100px]:w-[calc(100%-72px)] max-[1100px]:[&>div]:text-[13px] max-[1100px]:[&>span:first-child]:text-[8px] max-[800px]:w-[calc(100%-48px)] max-[800px]:min-h-28.75 max-[800px]:flex-wrap max-[800px]:justify-center max-[800px]:gap-3.5 max-[800px]:py-6.25 max-[800px]:[&>div]:text-[13px] max-[800px]:[&>div]:text-center max-[800px]:[&>span:first-child]:w-full max-[800px]:[&>span:first-child]:text-center max-[800px]:*:data-[ui~=little-asterisk]:hidden max-[580px]:w-[calc(100%-36px)] max-[580px]:min-h-28 max-[580px]:py-6.5 max-[580px]:gap-2.5 max-[580px]:[&>div]:text-[13px] max-[580px]:[&>div]:leading-[1.6] max-[580px]:[&>div]:max-w-67.5 max-[580px]:[&>span:first-child]:text-[8px]"
-          aria-label="Our focus"
+          className="mx-auto flex min-h-43 w-[calc(100%-112px)] max-w-300 items-center justify-center border-b border-line px-6 py-10 text-center text-[clamp(28px,3.2vw,48px)] leading-[1.18] tracking-[-0.045em] text-[#65675f] max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[580px]:min-h-38 max-[580px]:w-[calc(100%-36px)] max-[580px]:px-0 max-[580px]:text-[31px]"
+          aria-label="Our community"
         >
-          <span>SMALL GROUPS. BIG FEELINGS.</span>
-          <div>
-            For the <strong>makers.</strong> The <strong>friends.</strong> The{" "}
-            <strong>“anyone still up?”</strong> people.
-          </div>
-          <span
-            data-ui="little-asterisk"
-            className="text-orange text-[28px] leading-none"
-            aria-hidden="true"
-          >
-            ✳
-          </span>
+          <p className="m-0 max-w-250">
+            For the <strong className="font-bold text-[#ed542e]">makers.</strong>{" "}
+            The <strong className="font-bold text-[#6658e8]">friends.</strong>{" "}
+            The{" "}
+            <strong className="font-bold text-[#078a62]">
+              “anyone still up?”
+            </strong>{" "}
+            people.
+          </p>
         </section>
-        <section
-          id="features"
-          data-ui="features-section content-width"
-          className="w-[calc(100%-112px)] max-w-300 mx-auto pt-26 pb-21.5 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:pt-16.25 max-[800px]:pb-16 max-[580px]:w-[calc(100%-36px)] max-[580px]:py-[56px_47px]"
-        >
-          <div
-            data-ui="section-heading"
-            className="flex items-end justify-between gap-8 mb-10.5 [&>p]:text-[#6e7464] [&>p]:text-[16px] [&>p]:leading-[1.7] [&>p]:mb-1 max-[800px]:[align-items:start] max-[800px]:gap-7 max-[800px]:[&>p]:text-[12px] max-[800px]:[&>p]:max-w-55 max-[800px]:[&>p_br]:hidden max-[580px]:block max-[580px]:mb-7.25 max-[580px]:[&>p]:max-w-82.5 max-[580px]:[&>p]:text-[14px] max-[580px]:[&>p]:mt-4.5"
-          >
-            <div>
-              <span
-                data-ui="eyebrow"
-                className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
-              >
-                ALL THE GOOD STUFF
-              </span>
-              <h2>
-                Less in the way.
-                <br />
-                More in common.
-              </h2>
-            </div>
-            <p>
-              Just the things that bring people together.
-              <br />A familiar space with a little more breathing room.
-            </p>
-          </div>
-          <div
-            data-ui="feature-grid"
-            className="grid grid-cols-3 gap-8 max-[1100px]:gap-5.75 max-[800px]:gap-5 max-[580px]:grid-cols-[1fr] max-[580px]:gap-8.25"
-          >
-            <article
-              data-ui="feature-card"
-              className="[&_h3]:font-semibold [&_h3]:text-[20px] [&_h3]:tracking-[-0.5px] [&_h3]:my-2.75 [&_h3]:mx-0 [&>p]:text-[16px] [&>p]:leading-[1.75] [&>p]:text-[#6c7262] [&>p]:m-0 [&>p]:max-w-82.5 max-[1100px]:[&_h3]:text-[17px] max-[800px]:[&_h3]:text-[17px] max-[800px]:[&_h3]:leading-[1.3] max-[800px]:[&>p]:text-[12px] max-[580px]:[&_h3]:text-[21px] max-[580px]:[&_h3]:mt-2.5 max-[580px]:[&>p]:text-[16px] max-[580px]:[&>p]:max-w-none max-[580px]:[&>p]:leading-[1.7]"
-            >
-              <div
-                data-ui="feature-visual channels-visual"
-                className="relative h-50 rounded-[7px] mb-7 overflow-hidden bg-[#eeefe5] py-7 px-4.25 flex flex-col justify-center gap-1.5 max-[1100px]:px-3 max-[800px]:h-40 max-[800px]:mb-4.5 max-[580px]:h-48 max-[580px]:mb-5 max-[580px]:px-8"
-              >
-                <div
-                  data-ui="mini-channel"
-                  className="flex items-center gap-2 text-[#a3a996] text-[12px] py-2.25 px-2.5 max-[1100px]:text-[10px] max-[1100px]:px-0.5 max-[800px]:text-[8px] max-[800px]:gap-1 max-[800px]:[&_svg]:w-3.5 max-[580px]:text-[12px] max-[580px]:p-2.25 max-[580px]:gap-2 max-[580px]:[&_svg]:w-4.75"
-                >
-                  <Icon icon={HashtagIcon} /> the-everyday
-                </div>
-                <div
-                  data-ui="mini-channel highlighted"
-                  className="flex items-center gap-2 text-[#a3a996] text-[12px] py-2.25 px-2.5 data-[ui~=highlighted]:bg-[#fdfdf7] data-[ui~=highlighted]:shadow-[0_3px_10px_#515f1a08] data-[ui~=highlighted]:text-[#626e4c] data-[ui~=highlighted]:border data-[ui~=highlighted]:border-solid data-[ui~=highlighted]:border-[#dee2d3] data-[ui~=highlighted]:rounded-md data-[ui~=highlighted]:transform-[rotate(-3deg)] [&[data-ui~=highlighted]_span]:flex [&[data-ui~=highlighted]_span]:items-center [&[data-ui~=highlighted]_span]:justify-center [&[data-ui~=highlighted]_span]:bg-[#f3ab8f] [&[data-ui~=highlighted]_span]:text-[#a1492b] [&[data-ui~=highlighted]_span]:text-[9px] [&[data-ui~=highlighted]_span]:ml-auto [&[data-ui~=highlighted]_span]:rounded-sm [&[data-ui~=highlighted]_span]:size-4.25 max-[1100px]:text-[10px] max-[1100px]:px-0.5 max-[800px]:text-[8px] max-[800px]:gap-1 max-[800px]:[&_svg]:w-3.5 max-[800px]:[&[data-ui~=highlighted]_span]:hidden max-[580px]:text-[12px] max-[580px]:p-2.25 max-[580px]:gap-2 max-[580px]:[&_svg]:w-4.75 max-[580px]:[&[data-ui~=highlighted]_span]:flex"
-                >
-                  <Icon icon={HashtagIcon} /> wildly-specific-interests{" "}
-                  <span>2</span>
-                </div>
-                <div
-                  data-ui="mini-channel"
-                  className="flex items-center gap-2 text-[#a3a996] text-[12px] py-2.25 px-2.5 max-[1100px]:text-[10px] max-[1100px]:px-0.5 max-[800px]:text-[8px] max-[800px]:gap-1 max-[800px]:[&_svg]:w-3.5 max-[580px]:text-[12px] max-[580px]:p-2.25 max-[580px]:gap-2 max-[580px]:[&_svg]:w-4.75"
-                >
-                  <Icon icon={HashtagIcon} /> good-news-only
-                </div>
-              </div>
-              <span
-                data-ui="feature-number"
-                className="font-mono text-[#758067] text-[9px] tracking-[0.6px] max-[1100px]:text-[8px] max-[800px]:text-[7px] max-[800px]:tracking-normal max-[580px]:text-[9px] max-[580px]:tracking-[0.5px]"
-              >
-                01 / FIND YOUR CORNER
-              </span>
-              <h3>A room for every rabbit hole.</h3>
-              <p>
-                Give every conversation a home. Keep your projects, inside
-                jokes, and very important pet pictures in their own channels.
-              </p>
-            </article>
-            <article
-              data-ui="feature-card"
-              className="[&_h3]:font-semibold [&_h3]:text-[20px] [&_h3]:tracking-[-0.5px] [&_h3]:my-2.75 [&_h3]:mx-0 [&>p]:text-[16px] [&>p]:leading-[1.75] [&>p]:text-[#6c7262] [&>p]:m-0 [&>p]:max-w-82.5 max-[1100px]:[&_h3]:text-[17px] max-[800px]:[&_h3]:text-[17px] max-[800px]:[&_h3]:leading-[1.3] max-[800px]:[&>p]:text-[12px] max-[580px]:[&_h3]:text-[21px] max-[580px]:[&_h3]:mt-2.5 max-[580px]:[&>p]:text-[16px] max-[580px]:[&>p]:max-w-none max-[580px]:[&>p]:leading-[1.7]"
-            >
-              <div
-                data-ui="feature-visual conversation-visual"
-                className="relative h-50 rounded-[7px] mb-7 overflow-hidden bg-[#f2eae1] flex flex-col items-center justify-center p-3.75 max-[800px]:h-40 max-[800px]:mb-4.5 max-[580px]:h-48 max-[580px]:mb-5"
-              >
-                <span
-                  data-ui="mini-bubble bubble-one"
-                  className="bg-[#fffdf7] p-3.5 rounded-[9px_9px_9px_2px] text-[11px] text-[#857363] shadow-[0_4px_10px_#70532e05] max-w-full transform-[rotate(-3deg)_translateX(-5px)] [&_span]:font-mono [&_span]:text-[#bcad9d] [&_span]:block [&_span]:text-[7px] [&_span]:mt-1.5 max-[1100px]:text-[9px] max-[800px]:text-[8px] max-[800px]:p-2.25 max-[580px]:text-[11px] max-[580px]:p-3.25"
-                >
-                  anyone else still working on this? <span>12:04 AM</span>
-                </span>
-                <span
-                  data-ui="mini-bubble bubble-two"
-                  className="text-[11px] text-[#857363] shadow-[0_4px_10px_#70532e05] max-w-full bg-[#e4d5c4] mt-1.75 mr-0 mb-0 ml-16 py-3 px-3.75 transform-[rotate(3deg)] rounded-[9px_9px_2px_9px] [&_span]:ml-2.5 max-[1100px]:text-[9px] max-[1100px]:ml-6.75 max-[800px]:text-[8px] max-[800px]:p-2.25 max-[800px]:ml-0 max-[580px]:text-[11px] max-[580px]:p-3.25 max-[580px]:ml-15"
-                >
-                  right here with you. <span>🧡</span>
-                </span>
-                <span
-                  data-ui="bubble-reaction"
-                  className="bg-[#fffaf0] border border-solid border-[#e6d8c5] text-[13px] py-0.75 px-2 rounded-md -mt-0.5 mr-0 mb-0 ml-36.25 z-1 transform-[rotate(3deg)] [&_span]:text-[10px] [&_span]:text-[#a28c73] max-[800px]:ml-18.75 max-[580px]:ml-33.75"
-                >
-                  🤝 <span>3</span>
-                </span>
-              </div>
-              <span
-                data-ui="feature-number"
-                className="font-mono text-[#758067] text-[9px] tracking-[0.6px] max-[1100px]:text-[8px] max-[800px]:text-[7px] max-[800px]:tracking-normal max-[580px]:text-[9px] max-[580px]:tracking-[0.5px]"
-              >
-                02 / PICK UP WHERE YOU LEFT OFF
-              </span>
-              <h3>The conversation stays open.</h3>
-              <p>
-                Drop a thought. Share a small win. There’s no algorithm to keep
-                up with, just a conversation to come back to.
-              </p>
-            </article>
-            <article
-              data-ui="feature-card"
-              className="[&_h3]:font-semibold [&_h3]:text-[20px] [&_h3]:tracking-[-0.5px] [&_h3]:my-2.75 [&_h3]:mx-0 [&>p]:text-[16px] [&>p]:leading-[1.75] [&>p]:text-[#6c7262] [&>p]:m-0 [&>p]:max-w-82.5 max-[1100px]:[&_h3]:text-[17px] max-[800px]:[&_h3]:text-[17px] max-[800px]:[&_h3]:leading-[1.3] max-[800px]:[&>p]:text-[12px] max-[580px]:[&_h3]:text-[21px] max-[580px]:[&_h3]:mt-2.5 max-[580px]:[&>p]:text-[16px] max-[580px]:[&>p]:max-w-none max-[580px]:[&>p]:leading-[1.7]"
-            >
-              <div
-                data-ui="feature-visual open-visual"
-                className="relative h-50 rounded-[7px] mb-7 overflow-hidden bg-[#e9eae6] flex flex-col items-center justify-center max-[800px]:h-40 max-[800px]:mb-4.5 max-[580px]:h-48 max-[580px]:mb-5"
-              >
-                <div
-                  data-ui="open-code"
-                  className="flex items-center justify-center h-19.75 w-20.75 border border-solid border-[#cccfc3] rounded-[17px] bg-[#f7f8f1] text-[#7b8666] transform-[rotate(-7deg)] shadow-[5px_5px_0_#d9dfce] max-[800px]:h-16 max-[800px]:w-16.75 max-[800px]:[&_svg]:w-8.5 max-[580px]:h-18.25 max-[580px]:w-20 max-[580px]:[&_svg]:w-10"
-                >
-                  <Icon icon={SourceCodeIcon} size={44} />
-                </div>
-                <span
-                  data-ui="source-tag"
-                  className="bg-[#fcfdf7] border border-solid border-[#dadfd1] py-1.5 px-3 rounded-[5px] font-mono text-[9px] text-[#778362] mt-4.75 flex items-center gap-2 transform-[rotate(2deg)] max-[800px]:text-[8px] max-[800px]:px-2 max-[580px]:text-[10px] max-[580px]:mt-5"
-                >
-                  <span
-                    data-ui="online-dot"
-                    className="inline-block shrink-0 rounded-full bg-[#2ee68b] size-1.25"
-                  />{" "}
-                  built in the open
-                </span>
-              </div>
-              <span
-                data-ui="feature-number"
-                className="font-mono text-[#758067] text-[9px] tracking-[0.6px] max-[1100px]:text-[8px] max-[800px]:text-[7px] max-[800px]:tracking-normal max-[580px]:text-[9px] max-[580px]:tracking-[0.5px]"
-              >
-                03 / MAKE IT YOURS
-              </span>
-              <h3>Your community. Your call.</h3>
-              <p>
-                Open source at heart, with self-hosting in sight. Help shape a
-                space that belongs to the people who use it.
-              </p>
-            </article>
-          </div>
-        </section>
+
         <section
           id="open-source"
           data-ui="open-source-section content-width"
-          className="w-[calc(100%-112px)] max-w-300 mx-auto flex justify-between [border-top-width:1px] [border-top-style:solid] border-t-line [border-bottom-width:1px] [border-bottom-style:solid] border-b-line pt-17.25 pb-17 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:py-13.5 max-[800px]:gap-5 max-[580px]:w-[calc(100%-36px)] max-[580px]:flex-col max-[580px]:py-11.75 max-[580px]:gap-9.25"
+          className="mx-auto flex w-[calc(100%-112px)] max-w-300 justify-between border-y border-line pt-17.25 pb-17 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:gap-5 max-[800px]:py-13.5 max-[580px]:w-[calc(100%-36px)] max-[580px]:flex-col max-[580px]:gap-9.25 max-[580px]:py-11.75"
         >
           <div
             data-ui="open-source-copy"
-            className="max-w-147.5 [&_h2]:mb-6 [&_p]:text-[16px] [&_p]:leading-[1.8] [&_p]:text-[#6d7362] [&_p]:mt-0 [&_p]:mb-3.25 [&_p]:mx-0 [&_p]:max-w-115 max-[800px]:[&_h2]:text-[31px] max-[800px]:[&_p]:text-[12px] max-[580px]:[&_h2]:text-[34px] max-[580px]:[&_p]:text-[16px]"
+            className="max-w-147.5 [&_h2]:mb-6 [&_p]:mx-0 [&_p]:mt-0 [&_p]:mb-3.25 [&_p]:max-w-115 [&_p]:text-[16px] [&_p]:leading-[1.8] [&_p]:text-[#6d7362] max-[800px]:[&_h2]:text-[31px] max-[800px]:[&_p]:text-[12px] max-[580px]:[&_h2]:text-[34px] max-[580px]:[&_p]:text-[16px]"
           >
             <span
               data-ui="eyebrow"
-              className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
+              className="block font-mono text-[11px] leading-[1.7] font-normal tracking-[1.6px] max-[580px]:text-[9px]"
             >
               OPEN BY NATURE
             </span>
@@ -385,83 +281,38 @@ function LandingPage() {
               we’re building a little corner of it, together.
             </p>
             <p>
-              drocsid is an open-source project, made for communities who want a
+              Drocsid is an open-source project, made for communities who want a
               space of their own. No big pitch. Just good company.
             </p>
-            <div
-              data-ui="open-source-note"
-              className="flex items-center gap-2 text-[11px] mt-7 text-[#737b64] max-[800px]:text-[9px] max-[580px]:text-[10px] max-[580px]:[align-items:start] max-[580px]:[&_svg]:shrink-0"
+            <a
+              href="https://github.com/xt42io/drocsid"
+              target="_blank"
+              rel="noreferrer"
+              data-ui="button github-button"
+              className="mt-7 inline-flex min-h-12 items-center gap-3 rounded-[9px] bg-ink px-4.5 py-2.5 text-[13px] font-semibold text-white shadow-[0_5px_18px_rgba(41,42,38,0.16)] transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] hover:shadow-[0_8px_24px_rgba(41,42,38,0.22)] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
               <Icon icon={GithubIcon} size={20} />
-              <span>
-                Our public repository is coming with the first release.
+              <span>Star on GitHub</span>
+              <span className="ml-1 flex items-center border-l border-white/20 pl-3 text-[#ffd766]">
+                <Icon icon={StarIcon} size={18} />
               </span>
-            </div>
+            </a>
           </div>
           <div
             data-ui="open-source-art"
-            className="flex flex-col items-center justify-center w-80 max-[800px]:w-50 max-[580px]:w-full max-[580px]:flex-row max-[580px]:gap-8.75"
-            aria-hidden="true"
+            className="flex w-110 max-w-[44%] items-center justify-center max-[800px]:w-82 max-[580px]:w-full max-[580px]:max-w-none"
           >
-            <div
-              data-ui="open-stamp"
-              className="border border-solid border-[#bcc4af] [outline:1px_solid_#d5dacb] outline-offset-[-9px] rounded-full flex flex-col items-center justify-center gap-6 text-[#768260] transform-[rotate(13deg)] size-52.75 [&>span]:font-mono [&>span]:text-[11px] [&>span]:tracking-[1.8px] **:data-[ui~=logo-mark]:size-14.5 max-[800px]:gap-3.75 max-[800px]:size-38.75 max-[800px]:[&>span]:text-[8px] max-[800px]:**:data-[ui~=logo-mark]:size-10.25 max-[580px]:size-36.5"
-            >
-              <span>MADE OF PEOPLE</span>
-              <LogoMark />
-              <span>NOT ALGORITHMS</span>
-            </div>
-            <span
-              data-ui="open-art-note"
-              className="text-[#919782] italic mt-6.75 transform-[rotate(-5deg)] text-center text-sm/normal max-[800px]:text-[12px] max-[580px]:text-[12px] max-[580px]:m-0"
-            >
-              a work in progress.
-              <br />
-              just like the rest of us.
-            </span>
+            <PeopleMarquee />
           </div>
         </section>
-        <section
-          id="faq"
-          data-ui="faq-section content-width"
-          className="w-[calc(100%-112px)] max-w-300 mx-auto grid grid-cols-2 gap-20 pt-22 pb-23 [&_h2]:text-[37px] [&>div>p]:text-[14px] [&>div>p]:text-[#707662] [&>div>p]:mt-4.75 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:gap-8.75 max-[800px]:py-15 max-[800px]:[&_h2]:text-[30px] max-[800px]:[&>div>p]:text-[12px] max-[580px]:w-[calc(100%-36px)] max-[580px]:grid-cols-[1fr] max-[580px]:gap-6.5 max-[580px]:py-12.25 max-[580px]:[&_h2]:text-[34px] max-[580px]:[&>div>p]:text-[14px]"
-        >
-          <div>
-            <span
-              data-ui="eyebrow"
-              className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
-            >
-              GLAD YOU ASKED
-            </span>
-            <h2>
-              A few things
-              <br />
-              you might wonder.
-            </h2>
-            <p>New here? You’re in good company.</p>
-          </div>
-          <div
-            data-ui="faq-list"
-            className="[&_details]:[border-bottom-width:1px] [&_details]:[border-bottom-style:solid] [&_details]:border-b-line [&_details:first-child]:[border-top-width:1px] [&_details:first-child]:[border-top-style:solid] [&_details:first-child]:border-t-line [&_summary]:flex [&_summary]:items-center [&_summary]:justify-between [&_summary]:gap-4 [&_summary]:[list-style:none] [&_summary]:text-[14px] [&_summary]:py-5.75 [&_summary]:px-0 [&_summary]:font-medium [&_summary::-webkit-details-marker]:hidden [&_summary_svg]:[transition:transform_0.2s] [&_summary_svg]:text-[#929781] [&_details[open]_summary_svg]:transform-[rotate(45deg)] [&_details>p]:text-[16px] [&_details>p]:leading-[1.7] [&_details>p]:text-[#7c806f] [&_details>p]:-mt-0.75 [&_details>p]:mb-5.5 [&_details>p]:mx-0 max-[800px]:[&_summary]:text-[12px] max-[800px]:[&_details>p]:text-[12px] max-[580px]:[&_summary]:text-[14px] max-[580px]:[&_summary]:py-5.25 max-[580px]:[&_details>p]:text-[16px]"
-          >
-            {faqs.map(([question, answer]) => (
-              <details key={question}>
-                <summary>
-                  {question}
-                  <Icon icon={Add01Icon} size={20} />
-                </summary>
-                <p>{answer}</p>
-              </details>
-            ))}
-          </div>
-        </section>
+
         <section
           data-ui="closing-section"
-          className="bg-[#eaece2] pt-16.25 pb-15.5 px-5 flex flex-col items-center text-center **:data-[ui~=little-asterisk]:text-[#74815b] **:data-[ui~=little-asterisk]:text-[32px] [&_h2]:text-[46px] [&_h2]:mt-4.75 [&_h2]:mb-7.25 **:data-[ui~=button]:min-h-11.75 max-[800px]:[&_h2]:text-[39px] max-[580px]:py-11.5 max-[580px]:[&_h2]:text-[32px] max-[580px]:[&_h2]:leading-[1.16] max-[580px]:[&_h2]:mt-4 max-[580px]:[&_h2]:mb-6.25 max-[580px]:**:data-[ui~=button]:text-[12px]"
+          className="flex flex-col items-center bg-[#eaece2] px-5 pt-16.25 pb-15.5 text-center [&_h2]:mt-4.75 [&_h2]:mb-7.25 [&_h2]:text-[46px] **:data-[ui~=button]:min-h-11.75 **:data-[ui~=little-asterisk]:text-[32px] **:data-[ui~=little-asterisk]:text-[#74815b] max-[800px]:[&_h2]:text-[39px] max-[580px]:py-11.5 max-[580px]:[&_h2]:mt-4 max-[580px]:[&_h2]:mb-6.25 max-[580px]:[&_h2]:text-[32px] max-[580px]:[&_h2]:leading-[1.16] max-[580px]:**:data-[ui~=button]:text-[12px]"
         >
           <span
             data-ui="little-asterisk"
-            className="text-orange text-[28px] leading-none"
+            className="text-[28px] leading-none text-orange"
             aria-hidden="true"
           >
             ✳
@@ -474,7 +325,7 @@ function LandingPage() {
           <Link
             to="/sign-up"
             data-ui="button button-dark"
-            className="inline-flex items-center justify-center gap-3 border border-solid border-transparent min-h-13 py-3.5 px-5.5 text-[14px] font-semibold rounded-[7px] [transition:background_0.2s,transform_0.2s,box-shadow_0.2s] whitespace-nowrap bg-ink text-white hover:transform-[translateY(-2px)] hover:bg-[#42433d] active:transform-[translateY(0)] motion-reduce:hover:transform-none"
+            className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-5.5 py-3.5 text-[14px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
           >
             Make yourself at home <Icon icon={ArrowRight01Icon} size={19} />
           </Link>
@@ -486,20 +337,25 @@ function LandingPage() {
           </span>
         </section>
       </main>
+
       <footer
         data-ui="site-footer content-width"
-        className="w-[calc(100%-112px)] max-w-300 mx-auto min-h-27.25 flex items-center justify-between gap-6 [&_a]:[transition:color_0.2s] [&_a:hover]:text-[#cc4826] **:data-[ui~=logo]:text-[23px] **:data-[ui~=logo-mark]:size-6.75 [&>span]:text-[#909384] [&>span]:text-[11px] [&>a:not([data-ui~=logo])]:flex [&>a:not([data-ui~=logo])]:items-center [&>a:not([data-ui~=logo])]:gap-2 [&>a:not([data-ui~=logo])]:text-[11px] [&>a:not([data-ui~=logo])]:text-[#717a60] max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:flex-wrap max-[800px]:gap-3.75 max-[800px]:py-6.5 max-[800px]:[&>span:not([data-ui~=copyright])]:hidden max-[800px]:[&>a:not([data-ui~=logo])]:ml-auto max-[580px]:w-[calc(100%-36px)] max-[580px]:min-h-32 max-[580px]:py-6.5 max-[580px]:gap-x-3 max-[580px]:[&>a:not([data-ui~=logo])]:text-[10px]"
+        className="mx-auto flex min-h-27.25 w-[calc(100%-112px)] max-w-300 items-center justify-between gap-6 [&_a]:transition-colors [&_a:hover]:text-[#cc4826] [&>a:not([data-ui~=logo])]:flex [&>a:not([data-ui~=logo])]:items-center [&>a:not([data-ui~=logo])]:gap-2 [&>a:not([data-ui~=logo])]:text-[11px] [&>a:not([data-ui~=logo])]:text-[#717a60] [&>span]:text-[11px] [&>span]:text-[#909384] **:data-[ui~=logo]:text-[23px] **:data-[ui~=logo-mark]:size-6.75 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:flex-wrap max-[800px]:gap-3.75 max-[800px]:py-6.5 max-[800px]:[&>a:not([data-ui~=logo])]:ml-auto max-[800px]:[&>span:not([data-ui~=copyright])]:hidden max-[580px]:min-h-32 max-[580px]:w-[calc(100%-36px)] max-[580px]:gap-x-3 max-[580px]:py-6.5 max-[580px]:[&>a:not([data-ui~=logo])]:text-[10px]"
       >
         <Logo />
         <span>A little corner of the internet, for you.</span>
-        <a href="#open-source">
+        <a
+          href="https://github.com/xt42io/drocsid"
+          target="_blank"
+          rel="noreferrer"
+        >
           Made in the open <Icon icon={HeartCheckIcon} size={16} />
         </a>
         <span
           data-ui="copyright"
           className="font-mono text-[9px]! max-[580px]:w-full max-[580px]:text-center max-[580px]:text-[8px]!"
         >
-          © {new Date().getFullYear()} drocsid
+          © {new Date().getFullYear()} Drocsid
         </span>
       </footer>
     </div>
