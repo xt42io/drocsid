@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import { getChannelCategories } from "../../lib/demo-data";
+import { getChannelCategories } from "../../lib/channels";
 import {
   AppIcon,
   EmptyState,
