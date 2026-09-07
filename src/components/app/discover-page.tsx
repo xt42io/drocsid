@@ -1,3 +1,5 @@
+import { CommunityIcon } from "./community-icon";
+import { useDirectory } from "../../lib/use-directory";
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
@@ -16,16 +18,31 @@ export function DiscoverPage() {
     "Books & culture",
     "Gaming",
   ];
-  const communities = state.communities.filter(
-    (c) =>
-      (category === "All corners" || c.category === category) &&
-      `${c.name} ${c.description}`.toLowerCase().includes(query.toLowerCase()),
+  const directory = useDirectory(
+    "communities",
+    query,
+    category === "All corners" ? undefined : category,
+  );
+  const communities = (directory.communities ?? []).map(
+    (community) =>
+      state.communities.find((c) => c.id === community.id) ?? community,
   );
   return (
     <div
       data-ui="a-page a-discover-page"
       className="h-full overflow-y-auto pt-10.75 pb-10 px-11 min-[1600px]:py-12 min-[1600px]:px-15 max-[1250px]:py-8.75 max-[1250px]:px-7.5 max-[760px]:pt-7 max-[760px]:pb-8 max-[760px]:px-6 max-[480px]:pt-6 max-[480px]:pb-8 max-[480px]:px-4.5"
     >
+      {directory.loading && <p role="status">Loading communities…</p>}
+      {directory.error && <p role="alert">{directory.error}</p>}
+      {directory.hasMore && (
+        <button
+          className="rounded-md border border-(--a-border) px-4 py-2 text-sm"
+          disabled={directory.loading}
+          onClick={directory.more}
+        >
+          Load more communities
+        </button>
+      )}
       <PageHeading
         eyebrow="THE INTERNET CAN STILL FEEL SMALL"
         title="Find your kind of people."
@@ -133,7 +150,7 @@ export function DiscoverPage() {
               className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] h-39.25 flex items-center justify-center relative overflow-hidden [&>svg]:transform-[rotate(-13deg)] [&>svg]:opacity-67 [&>span]:absolute [&>span]:left-3.75 [&>span]:top-3.25 [&>span]:font-mono [&>span]:text-[7px] [&>span]:tracking-[0.6px] [&>span]:opacity-75 [&>i]:flex [&>i]:items-center [&>i]:gap-1 [&>i]:absolute [&>i]:right-2.75 [&>i]:bottom-2.75 [&>i]:text-[7px] [&>i]:not-italic [&>i]:font-mono [&>i]:tracking-[0.5px] [&>i]:bg-[#fff9] [&>i]:rounded-sm [&>i]:py-1.25 [&>i]:px-1.75 min-[1600px]:h-43.75 max-[480px]:h-39 max-[480px]:[&>span]:text-[8px] max-[480px]:[&>span]:left-5 max-[480px]:[&>span]:top-4.25 max-[480px]:[&>i]:text-[8px] max-[480px]:[&>i]:right-4 max-[480px]:[&>i]:bottom-4"
             >
               <span>{community.category.toUpperCase()}</span>
-              <AppIcon name={community.icon} size={74} />
+              <CommunityIcon community={community} size={74} />
               <i>
                 {community.joined ? (
                   <>
@@ -226,6 +243,9 @@ export function InvitePage({ communityId }: { communityId: string }) {
   const { state, joinCommunity } = useApp();
   const navigate = useNavigate();
   const community = state.communities.find((c) => c.id === communityId);
+  const directory = useDirectory("communities", "", undefined, communityId);
+  if (!community && directory.loading)
+    return <p role="status">Loading community…</p>;
   if (!community)
     return (
       <div
@@ -267,7 +287,7 @@ export function InvitePage({ communityId }: { communityId: string }) {
           data-ui={`a-invitation-cover tone-${community.color}`}
           className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] flex items-center justify-center flex-col gap-5.75 p-7.5 [&>svg]:transform-[rotate(-10deg)] [&>span]:font-mono [&>span]:text-[8px] [&>span]:tracking-[0.8px]"
         >
-          <AppIcon name={community.icon} size={79} />
+          <CommunityIcon community={community} size={79} />
           <span>A LITTLE CORNER. A LOT OF POSSIBILITY.</span>
         </div>
         <div
