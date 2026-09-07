@@ -6,6 +6,7 @@ import type { Preferences } from "../../types/app";
 import { AppIcon, PageHeading, PersonAvatar, Toggle } from "./primitives";
 import type { IconName } from "./primitives";
 import { authClient } from "../../lib/auth-client";
+import { usePostHog } from "@posthog/react";
 
 const sections: { id: string; label: string; icon: IconName }[] = [
   { id: "profile", label: "Your profile", icon: "people" },
@@ -16,6 +17,7 @@ const sections: { id: string; label: string; icon: IconName }[] = [
 ];
 export function SettingsPage({ section }: { section: string }) {
   const { state, setState, setModal, notify, reset } = useApp();
+  const posthog = usePostHog();
   const [name, setName] = useState(state.profile.name);
   const [handle, setHandle] = useState(state.profile.handle);
   const [bio, setBio] = useState(state.profile.bio);
@@ -109,6 +111,7 @@ export function SettingsPage({ section }: { section: string }) {
                   notify(result.error.message || "Could not sign out.");
                   return;
                 }
+                posthog.reset();
                 window.location.assign("/sign-in");
               } catch {
                 notify("Could not sign out. Please try again.");
