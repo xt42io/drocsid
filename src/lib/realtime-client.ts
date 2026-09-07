@@ -66,6 +66,9 @@ export class RealtimeClient {
         this.attempts = 0;
         this.onConnection(true);
         this.watch();
+      } else if (frame.type === "access") {
+        this.watch();
+        this.onFrame(frame);
       } else if (frame.type === "watched") {
         for (const value of this.typing.values())
           if (value.activeUntil > Date.now())
