@@ -1,3 +1,4 @@
+import { dmMessagingBlocked, dmReadOnly } from "../../lib/direct-messages";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
@@ -105,7 +106,8 @@ export function Conversation({
   const lastConversation = useRef("");
   const lastTarget = useRef("");
   const selected = allMessages.find((m) => m.id === messageId);
-  const blocked = !!personId && state.blocked.includes(personId);
+  const blocked = !!personId && dmMessagingBlocked(state, personId);
+  const blockedByMe = !!personId && state.blocked.includes(personId);
   const dm = state.dmConversations.find((d) => d.personId === personId);
   const incomingRequest = dm?.incoming && dm.status === "pending";
   const unavailableDm = dm?.status === "declined";
@@ -425,21 +427,24 @@ export function Conversation({
             >
               <AppIcon name="shield" size={21} />
               <span>
-                You’ve blocked {person?.name.split(" ")[0]}. You can unblock
-                them to chat.
+                {blockedByMe
+                  ? `You’ve blocked ${person?.name.split(" ")[0]}. Your messages are still here. Unblock them to chat.`
+                  : "You can read your messages, but messaging in this conversation is unavailable."}
               </span>
-              <button
-                data-ui="a-button secondary small"
-                className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
-                onClick={() =>
-                  setState((previous) => ({
-                    ...previous,
-                    blocked: previous.blocked.filter((id) => id !== personId),
-                  }))
-                }
-              >
-                Unblock
-              </button>
+              {blockedByMe && (
+                <button
+                  data-ui="a-button secondary small"
+                  className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
+                  onClick={() =>
+                    setState((previous) => ({
+                      ...previous,
+                      blocked: previous.blocked.filter((id) => id !== personId),
+                    }))
+                  }
+                >
+                  Unblock
+                </button>
+              )}
             </div>
           ) : incomingRequest ? (
             <section
@@ -664,13 +669,7 @@ export function MessageCard({
     retryMessage,
     notify,
   } = useApp();
-  const dm = message.conversation.startsWith("dm:")
-    ? state.dmConversations.find(
-        (d) => d.personId === message.conversation.slice(3),
-      )
-    : undefined;
-  const readOnly =
-    dm?.status === "declined" || (dm?.incoming && dm.status === "pending");
+  const readOnly = dmReadOnly(state, message.conversation);
   const author = findPerson(message.author);
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(message.text);
@@ -758,7 +757,7 @@ export function MessageCard({
             </span>
           )}
         </div>
-        {editing ? (
+        {editing && !readOnly ? (
           <form
             data-ui="a-message-edit"
             className="mt-1.75 [&_textarea]:w-full [&_textarea]:min-h-21.25 [&_textarea]:p-2.5 [&_textarea]:text-[13px] [&>div]:flex [&>div]:gap-1.75 [&>div]:justify-end [&>div]:mt-1.75"
@@ -820,7 +819,11 @@ export function MessageCard({
             role="alert"
           >
             <span>{message.sendError}</span>
-            <button type="button" onClick={() => void retryMessage(message.id)}>
+            <button
+              type="button"
+              disabled={readOnly}
+              onClick={() => void retryMessage(message.id)}
+            >
               Retry
             </button>
           </div>
@@ -848,7 +851,7 @@ export function MessageCard({
             ))}
           </div>
         )}
-        {replies.length > 0 && !compact && !readOnly && (
+        {replies.length > 0 && !compact && (
           <button
             data-ui="a-thread-link"
             className="flex items-center gap-2 mt-2.75 p-0 bg-transparent text-(--a-green) text-[10px] [&>span:not([data-ui~=a-thread-avatars])]:text-(--a-faint) [&>span:not([data-ui~=a-thread-avatars])]:text-[9px] hover:underline max-[480px]:gap-1.5 max-[480px]:[&>span:not([data-ui~=a-thread-avatars])]:text-[8px]"
@@ -1430,13 +1433,19 @@ function ThreadPanel({
           />
         )}
       </div>
-      {parent && (
-        <Composer
-          key={parentId}
-          conversation={conversation}
-          threadOf={parentId}
-          placeholder="Keep the thought going…"
-        />
+      {parent && dmReadOnly(state, conversation) ? (
+        <p className="shrink-0 border-t border-(--a-border) p-4 text-sm text-(--a-muted)">
+          You can read this thread, but replies are unavailable.
+        </p>
+      ) : (
+        parent && (
+          <Composer
+            key={parentId}
+            conversation={conversation}
+            threadOf={parentId}
+            placeholder="Keep the thought going…"
+          />
+        )
       )}
     </aside>
   );
