@@ -14,6 +14,7 @@ export const Route = createFileRoute("/api/attachments/$id")({
             params.id,
             undefined,
             imageVariant(request, "chat"),
+            request,
           ),
         ),
     },
