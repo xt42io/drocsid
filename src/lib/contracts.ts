@@ -32,6 +32,14 @@ export const defaults = preferencesSchema.parse({
   activity: true,
 });
 export const channelSchema = z.object({
+  icon: z
+    .string()
+    .max(32)
+    .regex(
+      /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|[0-9#*]\uFE0F?\u20E3)[\p{Extended_Pictographic}\p{Regional_Indicator}\p{Emoji_Modifier}\uFE0F\u200D\u20E3\u{E0020}-\u{E007F}]*$/u,
+    )
+    .or(z.literal(""))
+    .optional(),
   id,
   name: z
     .string()
@@ -46,6 +54,7 @@ const community = z.object({
   name: z.string().trim().min(2).max(40),
   description: z.string().max(250),
   icon: z.enum([
+    "",
     "sun",
     "leaf",
     "coffee",
@@ -87,6 +96,7 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("community.create"),
+    iconUploadId: z.uuid().optional(),
     id,
     community,
     channels: z.array(channelSchema).min(1).max(20),
