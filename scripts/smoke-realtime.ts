@@ -1,10 +1,10 @@
+import { createAuthFixture } from "./auth-fixture";
 // Against your already-running server. Creates and removes only its own fixtures.
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { WebSocket } from "ws";
 import { eq, inArray } from "drizzle-orm";
 import { getDb, type Database } from "../src/server/db";
-import { getAuth } from "../src/server/auth";
 import * as s from "../src/server/db/schema";
 import { ensureProfile } from "../src/server/access";
 import { mutate } from "../src/server/actions";
@@ -47,26 +47,11 @@ async function until(check: () => unknown) {
 }
 try {
   for (const name of ["Socket sender", "Socket receiver"]) {
-    const response = await getAuth().handler(
-      new Request(`${base}/api/auth/sign-up/email`, {
-        method: "POST",
-        headers: {
-          origin: new URL(base).origin,
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          email: `ws-${crypto.randomUUID()}@example.test`,
-          name,
-          password: crypto.randomUUID(),
-        }),
-      }),
+    const { user, cookie } = await createAuthFixture(
+      `ws-${crypto.randomUUID()}@example.test`,
+      name,
     );
-    assert.equal(response.status, 200);
-    const { user } = await response.json();
-    users.push({
-      id: user.id,
-      cookie: response.headers.get("set-cookie")!.split(";")[0],
-    });
+    users.push({ id: user.id, cookie });
     await ensureProfile(db, user);
   }
   await db.transaction(async (tx) => {
