@@ -1,9 +1,10 @@
+import { attachCommunityIcon } from "./community-icons";
 import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "./db";
 import * as s from "./db/schema";
 import type { Action } from "../lib/contracts";
 import {
-  accessibleConversations,
+  conversationAccess,
   isBlocked,
   requireDmSend,
   requireDmUnblocked,
@@ -68,12 +69,32 @@ export async function mutate(db: Database, userId: string, action: Action) {
       await db
         .insert(s.members)
         .values({ communityId: action.id, userId, role: "Owner" });
-      for (const channel of action.channels)
-        await mutate(db, userId, {
-          type: "channel.put",
+      const categories = [
+        ...new Set(action.channels.map((channel) => channel.group)),
+      ].map((name) => ({
+        id: crypto.randomUUID(),
+        communityId: action.id,
+        name,
+      }));
+      await db.insert(s.categories).values(categories);
+      const categoryIds = new Map(
+        categories.map((category) => [category.name, category.id]),
+      );
+      await db.insert(s.conversations).values(
+        action.channels.map((channel) => ({
+          id: `${action.id}:${channel.id}`,
+          kind: "channel" as const,
           communityId: action.id,
-          channel,
-        });
+          channelId: channel.id,
+          name: channel.name,
+          description: channel.description,
+          icon: channel.icon ?? "",
+          categoryId: categoryIds.get(channel.group)!,
+          private: !!channel.private,
+        })),
+      );
+      if (action.iconUploadId)
+        await attachCommunityIcon(db, userId, action.id, action.iconUploadId);
       break;
     }
     case "community.update":
@@ -153,6 +174,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
       const id = `${action.communityId}:${action.channel.id}`;
       const { name, description } = action.channel;
       const values = {
+        icon: action.channel.icon ?? "",
         name,
         description,
         categoryId: category.id,
@@ -353,14 +375,18 @@ export async function mutate(db: Database, userId: string, action: Action) {
         .from(s.messages)
         .where(and(eq(s.messages.id, action.id), isNull(s.messages.deletedAt)));
       if (!message) throw new HttpError(404, "Message not found.");
-      const c = (await accessibleConversations(db, userId)).find(
-        (c) => c.id === message.conversationId,
-      );
+      const [c] = await db
+        .select()
+        .from(s.conversations)
+        .where(
+          and(
+            eq(s.conversations.id, message.conversationId),
+            conversationAccess(userId),
+          ),
+        );
       if (!c || (c.kind === "channel" && !c.channelId))
         throw new HttpError(403, "You cannot access this message.");
-      if (c.kind === "dm") {
-        await requireDmSend(db, c, userId);
-      }
+      await requireDmSend(db, c, userId);
       if (action.type === "reaction") {
         const where = and(
           eq(s.reactions.messageId, action.id),
