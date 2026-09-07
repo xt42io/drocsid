@@ -1,3 +1,4 @@
+import { createAuthFixture } from "./auth-fixture";
 // Run after building with: node --env-file=.env --import tsx scripts/benchmark-channels.ts
 // Creates and removes only its own fixtures; never starts a server.
 import assert from "node:assert/strict";
@@ -25,14 +26,12 @@ async function request(path: string, body: unknown) {
   );
 }
 try {
-  const signup = await request("/api/auth/sign-up/email", {
-    email: `channel-benchmark-${communityId}@example.test`,
-    name: "Channel benchmark",
-    password: crypto.randomUUID(),
-  });
-  assert.equal(signup.status, 200);
-  userId = (await signup.json()).user.id;
-  cookie = signup.headers.get("set-cookie")!.split(";")[0];
+  const fixture = await createAuthFixture(
+    `channel-benchmark-${communityId}@example.test`,
+    "Channel benchmark",
+  );
+  userId = fixture.user.id;
+  cookie = fixture.cookie;
   const setup = await request("/api/app", [
     {
       type: "community.create",
