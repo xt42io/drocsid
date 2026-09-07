@@ -35,7 +35,7 @@ export function conversationPeople(
   if (!community) return [];
   return people.filter(
     (person) => !community.memberIds || community.memberIds.includes(person.id),
-  );
+  ).map(person => ({ ...person, role: community.memberRoles?.[person.id] ?? person.role }));
 }
 
 export function mentionTargets(
