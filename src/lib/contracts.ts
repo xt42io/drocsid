@@ -55,6 +55,11 @@ const community = z.object({
 });
 export const actionSchema = z.discriminatedUnion("type", [
   z.object({
+    type: z.literal("dm.request"),
+    personId: id,
+    operation: z.enum(["accept", "decline"]),
+  }),
+  z.object({
     type: z.literal("profile"),
     name: z.string().trim().min(2).max(40),
     handle: z
