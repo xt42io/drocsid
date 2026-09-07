@@ -2,7 +2,7 @@ import { AvatarUpload } from "./avatar-upload";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import type { Preferences } from "../../lib/demo-data";
+import type { Preferences } from "../../types/app";
 import { AppIcon, PageHeading, PersonAvatar, Toggle } from "./primitives";
 import type { IconName } from "./primitives";
 import { authClient } from "../../lib/auth-client";
