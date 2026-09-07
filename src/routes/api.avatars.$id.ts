@@ -15,6 +15,7 @@ export const Route = createFileRoute("/api/avatars/$id")({
             params.id,
             undefined,
             imageVariant(request, "avatar"),
+            request,
           );
         }),
     },
