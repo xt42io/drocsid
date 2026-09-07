@@ -9,6 +9,7 @@ import {
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type {
   Attachment,
+  Channel,
   Community,
   AppState,
   Message,
@@ -17,6 +18,13 @@ import type {
 import { defaults, type Action } from "./contracts";
 import { api, ApiError } from "./api-client";
 import { stateActions } from "./state-actions";
+import { applyChannel, type ChannelWriteResult } from "./channels";
+import {
+  PendingReactions,
+  replaceReaction,
+  type ReactionResult,
+} from "./reactions";
+import { dmReadOnly } from "./direct-messages";
 import {
   reconcileMessages,
   enqueueMessage,
@@ -89,6 +97,7 @@ type AppContextValue = {
   ) => Promise<boolean>;
   retryMessage: (messageId: string) => Promise<boolean>;
   react: (messageId: string, emoji: string) => void;
+  createChannel: (communityId: string, channel: Channel) => Promise<boolean>;
   updateMessage: (
     messageId: string,
     patch: Partial<Message>,
@@ -142,14 +151,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const historyLimit = useRef(500);
   const version = useRef(0);
   const inFlightMessages = useRef(new Set<string>());
+  const pendingReactions = useRef(new PendingReactions());
   const notify = useCallback((message: string) => {
     setToast(message);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(""), 5000);
   }, []);
   const apply = useCallback((next: AppState) => {
-    current.current = next;
-    renderState(next);
+    const rendered = {
+      ...next,
+      messages: pendingReactions.current.overlay(next.messages),
+    };
+    current.current = rendered;
+    renderState(rendered);
   }, []);
   const refresh = useCallback(
     async function refreshState(): Promise<void> {
@@ -176,6 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             needsRefresh.current = true;
             return;
           }
+          pendingReactions.current.observe(next.messages);
           let merged = {
             ...next,
             messages: reconcileMessages(next.messages, localMessages.current),
@@ -232,6 +247,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           receivedAt.current.set(frame.id, ++messageRevision.current);
           liveMessages.current.set(frame.id, frame);
           localMessages.current.delete(frame.id);
+          if (frame.message) pendingReactions.current.observe([frame.message]);
           apply(applyLiveMessage(current.current, frame));
         } else if (frame.type === "read") {
           liveReads.current.set(frame.conversation, frame.through);
@@ -333,6 +349,97 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [notify, refresh],
   );
+  const createChannel = useCallback(
+    async (communityId: string, channel: Channel) => {
+      pending.current++;
+      version.current++;
+      try {
+        const result = await api<ChannelWriteResult>(
+          "/api/app",
+          [{ type: "channel.put", communityId, channel }],
+          AbortSignal.timeout(15000),
+        );
+        if (active.current) apply(applyChannel(current.current, result));
+        return true;
+      } catch (error) {
+        if (active.current)
+          notify(
+            error instanceof Error
+              ? error.message
+              : "Could not create channel.",
+          );
+        return false;
+      } finally {
+        pending.current--;
+        version.current++;
+        // The confirmed channel is already available locally. Reconcile member
+        // updates in the background instead of holding the creation dialog open.
+        if (!pending.current && active.current) void refresh();
+      }
+    },
+    [apply, notify, refresh],
+  );
+
+  const react = useCallback(
+    (id: string, emoji: string) => {
+      const message = current.current.messages.find((m) => m.id === id);
+      if (
+        !message ||
+        message.sending ||
+        message.sendError ||
+        dmReadOnly(current.current, message.conversation)
+      )
+        return;
+      const start = pendingReactions.current.toggle(message, emoji);
+      version.current++;
+      apply(current.current);
+      if (!start) return;
+      void (async () => {
+        let selection;
+        while ((selection = pendingReactions.current.next(id, emoji))) {
+          try {
+            const result = await api<ReactionResult>(
+              "/api/reactions",
+              { id, emoji, active: selection.active },
+              AbortSignal.timeout(15000),
+            );
+            const confirmed = pendingReactions.current.acknowledge(
+              result,
+              selection.observed,
+            );
+            version.current++;
+            receivedAt.current.set(id, ++messageRevision.current);
+            if (active.current)
+              apply({
+                ...current.current,
+                messages: replaceReaction(current.current.messages, confirmed),
+              });
+          } catch (error) {
+            const previous = pendingReactions.current.reject(id, emoji);
+            version.current++;
+            if (active.current) {
+              apply({
+                ...current.current,
+                messages: replaceReaction(current.current.messages, previous),
+              });
+              notify(
+                error instanceof Error
+                  ? error.message
+                  : "Could not update reaction.",
+              );
+              // Resolve uncertain network failures against the server without
+              // rolling back other reactions or messages that arrived meanwhile.
+              void refresh();
+            }
+            break;
+          }
+          if (!active.current) break;
+        }
+      })();
+    },
+    [apply, notify, refresh],
+  );
+
   const setState = useCallback(
     (updater: SetStateAction<AppState>) => {
       const previous = current.current;
@@ -366,14 +473,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const page = await api<{ messages: Message[]; hasMore: boolean }>(
           `/api/messages?${params}`,
         );
+        const freshMessages = page.messages.filter(
+          (m) => (receivedAt.current.get(m.id) ?? 0) <= started,
+        );
+        pendingReactions.current.observe(freshMessages);
         const merged = [
           ...new Map(
-            [
-              ...current.current.messages,
-              ...page.messages.filter(
-                (m) => (receivedAt.current.get(m.id) ?? 0) <= started,
-              ),
-            ].map((m) => [m.id, m]),
+            [...current.current.messages, ...freshMessages].map((m) => [
+              m.id,
+              m,
+            ]),
           ).values(),
         ].sort(
           (a, b) =>
@@ -541,9 +650,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         retryMessage,
         command,
         loadMessages,
-        react: (id, emoji) => {
-          void command({ type: "reaction", id, emoji });
-        },
+        react,
+        createChannel,
         updateMessage: (id, patch) =>
           command({
             type: "message.update",
