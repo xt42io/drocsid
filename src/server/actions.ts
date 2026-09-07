@@ -6,6 +6,7 @@ import {
   accessibleConversations,
   isBlocked,
   requireDmSend,
+  requireDmUnblocked,
   conversationIdFor,
   requireConversation,
   requireManager,
@@ -17,6 +18,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
   switch (action.type) {
     case "dm.request": {
       const c = await requireConversation(db, userId, `dm:${action.personId}`);
+      await requireDmUnblocked(db, c.id, userId);
       if (
         c.kind !== "dm" ||
         c.dmInitiatorId !== action.personId ||
@@ -261,7 +263,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
         action.conversation,
         true,
       );
-      requireDmSend(c, userId);
+      await requireDmSend(db, c, userId);
       const [duplicate] = await db
         .select()
         .from(s.messages)
@@ -357,14 +359,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
       if (!c || (c.kind === "channel" && !c.channelId))
         throw new HttpError(403, "You cannot access this message.");
       if (c.kind === "dm") {
-        requireDmSend(c, userId);
-        const others = await db
-          .select()
-          .from(s.participants)
-          .where(eq(s.participants.conversationId, c.id));
-        for (const p of others)
-          if (p.userId !== userId && (await isBlocked(db, userId, p.userId)))
-            throw new HttpError(403, "This conversation is unavailable.");
+        await requireDmSend(db, c, userId);
       }
       if (action.type === "reaction") {
         const where = and(
