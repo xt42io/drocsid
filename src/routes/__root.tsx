@@ -12,7 +12,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "drocsid — A place for your people." },
+      { title: "Drocsid — A place for your people." },
       {
         name: "description",
         content:
