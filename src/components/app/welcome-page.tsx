@@ -1,41 +1,59 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import { Logo } from "../ui";
-import { AppIcon, PersonAvatar } from "./primitives";
+import { AppIcon } from "./primitives";
+import { AvatarUpload } from "./avatar-upload";
 export function WelcomePage() {
-  const { state, setState, notify } = useApp();
+  const { state, setState, notify, setModal } = useApp();
   const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(1);
   const [name, setName] = useState(state.profile.name);
   const [color, setColor] = useState(state.profile.color);
-  const [selected, setSelected] = useState(["creative"]);
+  const [selected, setSelected] = useState<string[]>([]);
   useEffect(() => {
     setName(state.profile.name);
     setColor(state.profile.color);
   }, [state.profile.name, state.profile.color]);
-  function finish() {
-    setState((previous) => ({
+  async function finish(mode: "join" | "skip" | "create" = "join") {
+    if (saving || uploading) return;
+    setSaving(true);
+    const saved = await setState((previous) => ({
       ...previous,
-      profile: { ...previous.profile, name: name.trim(), color },
+      profile: {
+        ...previous.profile,
+        name: name.trim().length >= 2 ? name.trim() : previous.profile.name,
+        color,
+      },
       communities: previous.communities.map((c) =>
-        selected.includes(c.id) ? { ...c, joined: true } : c,
+        mode === "join" && selected.includes(c.id) ? { ...c, joined: true } : c,
       ),
       onboardingComplete: true,
     }));
-    notify("Make yourself at home. There’s room for you here.");
-    void navigate({
-      to: "/app/community/$communityId/$channelId",
-      params: { communityId: selected[0] ?? "creative", channelId: "general" },
-    });
+    setSaving(false);
+    if (!saved) return;
+    if (mode === "create") {
+      await navigate({ to: "/app" });
+      setModal({ type: "create-community" });
+    } else {
+      notify("Welcome to Drocsid.");
+      void navigate({ to: "/app" });
+    }
   }
   return (
     <div className="a-welcome-page">
       <header>
         <Logo />
-        <Link to="/app" className="a-text-link">
+        <button
+          type="button"
+          className="a-text-link"
+          disabled={saving || uploading}
+          onClick={() => void finish("skip")}
+        >
           Skip for now <AppIcon name="right" size={17} />
-        </Link>
+        </button>
       </header>
       <div className="a-welcome-content">
         <div className="a-welcome-progress">
@@ -56,19 +74,19 @@ export function WelcomePage() {
         <p>
           {step === 1
             ? "Come as you are. Let’s put a name to that hello."
-            : "Pick a few places to begin. There’s no wrong door."}
+            : "Join a community, create your own, or skip this for now."}
         </p>
         {step === 1 ? (
           <form
             className="a-welcome-form a-form"
             onSubmit={(event) => {
               event.preventDefault();
-              if (name.trim().length >= 2) setStep(2);
+              if (name.trim().length >= 2 && !uploading) setStep(2);
             }}
           >
-            <PersonAvatar
+            <AvatarUpload
               person={{ ...state.profile, name: name || "You", color }}
-              large
+              onBusyChange={setUploading}
             />
             <div className="a-color-field">
               <div>
@@ -100,7 +118,7 @@ export function WelcomePage() {
             <button
               className="a-button primary full"
               type="submit"
-              disabled={name.trim().length < 2}
+              disabled={name.trim().length < 2 || uploading}
             >
               That’s me. What’s next? <AppIcon name="right" size={18} />
             </button>
@@ -110,6 +128,7 @@ export function WelcomePage() {
             <div className="a-welcome-communities">
               {state.communities.slice(0, 6).map((community) => (
                 <button
+                  disabled={saving}
                   key={community.id}
                   className={`a-welcome-choice ${selected.includes(community.id) ? "selected" : ""}`}
                   aria-pressed={selected.includes(community.id)}
@@ -133,28 +152,50 @@ export function WelcomePage() {
                   </span>
                 </button>
               ))}
+              <button
+                className="a-welcome-choice a-welcome-create"
+                disabled={saving}
+                onClick={() => void finish("create")}
+              >
+                <span className="a-community-icon">
+                  <AppIcon name="plus" size={29} />
+                </span>
+                <strong>Create mine</strong>
+                <small>Start your own community</small>
+              </button>
             </div>
             <div className="a-welcome-actions">
-              <button className="a-button secondary" onClick={() => setStep(1)}>
+              <button
+                className="a-button secondary"
+                disabled={saving}
+                onClick={() => setStep(1)}
+              >
                 <AppIcon name="left" size={17} />
                 Back
               </button>
               <button
                 className="a-button primary"
-                onClick={finish}
-                disabled={selected.length === 0}
+                onClick={() => void finish()}
+                disabled={saving}
               >
-                Let’s make ourselves at home <AppIcon name="right" size={18} />
+                {saving
+                  ? "Saving…"
+                  : selected.length
+                    ? "Join & continue"
+                    : "Continue"}{" "}
+                <AppIcon name="right" size={18} />
               </button>
             </div>
+            <button
+              className="a-text-link a-welcome-skip"
+              disabled={saving}
+              onClick={() => void finish("skip")}
+            >
+              Skip for now
+            </button>
           </>
         )}
-        <div className="a-welcome-note">
-          <AppIcon name="leaf" size={17} />
-          No perfect profiles. Just real people.
-        </div>
       </div>
-      <footer>A local preview. A little glimpse of what’s to come.</footer>
     </div>
   );
 }
