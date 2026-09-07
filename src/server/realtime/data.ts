@@ -6,7 +6,7 @@ import { conversationAccess, requireConversation } from "../access";
 import { HttpError } from "../http";
 import { sendMessage } from "../send-message";
 import type { MessageUpdate, Room } from "../../lib/realtime-protocol";
-import type { Person, Message } from "../../types/app";
+import type { Person, Message, DirectConversation } from "../../types/app";
 
 export type Identity = {
   userId: string;
@@ -28,8 +28,14 @@ export async function liveMessage(
     message: Message | null;
     person: Person | null;
     unread: number;
+    dmConversation: DirectConversation | null;
   }>(sql`
-    select case when m.id is null or m.deleted_at is not null then null else json_build_object(
+    select case when ${s.conversations.kind} = 'dm' then json_build_object(
+      'personId', (select p.user_id from conversation_members p where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId} limit 1),
+      'hasMessages', exists(select 1 from messages d where d.conversation_id = ${s.conversations.id} and d.deleted_at is null),
+      'status', ${s.conversations.dmStatus}, 'incoming', ${s.conversations.dmInitiatorId} <> ${userId}
+    ) else null end as "dmConversation",
+    case when m.id is null or m.deleted_at is not null then null else json_build_object(
       'id', m.id, 'conversation', case when ${s.conversations.kind} = 'dm' then
         'dm:' || (select p.user_id from conversation_members p where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId} limit 1)
         else ${s.conversations.id} end,
@@ -63,11 +69,17 @@ export async function liveMessage(
     message: row.message,
     conversation: conversationId,
     unread: row.unread,
+    ...(row.dmConversation ? { dmConversation: row.dmConversation } : {}),
     ...(row.person ? { person: row.person } : {}),
   };
 }
 export async function authorizeRoom(db: Database, userId: string, room: Room) {
   const conversation = await requireConversation(db, userId, room.conversation);
+  if (conversation.kind === "dm" && conversation.dmStatus !== "accepted")
+    throw new HttpError(
+      403,
+      "Accept the message request before sharing typing indicators.",
+    );
   if (room.threadOf) {
     const [parent] = await db
       .select({ id: s.messages.id })
