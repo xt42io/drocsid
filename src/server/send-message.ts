@@ -3,7 +3,7 @@ import type { Database } from "./db";
 import * as s from "./db/schema";
 import type { Action } from "../lib/contracts";
 import type { Message } from "../types/app";
-import { conversationAccess, conversationIdFor, takeLimit } from "./access";
+import { conversationSendAccess, conversationIdFor, takeLimit } from "./access";
 import { mutate } from "./actions";
 import { HttpError } from "./http";
 
@@ -54,7 +54,7 @@ export async function sendMessage(
     }>(sql`
       with allowed as materialized (
         select ${s.conversations.id} from ${s.conversations}
-        where ${s.conversations.id} = ${conversationId} and ${conversationAccess(userId)}
+        where ${s.conversations.id} = ${conversationId} and ${conversationSendAccess(userId)}
       ), quota as (
         insert into ${s.limits} (key, count) select ${`actions:${userId}`}, 1 from allowed
         on conflict (key) do update set
