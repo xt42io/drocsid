@@ -1,3 +1,4 @@
+import { CommunityIcon } from "./community-icon";
 import { useState } from "react";
 import { useApp } from "../../lib/app-state";
 import {
@@ -114,7 +115,10 @@ export function InboxPage() {
                     data-ui={`a-mini-community tone-${community?.color ?? "peach"}`}
                     className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] inline-flex items-center justify-center rounded-[7px] size-5.5"
                   >
-                    <AppIcon name={community?.icon ?? "sun"} size={15} />
+                    <CommunityIcon
+                      community={community ?? { icon: "sun" }}
+                      size={15}
+                    />
                   </span>
                   {community?.name}
                   <span>/</span>
