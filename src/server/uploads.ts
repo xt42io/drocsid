@@ -1,22 +1,33 @@
 import type { ImageVariant } from "../lib/media-images";
-import { storedImage } from "./media-images";
+import {
+  storedImage,
+  mediaCacheHeaders,
+  mediaNotModified,
+} from "./media-images";
 import { ByteshipClient } from "@byteship/js";
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import type { Database } from "./db";
-import { attachments, messages } from "./db/schema";
-import { requireConversation, requireDmSend } from "./access";
-import { visibleConversations } from "./queries";
+import { attachments, messages, conversations } from "./db/schema";
+import {
+  requireConversation,
+  requireDmSend,
+  conversationAccess,
+} from "./access";
 import { HttpError } from "./http";
 import type { z } from "zod";
 import { uploadSchema } from "../lib/contracts";
 
+let storageClient: { key: string; client: ByteshipClient } | undefined;
 export function getStorage() {
   if (!process.env.BYTESHIP_API_KEY)
     throw new HttpError(
       503,
       "File uploads are not configured on this server yet.",
     );
-  return new ByteshipClient({ apiKey: process.env.BYTESHIP_API_KEY });
+  const key = process.env.BYTESHIP_API_KEY;
+  if (storageClient?.key !== key)
+    storageClient = { key, client: new ByteshipClient({ apiKey: key }) };
+  return storageClient.client;
 }
 export async function discardUpload(db: Database, userId: string, id: string) {
   await db
@@ -128,9 +139,41 @@ export async function verifyStoredUpload(
   const { signedUrl } = await storage.createSignedUrl(file.path, {
     expiresInSeconds: 60,
   });
-  const response = await fetch(signedUrl.url, {
+  let response = await fetch(signedUrl.url, {
+    headers: { Range: "bytes=0-31", "Accept-Encoding": "identity" },
     signal: AbortSignal.timeout(60000),
   });
+  // A provider-authenticated identity range reports the full object length while
+  // delivering only the signature. Encoded ranges cannot attest decoded size.
+  if (
+    response.status === 206 &&
+    response.headers.get("content-encoding") &&
+    response.headers.get("content-encoding") !== "identity"
+  ) {
+    await response.body?.cancel();
+    response = await fetch(signedUrl.url, {
+      headers: { "Accept-Encoding": "identity" },
+      signal: AbortSignal.timeout(60000),
+    });
+  }
+  let expectedBytes = file.byteSize;
+  if (response.status === 206) {
+    const range = /^bytes 0-(\d+)\/(\d+)$/.exec(
+      response.headers.get("content-range") ?? "",
+    );
+    if (
+      !range ||
+      Number(range[2]) !== file.byteSize ||
+      Number(range[1]) !== Math.min(31, file.byteSize - 1)
+    ) {
+      await response.body?.cancel();
+      throw new HttpError(
+        400,
+        "The uploaded file is incomplete or larger than expected.",
+      );
+    }
+    expectedBytes = Number(range[1]) + 1;
+  }
   if (!response.ok || !response.body)
     throw new HttpError(502, "Could not verify file content.");
   const reader = response.body.getReader();
@@ -143,7 +186,7 @@ export async function verifyStoredUpload(
       const part = await reader.read();
       if (part.done) break;
       actualBytes += part.value.byteLength;
-      if (actualBytes > file.byteSize)
+      if (actualBytes > expectedBytes)
         throw new HttpError(400, "The uploaded file is larger than expected.");
       if (bytes.length < 32)
         bytes.push(...part.value.slice(0, 32 - bytes.length));
@@ -151,7 +194,7 @@ export async function verifyStoredUpload(
   } finally {
     await reader.cancel();
   }
-  if (actualBytes !== file.byteSize)
+  if (actualBytes !== expectedBytes)
     throw new HttpError(400, "The uploaded file is incomplete. Please retry.");
   const data = Uint8Array.from(bytes);
   const ascii = new TextDecoder().decode(data);
@@ -185,11 +228,16 @@ export async function completeUpload(
     );
   if (!file || file.status === "deleted")
     throw new HttpError(404, "Upload not found.");
-  if (
-    !(await visibleConversations(db, userId)).some(
-      (c) => c.id === file.conversationId,
-    )
-  )
+  const [allowed] = await db
+    .select({ id: conversations.id })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.id, file.conversationId),
+        conversationAccess(userId),
+      ),
+    );
+  if (!allowed)
     throw new HttpError(403, "This conversation is no longer available.");
   if (file.status !== "ready") {
     const detected = await verifyStoredUpload(file, storage);
@@ -224,26 +272,30 @@ export async function attachmentResponse(
   id: string,
   storage = getStorage(),
   variant?: ImageVariant,
+  request?: Request,
 ) {
-  const [file] = await db
-    .select()
+  const [authorized] = await db
+    .select({
+      file: attachments,
+      allowed: conversationAccess(userId),
+      deletedAt: messages.deletedAt,
+    })
     .from(attachments)
+    .innerJoin(conversations, eq(conversations.id, attachments.conversationId))
+    .leftJoin(messages, eq(messages.id, attachments.messageId))
     .where(and(eq(attachments.id, id), eq(attachments.status, "ready")));
-  if (!file || (!file.messageId && file.uploaderId !== userId))
-    throw new HttpError(404, "File not found.");
+  const file = authorized?.file;
   if (
-    !(await visibleConversations(db, userId)).some(
-      (c) => c.id === file.conversationId,
-    )
+    !file ||
+    (!file.messageId && file.uploaderId !== userId) ||
+    authorized.deletedAt
   )
+    throw new HttpError(404, "File not found.");
+  if (!authorized.allowed)
     throw new HttpError(403, "You do not have access to this file.");
-  if (file.messageId) {
-    const [message] = await db
-      .select()
-      .from(messages)
-      .where(and(eq(messages.id, file.messageId), isNull(messages.deletedAt)));
-    if (!message) throw new HttpError(404, "File not found.");
-  }
+  const cacheHeaders = mediaCacheHeaders(id, variant);
+  if (mediaNotModified(request, cacheHeaders))
+    return new Response(null, { status: 304, headers: cacheHeaders });
   const { response, contentType, byteSize } = await storedImage(
     storage,
     file,
@@ -253,7 +305,10 @@ export async function attachmentResponse(
     headers: {
       "Content-Type": contentType,
       "Content-Disposition": `${file.contentType.startsWith("image/") ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.originalName).replace(/'/g, "%27")}`,
-      "Cache-Control": "private, no-store",
+      ...cacheHeaders,
+      ...(variant && contentType !== "image/webp"
+        ? { "Cache-Control": "private, no-store", ETag: "" }
+        : {}),
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; sandbox",
       ...(byteSize === undefined ? {} : { "Content-Length": String(byteSize) }),
