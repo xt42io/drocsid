@@ -1,3 +1,4 @@
+import { usernameError } from "./usernames";
 import { z } from "zod";
 
 const id = z
@@ -76,13 +77,10 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("profile"),
     name: z.string().trim().min(2).max(40),
-    handle: z
-      .string()
-      .regex(/^[a-z0-9_]{3,24}$/)
-      .refine(
-        (v) => !["you", "everyone", "admin"].includes(v),
-        "This username is reserved.",
-      ),
+    handle: z.string().superRefine((value, context) => {
+      const message = usernameError(value);
+      if (message) context.addIssue({ code: "custom", message });
+    }),
     color: z.enum(["peach", "green", "purple", "yellow", "blue"]),
     bio: z.string().max(500),
     activity: z.string().max(140),
