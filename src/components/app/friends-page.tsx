@@ -129,7 +129,7 @@ export function FriendsPage() {
                   {tab === "pending"
                     ? state.pending.includes(person.id)
                       ? "Incoming friend request"
-                      : "Outgoing request · local preview"
+                      : "Outgoing request"
                     : person.activity}
                 </span>
               </span>
