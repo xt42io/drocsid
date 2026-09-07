@@ -47,8 +47,26 @@ export const Route = createFileRoute("/api/app")({
             );
             for (const action of actions)
               await mutate(tx as unknown as Database, viewer.id, action);
+            // Message triggers deliver narrow updates; reads don't need a full snapshot.
+            if (
+              actions.every((action) =>
+                [
+                  "message.send",
+                  "message.update",
+                  "message.delete",
+                  "reaction",
+                  "conversation.read",
+                ].includes(action.type),
+              )
+            )
+              return;
             // Payload-free invalidation for this small, single-service release. Reads always reauthorize.
-            const recipients = await tx.select({ id: user.id }).from(user);
+            const onlyPersonal = actions.every((action) =>
+              ["conversation.read", "notification.read"].includes(action.type),
+            );
+            const recipients = onlyPersonal
+              ? [{ id: viewer.id }]
+              : await tx.select({ id: user.id }).from(user);
             if (recipients.length)
               await tx.insert(events).values(
                 recipients.map((r) => ({
