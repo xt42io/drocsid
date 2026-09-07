@@ -4,6 +4,8 @@ import type { Database } from "./db";
 import { avatars, events, user } from "./db/schema";
 import { HttpError } from "./http";
 import { getStorage, verifyStoredUpload } from "./uploads";
+import type { ImageVariant } from "../lib/media-images";
+import { storedImage } from "./media-images";
 
 export const avatarSchema = z.object({
   byteSize: z
@@ -157,24 +159,22 @@ export async function avatarResponse(
   db: Database,
   id: string,
   storage = getStorage(),
+  variant?: ImageVariant,
 ) {
   const [file] = await db
     .select()
     .from(avatars)
     .where(and(eq(avatars.id, id), eq(avatars.status, "active")));
   if (!file) throw new HttpError(404, "Photo not found.");
-  const { signedUrl } = await storage.createSignedUrl(file.path, {
-    expiresInSeconds: 60,
-  });
-  const response = await fetch(signedUrl.url, {
-    signal: AbortSignal.timeout(60000),
-  });
-  if (!response.ok)
-    throw new HttpError(502, "This photo is temporarily unavailable.");
+  const { response, contentType, byteSize } = await storedImage(
+    storage,
+    file,
+    variant,
+  );
   return new Response(response.body, {
     headers: {
-      "Content-Type": file.contentType,
-      "Content-Length": String(file.byteSize),
+      "Content-Type": contentType,
+      ...(byteSize === undefined ? {} : { "Content-Length": String(byteSize) }),
       "Content-Disposition": "inline",
       "Cache-Control": "private, no-cache",
       "X-Content-Type-Options": "nosniff",
