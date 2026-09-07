@@ -27,5 +27,29 @@ export default defineConfig({
   ],
   // Preserve Better Auth's own dependency resolution in pnpm production builds.
   ssr: { external: ["better-auth"], noExternal: ["@tanstack/history"] },
-  server: { port: 1515, strictPort: true, host: "0.0.0.0" },
+  server: {
+    port: 1515,
+    strictPort: true,
+    host: "0.0.0.0",
+    proxy: {
+      "/ingest/static": {
+        target: "https://us-assets.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
+        secure: false,
+      },
+      "/ingest/array": {
+        target: "https://us-assets.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
+        secure: false,
+      },
+      "/ingest": {
+        target: "https://us.i.posthog.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
+        secure: false,
+      },
+    },
+  },
 });
