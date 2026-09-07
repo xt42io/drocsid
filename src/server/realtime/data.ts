@@ -130,7 +130,7 @@ export async function authorizeRoom(db: Database, userId: string, room: Room) {
 export const realtimeData = {
   async authenticate(headers: Headers): Promise<Identity | null> {
     const auth = await getAuth().api.getSession({ headers });
-    if (!auth) return null;
+    if (!auth?.user.emailVerified) return null;
     const [profile] = await getDb()
       .select()
       .from(s.profiles)
@@ -158,7 +158,11 @@ export const realtimeData = {
       .innerJoin(s.user, eq(s.user.id, s.session.userId))
       .innerJoin(s.profiles, eq(s.profiles.userId, s.user.id))
       .where(
-        and(inArray(s.session.id, ids), sql`${s.session.expiresAt} > now()`),
+        and(
+          inArray(s.session.id, ids),
+          eq(s.user.emailVerified, true),
+          sql`${s.session.expiresAt} > now()`,
+        ),
       );
     if (rows.length)
       await db
