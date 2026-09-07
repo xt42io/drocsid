@@ -24,6 +24,7 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppDiscoverRouteImport } from './routes/app.discover'
 import { Route as AppFriendsRouteImport } from './routes/app.friends'
 import { Route as AppInboxRouteImport } from './routes/app.inbox'
+import { Route as AppRequestsRouteImport } from './routes/app.requests'
 import { Route as AppSavedRouteImport } from './routes/app.saved'
 import { Route as AppSearchRouteImport } from './routes/app.search'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
@@ -111,6 +112,11 @@ const AppInboxRoute = AppInboxRouteImport.update({
   path: '/inbox',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRequestsRoute = AppRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSavedRoute = AppSavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
+  '/app/requests': typeof AppRequestsRoute
   '/app/saved': typeof AppSavedRoute
   '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
@@ -211,6 +218,7 @@ export interface FileRoutesByTo {
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
+  '/app/requests': typeof AppRequestsRoute
   '/app/saved': typeof AppSavedRoute
   '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
@@ -240,6 +248,7 @@ export interface FileRoutesById {
   '/app/discover': typeof AppDiscoverRoute
   '/app/friends': typeof AppFriendsRoute
   '/app/inbox': typeof AppInboxRoute
+  '/app/requests': typeof AppRequestsRoute
   '/app/saved': typeof AppSavedRoute
   '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
+    | '/app/requests'
     | '/app/saved'
     | '/app/search'
     | '/app/settings'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
+    | '/app/requests'
     | '/app/saved'
     | '/app/search'
     | '/app/settings'
@@ -325,6 +336,7 @@ export interface FileRouteTypes {
     | '/app/discover'
     | '/app/friends'
     | '/app/inbox'
+    | '/app/requests'
     | '/app/saved'
     | '/app/search'
     | '/app/settings'
@@ -462,6 +474,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInboxRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/requests': {
+      id: '/app/requests'
+      path: '/requests'
+      fullPath: '/app/requests'
+      preLoaderRoute: typeof AppRequestsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/saved': {
       id: '/app/saved'
       path: '/saved'
@@ -546,6 +565,7 @@ interface AppRouteChildren {
   AppDiscoverRoute: typeof AppDiscoverRoute
   AppFriendsRoute: typeof AppFriendsRoute
   AppInboxRoute: typeof AppInboxRoute
+  AppRequestsRoute: typeof AppRequestsRoute
   AppSavedRoute: typeof AppSavedRoute
   AppSearchRoute: typeof AppSearchRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -561,6 +581,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppDiscoverRoute: AppDiscoverRoute,
   AppFriendsRoute: AppFriendsRoute,
   AppInboxRoute: AppInboxRoute,
+  AppRequestsRoute: AppRequestsRoute,
   AppSavedRoute: AppSavedRoute,
   AppSearchRoute: AppSearchRoute,
   AppSettingsRoute: AppSettingsRoute,
