@@ -4,10 +4,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, EmptyState, PageHeading } from "./primitives";
+import { usePostHog } from "@posthog/react";
 
 export function DiscoverPage() {
   const { state, joinCommunity, setModal } = useApp();
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [category, setCategory] = useState("All corners");
   const [query, setQuery] = useState("");
   const categories = [
@@ -185,6 +187,12 @@ export function DiscoverPage() {
                   onClick={async () => {
                     const joined = await joinCommunity(community.id);
                     if (!joined) return;
+                    posthog.capture("community_joined", {
+                      community_id: community.id,
+                      community_category: community.category,
+                      member_count: community.members,
+                      source: "discover",
+                    });
                     void navigate({
                       to: "/app/community/$communityId/$channelId",
                       params: {
