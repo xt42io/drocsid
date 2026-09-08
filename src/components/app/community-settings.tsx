@@ -4,7 +4,14 @@ import { ChannelIcon } from "./channel-icons";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import { getChannelCategories } from "../../lib/channels";
+import {
+  getChannelCategories,
+  getChannelGroup,
+} from "../../lib/channels";
+import {
+  canManageCommunity,
+  canManageCommunityMember,
+} from "../../lib/community-permissions";
 import {
   AppIcon,
   EmptyState,
@@ -16,6 +23,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
   const { state, setState, setModal, notify, command } = useApp();
   const navigate = useNavigate();
   const community = state.communities.find((c) => c.id === communityId);
+  const canManage = canManageCommunity(community);
   const [tab, setTab] = useState("overview");
   const [name, setName] = useState(community?.name ?? "");
   const [description, setDescription] = useState(community?.description ?? "");
@@ -25,12 +33,12 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
     setName(community?.name ?? "");
     setDescription(community?.description ?? "");
   }, [community?.name, community?.description]);
-  if (!community || !community.joined)
+  if (!community || !community.joined || !canManage)
     return (
       <EmptyState
         icon="settings"
         title="This corner isn’t available."
-        description="Head back to your communities to find your place."
+        description="Only community owners and admins can open these settings."
       >
         <Link
           to="/app"
@@ -47,7 +55,6 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
       className="h-full overflow-y-auto pt-10.75 pb-10 px-11 [&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:text-[10px]! [&_[data-ui~=a-page-heading]_h1]:text-[32px] **:data-[ui~=a-settings-section-bar]:flex-wrap min-[1600px]:py-12 min-[1600px]:px-15 max-[1250px]:py-8.75 max-[1250px]:px-7.5 max-[1250px]:**:data-[ui~=a-page-heading]:[align-items:start] max-[1250px]:[&_[data-ui~=a-page-heading]_h1]:text-[28px] max-[1250px]:[&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:whitespace-normal max-[1250px]:[&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:max-w-35 max-[760px]:pt-7 max-[760px]:pb-8 max-[760px]:px-6 max-[760px]:[&_[data-ui~=a-page-heading]_h1]:text-[29px] max-[480px]:pt-6 max-[480px]:pb-8 max-[480px]:px-4.5 max-[480px]:[&_[data-ui~=a-page-heading]_h1]:text-[29px] max-[480px]:[&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:max-w-none max-[480px]:[&_[data-ui~=a-page-heading]>[data-ui~=a-button]]:text-[11px]!"
     >
       <PageHeading
-        eyebrow="TAKE CARE OF YOUR CORNER"
         title="A place that feels like yours."
         description={`A few things behind the scenes of ${community.name}.`}
       >
@@ -127,12 +134,10 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 <p>Made of people, not algorithms.</p>
               </div>
             </div>
-            {["Owner", "Admin"].includes(community.memberRoles?.you ?? "") && (
-              <CommunityIconUpload
-                community={community}
-                communityId={community.id}
-              />
-            )}
+            <CommunityIconUpload
+              community={community}
+              communityId={community.id}
+            />
             <label>
               Community name
               <input
@@ -209,35 +214,43 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
             >
               Invite your people <AppIcon name="userAdd" size={17} />
             </button>
-            <div
-              data-ui="a-settings-divider"
-              className="h-px bg-(--a-border) my-6.75"
-            />
-            <button
-              data-ui="a-text-link danger-text"
-              className="text-[#b8654b]! inline-flex items-center gap-1.75 text-[12px] font-[550] bg-transparent p-0 hover:text-(--a-orange)"
-              onClick={() =>
-                setModal({
-                  type: "confirm",
-                  title: `Leave ${community.name}?`,
-                  description:
-                    "You will lose access to this community. You can rejoin from Discover.",
-                  label: "Leave community",
-                  action: () => {
-                    setState((previous) => ({
-                      ...previous,
-                      communities: previous.communities.map((c) =>
-                        c.id === communityId ? { ...c, joined: false } : c,
-                      ),
-                    }));
-                    void navigate({ to: "/app/discover" });
-                    notify("You’ve left this corner. The door is always open.");
-                  },
-                })
-              }
-            >
-              Leave this community <AppIcon name="logout" size={16} />
-            </button>
+            {community.memberRoles?.you !== "Owner" && (
+              <>
+                <div
+                  data-ui="a-settings-divider"
+                  className="h-px bg-(--a-border) my-6.75"
+                />
+                <button
+                  data-ui="a-text-link danger-text"
+                  className="text-[#b8654b]! inline-flex items-center gap-1.75 text-[12px] font-[550] bg-transparent p-0 hover:text-(--a-orange)"
+                  onClick={() =>
+                    setModal({
+                      type: "confirm",
+                      title: `Leave ${community.name}?`,
+                      description:
+                        "You will lose access to this community. You can rejoin from Discover.",
+                      label: "Leave community",
+                      action: () => {
+                        setState((previous) => ({
+                          ...previous,
+                          communities: previous.communities.map((c) =>
+                            c.id === communityId
+                              ? { ...c, joined: false }
+                              : c,
+                          ),
+                        }));
+                        void navigate({ to: "/app/discover" });
+                        notify(
+                          "You’ve left this corner. The door is always open.",
+                        );
+                      },
+                    })
+                  }
+                >
+                  Leave this community <AppIcon name="logout" size={16} />
+                </button>
+              </>
+            )}
           </aside>
         </div>
       )}
@@ -280,29 +293,38 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
               </button>
             </div>
           </div>
-          {getChannelCategories(community).map((group) => (
+          {[
+            ...(community.channels.some(
+              (channel) => !getChannelGroup(channel),
+            )
+              ? [""]
+              : []),
+            ...getChannelCategories(community),
+          ].map((group) => (
             <section
-              data-ui="a-managed-category"
+              data-ui={group ? "a-managed-category" : "a-managed-channels-only"}
               className="mb-5.5"
-              key={group}
-              aria-label={group}
+              key={group || "uncategorized"}
+              aria-label={group || "Channels without a category"}
             >
-              <header
-                data-ui="a-managed-category-header"
-                className="flex items-center gap-2.5 py-2.75 px-3.5 border border-solid border-(--a-border) rounded-[7px] bg-(--a-soft) text-(--a-muted) [&_h3]:flex-1 [&_h3]:min-w-0 [&_h3]:wrap-anywhere [&_h3]:text-[12px] [&_h3]:tracking-[0.6px] [&_h3]:uppercase [&>svg]:shrink-0 [&>button]:shrink-0"
-              >
-                <AppIcon name="folder" size={18} />
-                <h3>{group}</h3>
-                <IconButton
-                  name="plus"
-                  label={`Create channel in ${group}`}
-                  onClick={() =>
-                    setModal({ type: "create-channel", communityId, group })
-                  }
-                />
-              </header>
+              {group && (
+                <header
+                  data-ui="a-managed-category-header"
+                  className="flex items-center gap-2.5 py-2.75 px-3.5 border border-solid border-(--a-border) rounded-[7px] bg-(--a-soft) text-(--a-muted) [&_h3]:flex-1 [&_h3]:min-w-0 [&_h3]:wrap-anywhere [&_h3]:text-[12px] [&_h3]:tracking-[0.6px] [&_h3]:uppercase [&>svg]:shrink-0 [&>button]:shrink-0"
+                >
+                  <AppIcon name="folder" size={18} />
+                  <h3>{group}</h3>
+                  <IconButton
+                    name="plus"
+                    label={`Create channel in ${group}`}
+                    onClick={() =>
+                      setModal({ type: "create-channel", communityId, group })
+                    }
+                  />
+                </header>
+              )}
               {!community.channels.some(
-                (channel) => channel.group === group,
+                (channel) => getChannelGroup(channel) === group,
               ) && (
                 <div
                   data-ui="a-managed-category-empty"
@@ -325,7 +347,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 className="[&_strong]:wrap-anywhere [&_strong]:block [&_strong]:font-[550] [&_strong]:text-[13px] [&>div]:flex [&>div]:items-center [&>div]:gap-3.75 [&>div]:py-4.75 [&>div]:px-0.5 [&>div]:[border-bottom-width:1px] [&>div]:[border-bottom-style:solid] [&>div]:border-b-(--a-border) [&>div>span:nth-child(2)]:flex-1 [&>div>span:nth-child(2)]:min-w-0 [&_small]:text-[9px] [&_small]:text-(--a-faint) [&_small]:font-normal [&_small]:ml-3.5 [&_p]:text-[11px] [&_p]:leading-[1.6] [&_p]:text-(--a-muted) [&_p]:mt-1.25 max-[1050px]:[&_small]:hidden max-[760px]:[&_p]:text-[12px] max-[480px]:[&>div]:gap-2.25 max-[480px]:**:data-[ui~=a-icon-button]:w-7 max-[480px]:[&_p]:text-[10px] max-[480px]:[&_strong]:text-[12px]"
               >
                 {community.channels
-                  .filter((channel) => channel.group === group)
+                  .filter((channel) => getChannelGroup(channel) === group)
                   .map((channel) => (
                     <div key={channel.id}>
                       <span
@@ -359,6 +381,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                             description:
                               "This channel and its messages will be deleted for everyone. This can’t be undone.",
                             label: "Delete channel",
+                            managedCommunityId: communityId,
                             action: () => {
                               setState((previous) => ({
                                 ...previous,
@@ -449,11 +472,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 >
                   {community.memberRoles?.[person.id] ?? "Member"}
                 </span>
-                {person.id !== "you" &&
-                  community.memberRoles?.[person.id] !== "Owner" &&
-                  ["Owner", "Admin"].includes(
-                    community.memberRoles?.you ?? "",
-                  ) && (
+                {canManageCommunityMember(community, person.id) && (
                     <>
                       <select
                         aria-label={`Role for ${person.name}`}
@@ -484,6 +503,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                             description:
                               "They will lose access to this community. Public communities can be rejoined.",
                             label: "Remove member",
+                            managedCommunityId: communityId,
                             action: () => {
                               void command({
                                 type: "member.remove",
