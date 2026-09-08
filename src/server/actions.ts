@@ -573,16 +573,20 @@ export async function mutate(db: Database, userId: string, action: Action) {
     case "conversation.read": {
       const c = await requireConversation(db, userId, action.conversation);
       if (c.kind === "dm" && c.dmStatus !== "accepted") break;
-      const readAt = new Date(
-        Math.min(new Date(action.through).getTime(), Date.now()),
+      const fallback = new Date(
+        Math.min(new Date(action.through).getTime() + 1, Date.now()),
       );
+      const readAt = sql<Date>`least(coalesce(
+        (select ${s.messages.createdAt} from ${s.messages} where ${s.messages.id} = ${action.messageId ?? ""} and ${s.messages.conversationId} = ${c.id}),
+        ${fallback.toISOString()}::timestamptz
+      ), now())`;
       await db
         .insert(s.readStates)
         .values({ userId, conversationId: c.id, readAt })
         .onConflictDoUpdate({
           target: [s.readStates.userId, s.readStates.conversationId],
           set: {
-            readAt: sql`greatest(${s.readStates.readAt}, ${readAt.toISOString()}::timestamptz)`,
+            readAt: sql`greatest(${s.readStates.readAt}, ${readAt})`,
           },
         });
       break;
