@@ -55,6 +55,7 @@ export type ModalState =
       description: string;
       label: string;
       action: () => void;
+      managedCommunityId?: string;
     }
   | null;
 const empty: AppState = {
