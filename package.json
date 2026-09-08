@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
     "db:seed": "tsx --env-file=.env scripts/seed.ts",
     "uploads:cleanup": "tsx --env-file=.env scripts/cleanup.ts",
     "start": "node --env-file-if-exists=.env --import ./instrument.server.mjs --import tsx scripts/server.ts"
