@@ -16,13 +16,19 @@ export async function markRead(
     requests: number | null;
   }>(sql`
     with allowed as materialized (select id, kind, dm_status from ${s.conversations} where ${s.conversations.id} = ${id} and ${conversationAccess(userId)}),
+    cursor as materialized (
+      select allowed.*, least(coalesce(
+        (select created_at from messages where id = ${action.messageId ?? ""} and conversation_id = allowed.id),
+        ${action.through}::timestamptz + interval '1 millisecond'
+      ), now()) as read_at from allowed
+    ),
     quota as (
       insert into request_limits (key, count) select ${`reads:${userId}`}, 1 from allowed
       on conflict (key) do update set count = case when request_limits.window_start < now() - interval '1 minute' then 1 else request_limits.count + 1 end,
         window_start = case when request_limits.window_start < now() - interval '1 minute' then now() else request_limits.window_start end returning count
     ), written as (
       insert into conversation_read_states (user_id, conversation_id, read_at)
-      select ${userId}, id, least(${action.through}::timestamptz, now()) from allowed, quota where quota.count <= 120 and (kind <> 'dm' or dm_status = 'accepted')
+      select ${userId}, id, read_at from cursor, quota where quota.count <= 120 and (kind <> 'dm' or dm_status = 'accepted')
       on conflict (user_id, conversation_id) do update set read_at = excluded.read_at
       where conversation_read_states.read_at < excluded.read_at
     ) select exists(select 1 from allowed) as allowed, (select count from quota) as requests
