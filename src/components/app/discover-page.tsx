@@ -8,6 +8,7 @@ import { ButtonLoader } from "../button-loader";
 import { usePostHog } from "@posthog/react";
 import { api, ApiError } from "../../lib/api-client";
 import type { AcceptedInvite, InvitePreview } from "../../types/invites";
+import { formatPageTitle } from "../../lib/page-title";
 
 export function DiscoverPage() {
   const { state, joinCommunity, setModal } = useApp();
@@ -252,6 +253,12 @@ export function InvitePage({ code }: { code: string }) {
       current = false;
     };
   }, [code]);
+  const browserTitle = invite
+    ? formatPageTitle(`Join ${invite.community.name}`)
+    : formatPageTitle(error ? "Invite unavailable" : "Opening invitation");
+  useEffect(() => {
+    document.title = browserTitle;
+  }, [browserTitle]);
   if (loading)
     return (
       <div
