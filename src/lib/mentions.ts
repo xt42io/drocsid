@@ -93,6 +93,49 @@ export function resolveMention(handle: string, targets: MentionTarget[]) {
   );
 }
 
+export type ComposerHighlightPart = {
+  kind: "text" | "mention" | "self-mention";
+  text: string;
+};
+
+export function composerHighlightParts(
+  text: string,
+  targets: MentionTarget[],
+  profile: Pick<Person, "id" | "handle">,
+): ComposerHighlightPart[] {
+  const parts: ComposerHighlightPart[] = [];
+  let offset = 0;
+  const excluded = Array.from(
+    text.matchAll(/```[\s\S]*?```|`[^`]*`|https?:\/\/\S+/g),
+    (match) => [match.index, match.index + match[0].length] as const,
+  );
+  const matches = text.matchAll(
+    /(?<![\p{L}\p{N}_@])@[\p{L}\p{N}_-]+/gu,
+  );
+  for (const match of matches) {
+    const index = match.index;
+    if (index > offset)
+      parts.push({ kind: "text", text: text.slice(offset, index) });
+    const target = excluded.some(
+      ([start, end]) => index >= start && index < end,
+    )
+      ? undefined
+      : resolveMention(match[0].slice(1), targets);
+    const self =
+      target?.kind === "person" &&
+      (target.key === profile.id ||
+        target.handle.toLowerCase() === profile.handle.toLowerCase());
+    parts.push({
+      kind: target ? (self ? "self-mention" : "mention") : "text",
+      text: match[0],
+    });
+    offset = index + match[0].length;
+  }
+  if (offset < text.length)
+    parts.push({ kind: "text", text: text.slice(offset) });
+  return parts.length ? parts : [{ kind: "text", text }];
+}
+
 function isInsideCode(text: string, caret: number) {
   const before = text.slice(0, caret);
   if ((before.match(/```/g)?.length ?? 0) % 2 !== 0) return true;
