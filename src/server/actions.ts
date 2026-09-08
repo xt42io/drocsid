@@ -112,7 +112,11 @@ export async function mutate(db: Database, userId: string, action: Action) {
         .from(s.communities)
         .where(eq(s.communities.id, action.id));
       if (!community) throw new HttpError(404, "Community not found.");
-      // All communities in the current product are discoverable and open to join.
+      if (!community.discoverable)
+        throw new HttpError(
+          403,
+          "This community can only be joined with an invite.",
+        );
       await db
         .insert(s.members)
         .values({ communityId: action.id, userId })
