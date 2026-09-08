@@ -4,6 +4,7 @@ import { useApp } from "../../lib/app-state";
 import { api } from "../../lib/api-client";
 import { uploadFile } from "../../lib/upload-file";
 import { PersonAvatar } from "./primitives";
+import { ButtonLoader } from "../button-loader";
 
 export function AvatarUpload({
   person,
@@ -15,7 +16,10 @@ export function AvatarUpload({
   const { refresh, notify } = useApp();
   const input = useRef<HTMLInputElement>(null);
   const operation = useRef<AbortController | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"upload" | "remove" | null>(
+    null,
+  );
+  const busy = busyAction !== null;
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   useEffect(() => () => operation.current?.abort(), []);
@@ -34,7 +38,7 @@ export function AvatarUpload({
     }
     const controller = new AbortController();
     operation.current = controller;
-    setBusy(true);
+    setBusyAction(file ? "upload" : "remove");
     onBusyChange?.(true);
     setProgress(0);
     let uploadId: string | undefined;
@@ -91,7 +95,7 @@ export function AvatarUpload({
         );
     } finally {
       operation.current = null;
-      setBusy(false);
+      setBusyAction(null);
       onBusyChange?.(false);
     }
   }
@@ -126,7 +130,13 @@ export function AvatarUpload({
           disabled={busy}
           onClick={() => input.current?.click()}
         >
-          {person.avatarUrl ? "Change photo" : "Upload photo"}
+          {busyAction === "upload" ? (
+            <ButtonLoader label="Uploading profile photo" />
+          ) : person.avatarUrl ? (
+            "Change photo"
+          ) : (
+            "Upload photo"
+          )}
         </button>
         {person.avatarUrl && (
           <button
@@ -136,7 +146,11 @@ export function AvatarUpload({
             disabled={busy}
             onClick={() => void change()}
           >
-            Remove photo
+            {busyAction === "remove" ? (
+              <ButtonLoader label="Removing profile photo" />
+            ) : (
+              "Remove photo"
+            )}
           </button>
         )}
       </div>
