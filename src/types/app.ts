@@ -109,8 +109,10 @@ export type AppState = {
 };
 
 export type DirectConversation = {
+  conversation: string;
   messagingBlocked: boolean;
   hasMessages: boolean;
+  unread: number;
   personId: string;
   status: "pending" | "accepted" | "declined";
   incoming: boolean;
