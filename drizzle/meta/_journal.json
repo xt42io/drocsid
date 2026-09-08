@@ -85,6 +85,13 @@
       "when": 1788859048000,
       "tag": "0011_remove_default_channel_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788874841000,
+      "tag": "0012_community_discoverability",
+      "breakpoints": true
     }
   ]
 }
