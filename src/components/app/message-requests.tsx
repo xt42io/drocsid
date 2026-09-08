@@ -5,7 +5,13 @@ import {
   incomingMessageRequests,
   dmMessagingBlocked,
 } from "../../lib/direct-messages";
-import { AppIcon, EmptyState, PageHeading, PersonAvatar } from "./primitives";
+import {
+  AppIcon,
+  EmptyState,
+  PageHeading,
+  PersonAvatar,
+} from "./primitives";
+import { ButtonLoader } from "../button-loader";
 
 export function MessageRequestActions({
   personId,
@@ -16,9 +22,12 @@ export function MessageRequestActions({
 }) {
   const { command, state } = useApp();
   const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
+  const [busyOperation, setBusyOperation] = useState<
+    "accept" | "decline" | "block" | null
+  >(null);
+  const busy = busyOperation !== null;
   async function respond(operation: "accept" | "decline" | "block") {
-    setBusy(true);
+    setBusyOperation(operation);
     try {
       const ok = await command(
         operation === "block"
@@ -30,7 +39,7 @@ export function MessageRequestActions({
       else if (ok && operation !== "accept")
         await navigate({ to: "/app/requests" });
     } finally {
-      setBusy(false);
+      setBusyOperation(null);
     }
   }
   if (dmMessagingBlocked(state, personId))
@@ -51,7 +60,11 @@ export function MessageRequestActions({
         onClick={() => void respond("accept")}
         className="rounded-md bg-(--a-orange) px-4 py-2 text-sm font-semibold text-[#462419] hover:brightness-110 disabled:opacity-45"
       >
-        Accept
+        {busyOperation === "accept" ? (
+          <ButtonLoader label="Accepting message request" />
+        ) : (
+          "Accept"
+        )}
       </button>
       <button
         type="button"
@@ -59,7 +72,11 @@ export function MessageRequestActions({
         onClick={() => void respond("decline")}
         className="rounded-md bg-(--a-hover) px-4 py-2 text-sm text-(--a-text) hover:brightness-110 disabled:opacity-45"
       >
-        Decline
+        {busyOperation === "decline" ? (
+          <ButtonLoader label="Declining message request" />
+        ) : (
+          "Decline"
+        )}
       </button>
       <button
         type="button"
@@ -67,7 +84,11 @@ export function MessageRequestActions({
         onClick={() => void respond("block")}
         className="rounded-md px-3 py-2 text-sm text-(--a-muted) hover:text-(--a-orange) disabled:opacity-45"
       >
-        Block
+        {busyOperation === "block" ? (
+          <ButtonLoader label="Blocking user" />
+        ) : (
+          "Block"
+        )}
       </button>
     </div>
   );
@@ -79,7 +100,6 @@ export function MessageRequestsPage() {
   return (
     <div className="h-full overflow-y-auto px-11 py-10 max-[760px]:px-5 max-[760px]:py-7">
       <PageHeading
-        eyebrow="YOU DECIDE WHO GETS IN"
         title="Message requests"
         description="Messages from people who aren’t your friends. Accept a request to start chatting."
       />
