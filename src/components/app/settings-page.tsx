@@ -75,7 +75,6 @@ export function SettingsPage({ section }: { section: string }) {
       className="h-full overflow-y-auto pt-10.75 pb-10 px-11 min-[1600px]:py-12 min-[1600px]:px-15 max-[1250px]:py-8.75 max-[1250px]:px-7.5 max-[760px]:pt-7 max-[760px]:pb-8 max-[760px]:px-6 max-[480px]:pt-6 max-[480px]:pb-8 max-[480px]:px-4.5"
     >
       <PageHeading
-        eyebrow="MAKE YOURSELF COMFORTABLE"
         title="A little more you."
         description="Your corner should feel like your corner."
       />
@@ -85,7 +84,7 @@ export function SettingsPage({ section }: { section: string }) {
       >
         <nav
           data-ui="a-settings-nav"
-          className="flex flex-col gap-1.25 [&>a]:flex [&>a]:items-center [&>a]:gap-2.25 [&>a]:py-2.75 [&>a]:px-2.5 [&>a]:rounded-md [&>a]:text-(--a-muted) [&>a]:text-[12px] [&>a[data-ui~=active]]:bg-(--a-selected) [&>a[data-ui~=active]]:text-(--a-green) [&>a[data-ui~=active]]:font-semibold [&>a:hover]:bg-(--a-hover) [&>span]:my-4.25 [&>span]:mx-2.5 [&>span]:text-[9px] [&>span]:leading-[1.8] [&>span]:text-(--a-faint) max-[1250px]:[&>a]:text-[11px] max-[1250px]:[&>a]:px-2 max-[1050px]:flex-row max-[1050px]:flex-wrap max-[1050px]:gap-1.75 max-[1050px]:[&>a]:text-[11px] max-[1050px]:[&>a]:py-2.25 max-[1050px]:[&>a]:px-2.75 max-[1050px]:[&>a]:border max-[1050px]:[&>a]:border-solid max-[1050px]:[&>a]:border-(--a-border) max-[1050px]:[&>span]:hidden max-[760px]:gap-1.75 max-[760px]:[&>a]:text-[11px] max-[480px]:gap-1.5 max-[480px]:[&>a]:text-[10px] max-[480px]:[&>a]:py-2 max-[480px]:[&>a]:px-2.25 max-[480px]:[&>a]:gap-1.5 max-[480px]:[&>a>svg]:w-3.75 max-[480px]:[&>a:last-of-type]:hidden"
+          className="flex flex-col gap-1.25 [&>a]:flex [&>a]:items-center [&>a]:gap-2.25 [&>a]:py-2.75 [&>a]:px-2.5 [&>a]:rounded-md [&>a]:text-(--a-muted) [&>a]:text-[12px] [&>a[data-ui~=active]]:bg-(--a-selected) [&>a[data-ui~=active]]:text-(--a-green) [&>a[data-ui~=active]]:font-semibold [&>a:hover]:bg-(--a-hover) max-[1250px]:[&>a]:text-[11px] max-[1250px]:[&>a]:px-2 max-[1050px]:flex-row max-[1050px]:flex-wrap max-[1050px]:gap-1.75 max-[1050px]:[&>a]:text-[11px] max-[1050px]:[&>a]:py-2.25 max-[1050px]:[&>a]:px-2.75 max-[1050px]:[&>a]:border max-[1050px]:[&>a]:border-solid max-[1050px]:[&>a]:border-(--a-border) max-[760px]:gap-1.75 max-[760px]:[&>a]:text-[11px] max-[480px]:gap-1.5 max-[480px]:[&>a]:text-[10px] max-[480px]:[&>a]:py-2 max-[480px]:[&>a]:px-2.25 max-[480px]:[&>a]:gap-1.5 max-[480px]:[&>a>svg]:w-3.75 max-[480px]:[&>a:last-of-type]:hidden"
           aria-label="Settings sections"
         >
           {sections.map((item) => (
@@ -104,6 +103,8 @@ export function SettingsPage({ section }: { section: string }) {
             className="h-px bg-(--a-border) my-3.75 mx-2.25 max-[1050px]:hidden"
           />
           <button
+            type="button"
+            className="flex w-full items-center gap-2.25 rounded-md bg-transparent px-2.5 py-2.75 text-left text-[12px] text-(--a-muted) hover:bg-(--a-hover) hover:text-(--a-text) max-[1250px]:px-2 max-[1250px]:text-[11px] max-[1050px]:w-auto max-[1050px]:border max-[1050px]:border-solid max-[1050px]:border-(--a-border) max-[1050px]:px-2.75 max-[1050px]:py-2.25 max-[480px]:gap-1.5 max-[480px]:px-2.25 max-[480px]:py-2 max-[480px]:text-[10px] max-[480px]:[&>svg]:w-3.75"
             onClick={async () => {
               try {
                 const result = await authClient.signOut();
@@ -121,11 +122,6 @@ export function SettingsPage({ section }: { section: string }) {
             <AppIcon name="logout" size={18} />
             Sign out
           </button>
-          <span>
-            Drocsid · made in the open
-            <br />
-            Early access
-          </span>
         </nav>
         <div data-ui="a-settings-content" className="min-w-0 max-w-205">
           {section === "profile" && (
@@ -290,14 +286,8 @@ export function SettingsPage({ section }: { section: string }) {
                 </div>
                 <div
                   data-ui="a-profile-preview"
-                  className="*:data-[ui~=a-eyebrow]:text-[8px] *:data-[ui~=a-eyebrow]:mb-3 *:data-[ui~=a-eyebrow]:tracking-[0.6px] [&>p]:text-(--a-faint) [&>p]:text-[11px] [&>p]:italic [&>p]:text-center [&>p]:mt-3.75 max-[760px]:**:data-[ui~=a-eyebrow]:text-[8px] max-[480px]:w-full max-[480px]:max-w-65 max-[480px]:-order-1 max-[480px]:self-center max-[480px]:*:data-[ui~=a-eyebrow]:hidden max-[480px]:[&>p]:hidden"
+                  className="[&>p]:text-(--a-faint) [&>p]:text-[11px] [&>p]:italic [&>p]:text-center [&>p]:mt-3.75 max-[480px]:w-full max-[480px]:max-w-65 max-[480px]:-order-1 max-[480px]:self-center max-[480px]:[&>p]:hidden"
                 >
-                  <span
-                    data-ui="a-eyebrow"
-                    className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
-                  >
-                    A LITTLE PREVIEW OF YOU
-                  </span>
                   <div
                     data-ui="a-profile-preview-card"
                     className="border border-solid border-(--a-border) rounded-[9px] bg-(--a-surface) overflow-hidden [&>div]:h-18.5 [&>div]:flex [&>div]:justify-end [&>div]:p-4.25 [&>div>svg]:opacity-60 [&>div>svg]:transform-[rotate(15deg)] [&_section]:relative [&_section]:pt-9.75 [&_section]:pb-5.75 [&_section]:px-4.25 **:data-[ui~=a-avatar]:absolute **:data-[ui~=a-avatar]:-top-7 **:data-[ui~=a-avatar]:border-[5px] **:data-[ui~=a-avatar]:border-solid **:data-[ui~=a-avatar]:border-(--a-surface) **:data-[ui~=a-avatar]:rounded-[25px] [&_[data-ui~=a-avatar]_[data-ui~=avatar]]:rounded-[17px] [&_[data-ui~=a-avatar]_[data-ui~=avatar]]:text-[21px] [&_[data-ui~=a-avatar]_[data-ui~=avatar]]:size-12.75 [&_h3]:text-[16px] [&_h3]:mt-0 [&_h3]:mb-1 [&_h3]:mx-0 [&_h3]:wrap-anywhere [&_section>span:not([data-ui~=a-avatar])]:text-(--a-faint) [&_section>span:not([data-ui~=a-avatar])]:text-[10px] [&_p]:text-[12px] [&_p]:leading-[1.8] [&_p]:my-3.75 [&_p]:whitespace-pre-wrap [&_p]:wrap-anywhere [&_section>small]:flex [&_section>small]:items-center [&_section>small]:gap-1.25 [&_section>small]:text-(--a-muted) [&_section>small]:text-[9px] [&_section>small]:leading-[1.6] max-[480px]:[&>div]:h-15.25 max-[480px]:[&_section]:pt-8.5 max-[480px]:[&_section]:pb-5 max-[480px]:[&_section]:px-4 max-[480px]:[&_h3]:text-[18px] max-[480px]:[&_p]:text-[12px] max-[480px]:[&_p]:my-3"
