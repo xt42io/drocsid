@@ -160,7 +160,7 @@ export async function snapshot(
       union select user_id from conversation_members where conversation_id in (select id from permitted where kind = 'dm')
     ), catalog as materialized (
       select id from communities where id in (select community_id from joined)
-      union select id from (select id from communities order by created_at, id limit 50) discovered
+      union select id from (select id from communities where discoverable order by created_at, id limit 50) discovered
     ), history as materialized (
       (select id from messages where ${limit} > 0 and conversation_id in (select id from permitted) and deleted_at is null order by created_at desc, id desc limit ${limit})
       union (select m.id from saved_messages v join messages m on m.id = v.message_id where ${limit} > 0 and v.user_id = ${userId} and m.conversation_id in (select id from permitted) and m.deleted_at is null order by m.created_at desc limit 500)
