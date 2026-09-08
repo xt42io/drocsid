@@ -29,10 +29,9 @@ const copy = {
     ),
   },
   "sign-up": {
-    eyebrow: "THERE’S ROOM FOR YOU HERE",
+    eyebrow: null,
     title: "Good to have you.",
-    description:
-      "Start with your email. You’ll set up your profile after verification.",
+    description: null,
     submit: "Send code",
     aside: (
       <>
@@ -224,7 +223,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                   </span>
                 )}
                 <h2>{content.title}</h2>
-                <p>{content.description}</p>
+                {content.description && <p>{content.description}</p>}
               </div>
               {
                 <>

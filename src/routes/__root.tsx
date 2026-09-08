@@ -8,6 +8,13 @@ import {
 import { PostHogProvider } from "@posthog/react";
 import stylesheet from "../styles.css?url";
 
+const postHogHost =
+  import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
+const postHogUiHost = postHogHost.replace(
+  /\.i\.posthog\.com(?=\/|$)/,
+  ".posthog.com",
+);
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -62,8 +69,8 @@ function Root() {
         <PostHogProvider
           apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ?? ""}
           options={{
-            api_host: "/ingest",
-            ui_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.posthog.com",
+            api_host: postHogHost,
+            ui_host: postHogUiHost,
             defaults: "2025-05-24",
             capture_exceptions: true,
             debug: import.meta.env.DEV,
