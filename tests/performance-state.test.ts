@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ActionQueue } from "../src/lib/action-scope";
-import { ReadReceipts } from "../src/lib/read-receipts";
+import {
+  persistReadReceipts,
+  ReadReceipts,
+} from "../src/lib/read-receipts";
 import { Drafts } from "../src/lib/drafts";
 import { selectionStore } from "../src/lib/selection-store";
 
@@ -80,6 +83,67 @@ test("read receipts coalesce bursts without delaying another conversation", asyn
   );
   assert.deepEqual(await Promise.all(actions), [true, true, true, true]);
   assert.deepEqual(sent.sort(), ["a:3", "b:1"]);
+});
+
+test("pending read receipts survive refresh as bounded keepalive requests", async () => {
+  const receipts = new ReadReceipts(60_000);
+  const waiting = [
+    receipts.enqueue(
+      { type: "conversation.read", conversation: "a", through: "1" },
+      async () => true,
+    ),
+    receipts.enqueue(
+      { type: "conversation.read", conversation: "a", through: "2" },
+      async () => true,
+    ),
+    receipts.enqueue(
+      { type: "conversation.read", conversation: "b", through: "1" },
+      async () => true,
+    ),
+  ];
+  assert.deepEqual(
+    receipts
+      .pending()
+      .map((read) => `${read.conversation}:${read.through}`)
+      .sort(),
+    ["a:2", "b:1"],
+  );
+
+  const requests: { path: string; init?: RequestInit }[] = [];
+  await Promise.all(
+    persistReadReceipts(receipts.pending(), async (path, init) => {
+      requests.push({ path: String(path), init });
+      return new Response(null, { status: 200 });
+    }),
+  );
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].path, "/api/app");
+  assert.equal(requests[0].init?.keepalive, true);
+  assert.equal(requests[0].init?.credentials, "same-origin");
+  assert.deepEqual(JSON.parse(String(requests[0].init?.body)), [
+    { type: "conversation.read", conversation: "a", through: "2" },
+    { type: "conversation.read", conversation: "b", through: "1" },
+  ]);
+  receipts.clear();
+  assert.deepEqual(await Promise.all(waiting), [false, false, false]);
+});
+
+test("an in-flight read cursor remains recoverable during page teardown", async () => {
+  const receipts = new ReadReceipts(0);
+  let finish!: (value: boolean) => void;
+  const sending = new Promise<boolean>((resolve) => {
+    finish = resolve;
+  });
+  const result = receipts.enqueue(
+    { type: "conversation.read", conversation: "a", through: "3" },
+    () => sending,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.deepEqual(receipts.pending(), [
+    { type: "conversation.read", conversation: "a", through: "3" },
+  ]);
+  finish(true);
+  assert.equal(await result, true);
 });
 
 test("selection store keeps action identities stable and delegates to current state", () => {
