@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
 import { usePostHog } from "@posthog/react";
@@ -13,6 +13,7 @@ import { Avatar, Icon, Logo } from "./ui";
 import { authClient } from "../lib/auth-client";
 import { EmailCodeForm, requestEmailCode } from "./email-code-form";
 import { ButtonLoader } from "./button-loader";
+import { formatPageTitle } from "../lib/page-title";
 
 type AuthMode = "sign-in" | "sign-up";
 type Errors = Partial<Record<"email", string>>;
@@ -57,6 +58,16 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
   const content = copy[mode];
   const signup = mode === "sign-up";
   const posthog = usePostHog();
+  const browserTitle = formatPageTitle(
+    codeStep
+      ? "Enter your verification code"
+      : signup
+        ? "Create your account"
+        : "Sign in",
+  );
+  useEffect(() => {
+    document.title = browserTitle;
+  }, [browserTitle]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
