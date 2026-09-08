@@ -13,6 +13,7 @@ import {
 } from "@floating-ui/react";
 import {
   channelAtCaret,
+  composerHighlightParts,
   conversationChannels,
   mentionAtCaret,
   mentionTargets,
@@ -30,6 +31,7 @@ type Props = Omit<ComponentProps<"textarea">, "value" | "onChange" | "ref"> & {
   onValueChange: (value: string) => void;
   conversation: string;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
+  highlightMentions?: boolean;
 };
 
 export function MentionTextarea({
@@ -38,6 +40,9 @@ export function MentionTextarea({
   conversation,
   textareaRef,
   onKeyDown,
+  onScroll,
+  className,
+  highlightMentions = false,
   ...props
 }: Props) {
   const { state, notify } = useApp();
@@ -45,6 +50,7 @@ export function MentionTextarea({
   const [activeIndex, setActiveIndex] = useState(0);
   const ignoredStart = useRef<number | null>(null);
   const completedToken = useRef("");
+  const highlightRef = useRef<HTMLDivElement | null>(null);
   const localRef = useRef<HTMLTextAreaElement | null>(null);
   const inputRef = textareaRef ?? localRef;
   const listId = useId();
@@ -65,6 +71,9 @@ export function MentionTextarea({
         }))
     : [];
   const selectedIndex = Math.min(activeIndex, Math.max(0, matches.length - 1));
+  const highlighted = highlightMentions
+    ? composerHighlightParts(value, targets, state.profile)
+    : [];
   function dismiss() {
     if (query) ignoredStart.current = query.start;
     completedToken.current = "";
@@ -165,73 +174,118 @@ export function MentionTextarea({
       inputRef.current?.setSelectionRange(caret, caret);
     });
   }
+  const input = (
+    <textarea
+      {...props}
+      {...getReferenceProps()}
+      data-ui="a-mention-input a-mention-surface"
+      className={`${className ?? ""} ${highlightMentions ? "relative z-1 text-transparent! caret-(--a-text) selection:bg-[#acb5ff55]" : ""}`}
+      ref={(node) => {
+        inputRef.current = node;
+        refs.setReference(node);
+      }}
+      value={value}
+      aria-autocomplete="list"
+      aria-controls={query ? listId : undefined}
+      aria-activedescendant={
+        query && matches.length ? `${listId}-${selectedIndex}` : undefined
+      }
+      onChange={(event) => {
+        if (
+          ignoredStart.current !== null &&
+          completedToken.current &&
+          !event.target.value
+            .slice(ignoredStart.current)
+            .startsWith(completedToken.current)
+        )
+          ignoredStart.current = null;
+        onValueChange(event.target.value);
+        updateQuery(event.currentTarget);
+      }}
+      onSelect={(event) => updateQuery(event.currentTarget)}
+      onBlur={(event) => {
+        setQuery(null);
+        props.onBlur?.(event);
+      }}
+      onScroll={(event) => {
+        if (highlightRef.current) {
+          highlightRef.current.scrollTop = event.currentTarget.scrollTop;
+          highlightRef.current.scrollLeft = event.currentTarget.scrollLeft;
+        }
+        onScroll?.(event);
+      }}
+      onKeyDown={(event) => {
+        if (event.nativeEvent.isComposing) return;
+        if (query) {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            dismiss();
+            return;
+          }
+          if (
+            (event.key === "ArrowDown" || event.key === "ArrowUp") &&
+            matches.length
+          ) {
+            event.preventDefault();
+            setActiveIndex(
+              (selectedIndex +
+                (event.key === "ArrowDown" ? 1 : -1) +
+                matches.length) %
+                matches.length,
+            );
+            return;
+          }
+          if (
+            (event.key === "Enter" || event.key === "Tab") &&
+            !event.shiftKey &&
+            matches.length
+          ) {
+            event.preventDefault();
+            select(matches[selectedIndex]);
+            return;
+          }
+        }
+        onKeyDown?.(event);
+      }}
+    />
+  );
   return (
     <>
-      <textarea
-        {...props}
-        {...getReferenceProps()}
-        ref={(node) => {
-          inputRef.current = node;
-          refs.setReference(node);
-        }}
-        value={value}
-        aria-autocomplete="list"
-        aria-controls={query ? listId : undefined}
-        aria-activedescendant={
-          query && matches.length ? `${listId}-${selectedIndex}` : undefined
-        }
-        onChange={(event) => {
-          if (
-            ignoredStart.current !== null &&
-            completedToken.current &&
-            !event.target.value
-              .slice(ignoredStart.current)
-              .startsWith(completedToken.current)
-          )
-            ignoredStart.current = null;
-          onValueChange(event.target.value);
-          updateQuery(event.currentTarget);
-        }}
-        onSelect={(event) => updateQuery(event.currentTarget)}
-        onBlur={(event) => {
-          setQuery(null);
-          props.onBlur?.(event);
-        }}
-        onKeyDown={(event) => {
-          if (event.nativeEvent.isComposing) return;
-          if (query) {
-            if (event.key === "Escape") {
-              event.preventDefault();
-              event.stopPropagation();
-              dismiss();
-              return;
-            }
-            if (
-              (event.key === "ArrowDown" || event.key === "ArrowUp") &&
-              matches.length
-            ) {
-              event.preventDefault();
-              setActiveIndex(
-                (selectedIndex +
-                  (event.key === "ArrowDown" ? 1 : -1) +
-                  matches.length) %
-                  matches.length,
-              );
-              return;
-            }
-            if (
-              (event.key === "Enter" || event.key === "Tab") &&
-              !event.shiftKey &&
-              matches.length
-            ) {
-              event.preventDefault();
-              select(matches[selectedIndex]);
-              return;
-            }
-          }
-          onKeyDown?.(event);
-        }}
-      />
+      {highlightMentions ? (
+        <div
+          data-ui="a-mention-editor"
+          className="relative w-full [&>[data-ui~=a-mention-surface]]:w-full [&>[data-ui~=a-mention-surface]]:min-h-7.25 [&>[data-ui~=a-mention-surface]]:max-h-40 [&>[data-ui~=a-mention-surface]]:pt-0 [&>[data-ui~=a-mention-surface]]:pb-1.25 [&>[data-ui~=a-mention-surface]]:px-0.5 [&>[data-ui~=a-mention-surface]]:text-(length:--a-font) [&>[data-ui~=a-mention-surface]]:leading-[1.6] [&>[data-ui~=a-mention-surface]]:wrap-anywhere [&>[data-ui~=a-mention-input]]:block [&>[data-ui~=a-mention-input]]:bg-transparent [&>[data-ui~=a-mention-input]]:border-0 [&>[data-ui~=a-mention-input]]:resize-none [&>[data-ui~=a-mention-input]]:rounded-none [&>[data-ui~=a-mention-input]]:shadow-none! max-[760px]:[&>[data-ui~=a-mention-surface]]:text-[16px] max-[760px]:[&>[data-ui~=a-mention-input]::placeholder]:text-[13px]"
+        >
+          <div
+            ref={highlightRef}
+            aria-hidden="true"
+            data-ui="a-mention-highlight-layer a-mention-surface"
+            className="absolute inset-0 overflow-hidden pointer-events-none whitespace-pre-wrap wrap-anywhere text-(--a-text) [&_mark]:rounded-[3px] [&_mark]:[box-decoration-break:clone] [&_mark]:[-webkit-box-decoration-break:clone] [&_mark]:bg-[#f4ded2] [&_mark]:text-[#954b32] [&_mark[data-ui~=a-self-mention]]:bg-[#ddd9ff] [&_mark[data-ui~=a-self-mention]]:text-[#5147b8] [[data-ui~=theme-dark]_&_mark]:bg-[#f45e3838] [[data-ui~=theme-dark]_&_mark]:text-[#ffb29c] [[data-ui~=theme-dark]_&_mark[data-ui~=a-self-mention]]:bg-[#6655d65c] [[data-ui~=theme-dark]_&_mark[data-ui~=a-self-mention]]:text-[#d7d1ff]"
+          >
+            {highlighted.map((part, index) =>
+              part.kind === "text" ? (
+                part.text
+              ) : (
+                <mark
+                  key={`${index}-${part.text}`}
+                  data-ui={
+                    part.kind === "self-mention"
+                      ? "a-draft-mention a-self-mention"
+                      : "a-draft-mention"
+                  }
+                >
+                  {part.text}
+                </mark>
+              ),
+            )}
+            {value.endsWith("\n") ? "\u200b" : null}
+          </div>
+          {input}
+        </div>
+      ) : (
+        input
+      )}
       {query && (
         <WorkspacePortal>
           <div
