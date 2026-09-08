@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, EmptyState, PageHeading } from "./primitives";
+import { ButtonLoader } from "../button-loader";
 import { usePostHog } from "@posthog/react";
 import { api, ApiError } from "../../lib/api-client";
 import type { AcceptedInvite, InvitePreview } from "../../types/invites";
@@ -14,6 +15,7 @@ export function DiscoverPage() {
   const posthog = usePostHog();
   const [category, setCategory] = useState("All corners");
   const [query, setQuery] = useState("");
+  const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
   const categories = [
     "All corners",
     "Design & making",
@@ -44,25 +46,22 @@ export function DiscoverPage() {
           disabled={directory.loading}
           onClick={directory.more}
         >
-          Load more communities
+          {directory.loading ? (
+            <ButtonLoader label="Loading more communities" />
+          ) : (
+            "Load more communities"
+          )}
         </button>
       )}
       <PageHeading
-        eyebrow="THE INTERNET CAN STILL FEEL SMALL"
         title="Find your kind of people."
         description="A place for every wonderfully specific interest."
       />
       <div
         data-ui="a-discover-hero"
-        className="flex items-center justify-between gap-8.75 py-8.5 px-9.5 mb-7.5 bg-[#eceee4] border border-solid border-[#dde2d0] rounded-[10px] overflow-hidden in-data-[ui~=theme-dark]:bg-(--a-soft) in-data-[ui~=theme-dark]:border-(--a-border) [&>div:first-child]:flex-1 [&>div:first-child]:max-w-120 [&_h2]:text-[34px] [&_h2]:leading-[1.12] [&_h2]:font-medium [&_h2]:text-(--a-green) [&_h2]:mt-3.25 [&_h2]:tracking-[-1.35px] [&_p]:text-[13px] [&_p]:leading-[1.8] [&_p]:text-(--a-muted) [&_p]:mt-3.5 [&_p]:mb-5 **:data-[ui~=a-search-field]:border-[#d6dec7] **:data-[ui~=a-search-field]:bg-[#fafbf5] **:data-[ui~=a-search-field]:max-w-91.25 [[data-ui~=theme-dark]_&_[data-ui~=a-search-field]]:bg-(--a-surface) [[data-ui~=theme-dark]_&_[data-ui~=a-search-field]]:border-(--a-border) max-[1250px]:p-7 max-[1250px]:gap-3.75 max-[1250px]:[&_h2]:text-[30px] max-[1050px]:p-6.25 max-[1050px]:[&_h2]:text-[27px] max-[1050px]:[&_p]:text-[12px] max-[1050px]:**:data-[ui~=a-search-field]:min-w-55 max-[760px]:[&_h2]:text-[31px] max-[760px]:[&_p]:text-[13px] max-[760px]:p-7 max-[760px]:gap-5 max-[760px]:**:data-[ui~=a-search-field]:min-w-0 max-[480px]:py-6.5 max-[480px]:px-5.75 max-[480px]:[&_h2]:text-[33px] max-[480px]:[&_p]:text-[13px] max-[480px]:[&_[data-ui~=a-search-field]_input]:text-[12px] max-[480px]:[&>div:first-child]:max-w-none max-[480px]:[&>div:first-child]:w-full"
+        className="flex items-center justify-between gap-8.75 py-8.5 px-9.5 mb-7.5 bg-[#eceee4] border border-solid border-[#dde2d0] rounded-[10px] overflow-hidden in-data-[ui~=theme-dark]:bg-(--a-soft) in-data-[ui~=theme-dark]:border-(--a-border) [&>div:first-child]:flex-1 [&>div:first-child]:max-w-120 [&_h2]:text-[34px] [&_h2]:leading-[1.12] [&_h2]:font-medium [&_h2]:text-(--a-green) [&_h2]:tracking-[-1.35px] [&_p]:text-[13px] [&_p]:leading-[1.8] [&_p]:text-(--a-muted) [&_p]:mt-3.5 [&_p]:mb-5 **:data-[ui~=a-search-field]:border-[#d6dec7] **:data-[ui~=a-search-field]:bg-[#fafbf5] **:data-[ui~=a-search-field]:max-w-91.25 [[data-ui~=theme-dark]_&_[data-ui~=a-search-field]]:bg-(--a-surface) [[data-ui~=theme-dark]_&_[data-ui~=a-search-field]]:border-(--a-border) max-[1250px]:p-7 max-[1250px]:gap-3.75 max-[1250px]:[&_h2]:text-[30px] max-[1050px]:p-6.25 max-[1050px]:[&_h2]:text-[27px] max-[1050px]:[&_p]:text-[12px] max-[1050px]:**:data-[ui~=a-search-field]:min-w-55 max-[760px]:[&_h2]:text-[31px] max-[760px]:[&_p]:text-[13px] max-[760px]:p-7 max-[760px]:gap-5 max-[760px]:**:data-[ui~=a-search-field]:min-w-0 max-[480px]:py-6.5 max-[480px]:px-5.75 max-[480px]:[&_h2]:text-[33px] max-[480px]:[&_p]:text-[13px] max-[480px]:[&_[data-ui~=a-search-field]_input]:text-[12px] max-[480px]:[&>div:first-child]:max-w-none max-[480px]:[&>div:first-child]:w-full"
       >
         <div>
-          <span
-            data-ui="a-eyebrow"
-            className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
-          >
-            OPEN DOORS. GOOD COMPANY.
-          </span>
           <h2>
             Somewhere in here,
             <br />
@@ -88,7 +87,7 @@ export function DiscoverPage() {
         </div>
         <div
           data-ui="a-discover-symbols"
-          className="relative shrink-0 w-63.75 h-57 [&>span]:flex [&>span]:items-center [&>span]:justify-center [&>span]:absolute [&>span]:w-20 [&>span]:h-20.5 [&>span]:rounded-[23px] [&>span]:shadow-[0_7px_16px_#3b541011] [&>span:nth-child(1)]:left-2.75 [&>span:nth-child(1)]:top-4.5 [&>span:nth-child(1)]:transform-[rotate(-15deg)] [&>span:nth-child(2)]:right-3.75 [&>span:nth-child(2)]:top-0 [&>span:nth-child(2)]:transform-[rotate(12deg)] [&>span:nth-child(3)]:left-10 [&>span:nth-child(3)]:bottom-6.75 [&>span:nth-child(3)]:w-25.25 [&>span:nth-child(3)]:h-26.75 [&>span:nth-child(3)]:transform-[rotate(8deg)] [&>span:nth-child(3)]:z-1 [&>span:nth-child(4)]:right-0.5 [&>span:nth-child(4)]:bottom-9.75 [&>span:nth-child(4)]:transform-[rotate(-8deg)] [&>i]:absolute [&>i]:-bottom-2.5 [&>i]:w-full [&>i]:text-center [&>i]:font-mono [&>i]:tracking-[1px] [&>i]:text-[7px] [&>i]:not-italic [&>i]:text-(--a-faint) max-[1250px]:w-56.25 max-[1250px]:transform-[scale(0.9)] max-[1250px]:-mr-3 max-[1050px]:w-41.25 max-[1050px]:transform-[scale(0.7)] max-[1050px]:-ml-3.75 max-[1050px]:-mr-5.5 max-[1050px]:origin-[left_center] max-[1050px]:[&>span:nth-child(2)]:-right-9.25 max-[1050px]:[&>span:nth-child(4)]:-right-12.5 max-[1050px]:[&>i]:w-57.5 max-[760px]:transform-[scale(0.8)] max-[760px]:mr-2.5 max-[480px]:hidden"
+          className="relative shrink-0 w-63.75 h-57 [&>span]:flex [&>span]:items-center [&>span]:justify-center [&>span]:absolute [&>span]:w-20 [&>span]:h-20.5 [&>span]:rounded-[23px] [&>span]:shadow-[0_7px_16px_#3b541011] [&>span:nth-child(1)]:left-2.75 [&>span:nth-child(1)]:top-4.5 [&>span:nth-child(1)]:transform-[rotate(-15deg)] [&>span:nth-child(2)]:right-3.75 [&>span:nth-child(2)]:top-0 [&>span:nth-child(2)]:transform-[rotate(12deg)] [&>span:nth-child(3)]:left-10 [&>span:nth-child(3)]:bottom-6.75 [&>span:nth-child(3)]:w-25.25 [&>span:nth-child(3)]:h-26.75 [&>span:nth-child(3)]:transform-[rotate(8deg)] [&>span:nth-child(3)]:z-1 [&>span:nth-child(4)]:right-0.5 [&>span:nth-child(4)]:bottom-9.75 [&>span:nth-child(4)]:transform-[rotate(-8deg)] max-[1250px]:w-56.25 max-[1250px]:transform-[scale(0.9)] max-[1250px]:-mr-3 max-[1050px]:w-41.25 max-[1050px]:transform-[scale(0.7)] max-[1050px]:-ml-3.75 max-[1050px]:-mr-5.5 max-[1050px]:origin-[left_center] max-[1050px]:[&>span:nth-child(2)]:-right-9.25 max-[1050px]:[&>span:nth-child(4)]:-right-12.5 max-[760px]:transform-[scale(0.8)] max-[760px]:mr-2.5 max-[480px]:hidden"
           aria-hidden="true"
         >
           <span data-ui="tone-purple" className="bg-[#e3dced] text-[#867296]">
@@ -103,7 +102,6 @@ export function DiscoverPage() {
           <span data-ui="tone-yellow" className="bg-[#eee1bb] text-[#9b8249]">
             <AppIcon name="coffee" size={40} />
           </span>
-          <i>THERE’S ROOM FOR YOU HERE.</i>
         </div>
       </div>
       <div
@@ -186,29 +184,48 @@ export function DiscoverPage() {
                 <button
                   data-ui={`a-button ${community.joined ? "secondary" : "primary"} small`}
                   className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=small]:min-h-7.75 data-[ui~=small]:py-1.5 data-[ui~=small]:px-2.75 data-[ui~=small]:text-[11px]! [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
+                  disabled={joiningCommunity !== null}
                   onClick={async () => {
-                    const joined = await joinCommunity(community.id);
-                    if (!joined) return;
-                    posthog.capture("community_joined", {
-                      community_id: community.id,
-                      community_category: community.category,
-                      member_count: community.members,
-                      source: "discover",
-                    });
-                    void navigate({
-                      to: "/app/community/$communityId/$channelId",
-                      params: {
-                        communityId: community.id,
-                        channelId:
-                          joined.channels.find((c) => c.id === "general")?.id ??
-                          joined.channels[0]?.id ??
-                          "general",
-                      },
-                    });
+                    setJoiningCommunity(community.id);
+                    try {
+                      const joined = await joinCommunity(community.id);
+                      if (!joined) return;
+                      posthog.capture("community_joined", {
+                        community_id: community.id,
+                        community_category: community.category,
+                        member_count: community.members,
+                        source: "discover",
+                      });
+                      void navigate({
+                        to: "/app/community/$communityId/$channelId",
+                        params: {
+                          communityId: community.id,
+                          channelId:
+                            joined.channels.find((c) => c.id === "general")
+                              ?.id ??
+                            joined.channels[0]?.id ??
+                            "general",
+                        },
+                      });
+                    } finally {
+                      setJoiningCommunity(null);
+                    }
                   }}
                 >
-                  {community.joined ? "Open" : "Join"}
-                  <AppIcon name="right" size={15} />
+                  {joiningCommunity === community.id ? (
+                    <ButtonLoader
+                      label={
+                        community.joined
+                          ? "Opening community"
+                          : "Joining community"
+                      }
+                    />
+                  ) : (
+                    <>
+                      {community.joined ? "Open" : "Join"}
+                      <AppIcon name="right" size={15} />
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -324,21 +341,14 @@ export function InvitePage({ code }: { code: string }) {
       >
         <div
           data-ui={`a-invitation-cover tone-${community.color}`}
-          className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] flex items-center justify-center flex-col gap-5.75 p-7.5 [&>svg]:transform-[rotate(-10deg)] [&>span]:font-mono [&>span]:text-[8px] [&>span]:tracking-[0.8px]"
+          className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] flex items-center justify-center p-7.5 [&>svg]:transform-[rotate(-10deg)]"
         >
           <CommunityIcon community={community} size={79} />
-          <span>A LITTLE CORNER. A LOT OF POSSIBILITY.</span>
         </div>
         <div
           data-ui="a-invitation-body"
-          className="text-center p-7.25 **:data-[ui~=a-eyebrow]:text-[8px] **:data-[ui~=a-eyebrow]:tracking-[0.75px] [&_h1]:text-[39px] [&_h1]:mt-3.75 [&_h1]:mb-4.25 [&_h2]:text-[19px] [&_h2]:mb-2.75 [&>p:not([data-ui~=a-form-footnote])]:text-(--a-muted) [&>p:not([data-ui~=a-form-footnote])]:text-[13px] [&>p:not([data-ui~=a-form-footnote])]:leading-[1.8] **:data-[ui~=a-form-footnote]:text-[10px]! **:data-[ui~=a-form-footnote]:mt-4 max-[480px]:py-6.75 max-[480px]:px-5.5 max-[480px]:[&_h1]:text-[38px] max-[480px]:**:data-[ui~=a-eyebrow]:text-[7px] max-[480px]:[&_h2]:text-[20px] max-[480px]:[&>p:not([data-ui~=a-form-footnote])]:text-[13px]"
+          className="text-center p-7.25 [&_h1]:text-[39px] [&_h1]:mb-4.25 [&_h2]:text-[19px] [&_h2]:mb-2.75 [&>p:not([data-ui~=a-form-footnote])]:text-(--a-muted) [&>p:not([data-ui~=a-form-footnote])]:text-[13px] [&>p:not([data-ui~=a-form-footnote])]:leading-[1.8] **:data-[ui~=a-form-footnote]:text-[10px]! **:data-[ui~=a-form-footnote]:mt-4 max-[480px]:py-6.75 max-[480px]:px-5.5 max-[480px]:[&_h1]:text-[38px] max-[480px]:[&_h2]:text-[20px] max-[480px]:[&>p:not([data-ui~=a-form-footnote])]:text-[13px]"
         >
-          <span
-            data-ui="a-eyebrow"
-            className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
-          >
-            THERE’S A SPOT WITH YOUR NAME ON IT
-          </span>
           <h1>You’re invited.</h1>
           <h2>{community.name}</h2>
           <p>{community.description}</p>
@@ -383,8 +393,13 @@ export function InvitePage({ code }: { code: string }) {
               }
             }}
           >
-            {joining ? "Making room…" : "Make yourself at home"}
-            <AppIcon name="right" size={18} />
+            {joining ? (
+              <ButtonLoader label="Joining community" />
+            ) : (
+              <>
+                Make yourself at home <AppIcon name="right" size={18} />
+              </>
+            )}
           </button>
           {error && (
             <p role="alert" className="mt-3 text-[11px]! text-[#ff776d]!">
