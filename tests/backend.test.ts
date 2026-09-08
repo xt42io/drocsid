@@ -1340,6 +1340,22 @@ test("channel writes commit in one query, preserve permissions and notify only c
       0,
       "Retrying the same channel must not invalidate or disconnect clients",
     );
+    const uncategorized = await putChannel(db, "owner", {
+      ...input,
+      channel: {
+        ...input.channel,
+        id: "uncategorized",
+        name: "uncategorized",
+        group: "",
+      },
+    });
+    assert.equal(uncategorized.channel.group, "");
+    const [storedUncategorized] = await db
+      .select({ categoryId: schema.conversations.categoryId })
+      .from(schema.conversations)
+      .where(eq(schema.conversations.id, `${room}:uncategorized`));
+    assert.equal(storedUncategorized.categoryId, null);
+    events.length = 0;
     for (const userId of ["member", "outsider"])
       await assert.rejects(
         () =>
