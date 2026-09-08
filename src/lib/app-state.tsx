@@ -596,11 +596,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [apply, execute],
   );
   const command = useCallback(
-    (action: Action) =>
-      action.type === "conversation.read"
-        ? readReceipts.current.enqueue(action, (latest) => execute([latest]))
-        : execute([action]),
-    [execute],
+    (action: Action) => {
+      if (action.type !== "conversation.read") return execute([action]);
+      apply(
+        applyLiveRead(
+          current.current,
+          action.conversation,
+          action.through,
+        ),
+      );
+      return readReceipts.current.enqueue(action, (latest) => execute([latest]));
+    },
+    [apply, execute],
   );
   const loadMessages = useCallback(
     (conversation: string, before?: string, target?: string) => {
