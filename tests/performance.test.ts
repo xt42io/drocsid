@@ -518,6 +518,24 @@ test("read updates use one statement, advance monotonically, and reject outsider
   } finally {
     await unlisten();
   }
+
+  const precise = await send({ text: "Microsecond read cursor" });
+  assert.ok(precise.message?.createdAt);
+  await markRead(db, "member", {
+    type: "conversation.read",
+    conversation: channel,
+    through: precise.message.createdAt,
+    messageId: precise.message.id,
+  });
+  const refreshed = await snapshot(db, { id: "member", name: "member" }, 0);
+  const unread = refreshed.communities
+    .find((community) => community.id === room)
+    ?.channels.find((item) => item.id === "general")?.unread;
+  assert.equal(
+    unread,
+    0,
+    "The exact database timestamp clears a message beyond JavaScript millisecond precision",
+  );
 });
 
 test("permission notifications identify the affected account or channel, while topic edits need no reauthorization", async () => {
