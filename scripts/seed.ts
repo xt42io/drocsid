@@ -36,13 +36,7 @@ await db.transaction(async (tx) => {
         id: "general",
         name: "general",
         description: "Say a little hello.",
-        group: "THE COMMON ROOM",
-      },
-      {
-        id: "introductions",
-        name: "introductions",
-        description: "Meet your people.",
-        group: "START HERE",
+        group: "",
       },
     ],
   });
