@@ -142,7 +142,7 @@ export function ChatPreview() {
     >
       <div
         data-ui="preview-titlebar"
-        className="h-9.5 py-0 px-4 bg-[#edeee7] [border-bottom-width:1px] [border-bottom-style:solid] border-b-[#daddd1] flex items-center justify-between font-mono text-[8px] tracking-[1px] text-[#7f8378] max-[800px]:[&>span:first-of-type]:text-[6px] max-[800px]:[&>span:first-of-type]:tracking-[0.5px] max-[580px]:h-7.5 max-[580px]:px-2.5 max-[580px]:[&>span:first-of-type]:hidden"
+        className="h-9.5 py-0 px-4 bg-[#edeee7] [border-bottom-width:1px] [border-bottom-style:solid] border-b-[#daddd1] flex items-center max-[580px]:h-7.5 max-[580px]:px-2.5"
       >
         <div
           data-ui="window-dots"
@@ -152,13 +152,6 @@ export function ChatPreview() {
           <i />
           <i />
         </div>
-        <span>GOOD PEOPLE, ONE LITTLE CORNER OF THE INTERNET.</span>
-        <span
-          data-ui="preview-label"
-          className="text-[8px] [&_span]:ml-1.5 max-[580px]:text-[7px]"
-        >
-          A SNEAK PEEK <span>↗</span>
-        </span>
       </div>
       <div
         data-ui="chat-app"
@@ -233,15 +226,8 @@ export function ChatPreview() {
             <Icon icon={ArrowDown01Icon} size={16} />
           </div>
           <div
-            data-ui="channel-group"
-            className="flex items-center justify-between font-mono text-[#919688] text-[8px] tracking-[1px] mt-3.75 mb-2.5 py-0 px-2"
-          >
-            <span>THE COMMON ROOM</span>
-            <Icon icon={Add01Icon} size={14} />
-          </div>
-          <div
             data-ui="channel-list"
-            className="flex flex-col gap-1 max-[580px]:flex-row max-[580px]:overflow-x-auto max-[580px]:gap-1 max-[580px]:p-0.5 max-[580px]:scrollbar-none max-[580px]:[&::-webkit-scrollbar]:hidden"
+            className="mt-3.75 flex flex-col gap-1 max-[580px]:flex-row max-[580px]:overflow-x-auto max-[580px]:gap-1 max-[580px]:p-0.5 max-[580px]:scrollbar-none max-[580px]:[&::-webkit-scrollbar]:hidden"
             aria-label="Preview channels"
           >
             {(Object.keys(conversations) as Channel[]).map((item) => (
