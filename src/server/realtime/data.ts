@@ -58,6 +58,7 @@ export async function liveMessages(
         and (c.dm_status <> 'declined' or c.dm_initiator_id = member.user_id)
     )
     select viewer.id as "userId", case when ${s.conversations.kind} = 'dm' then json_build_object(
+      'conversation', ${s.conversations.id},
       'personId', (select p.user_id from conversation_members p where p.conversation_id = ${s.conversations.id} and p.user_id <> ${userId} limit 1),
       'hasMessages', exists(select 1 from messages d where d.conversation_id = ${s.conversations.id} and d.deleted_at is null),
       'messagingBlocked', not (${dmUnblocked(userId)}),
@@ -96,7 +97,9 @@ export async function liveMessages(
       message: row.message,
       conversation: conversationId,
       unread: row.unread,
-      ...(row.dmConversation ? { dmConversation: row.dmConversation } : {}),
+      ...(row.dmConversation
+        ? { dmConversation: { ...row.dmConversation, unread: row.unread } }
+        : {}),
       ...(row.person ? { person: row.person } : {}),
     };
     return { userId: row.userId, frame };
