@@ -282,7 +282,9 @@ export async function snapshot(
     messages: await serializeMessages(db, userId, messageRows, allowed),
     dmConversations: directRows.map(
       ({ conversation: c, personId, hasMessages }) => ({
+        conversation: c.id,
         hasMessages,
+        unread: unread.find((row) => row.conversationId === c.id)?.count ?? 0,
         personId,
         status: c.dmStatus,
         incoming: c.dmInitiatorId !== userId,
