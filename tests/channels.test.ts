@@ -2,7 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   applyChannel,
+  createDefaultChannels,
   getChannelCategories,
+  getChannelGroup,
   showChannelWelcome,
 } from "../src/lib/channels";
 import type { AppState, Community, Channel, Message } from "../src/types/app";
@@ -52,6 +54,29 @@ test("confirmed channels are immediately navigable without a refresh and retries
   assert.equal(edited.communities[0].channels[0].description, "Changed");
   assert.equal(edited.communities[0].channels[0].unread, 4);
   assert.equal(state.communities[0].channels.length, 1);
+});
+
+test("new communities start with one uncategorized general channel", () => {
+  assert.deepEqual(createDefaultChannels(), [
+    {
+      id: "general",
+      hasMessages: false,
+      name: "general",
+      group: "",
+      description: "A place for a little bit of everything.",
+    },
+  ]);
+  const legacy = {
+    channelCategories: ["START HERE", "THE COMMON ROOM", "PROJECTS"],
+    channels: [
+      { id: "welcome", group: "START HERE" },
+      { id: "general", group: "THE COMMON ROOM" },
+      { id: "work", group: "PROJECTS" },
+    ],
+  } as Community;
+  assert.deepEqual(getChannelCategories(legacy), ["PROJECTS"]);
+  assert.equal(getChannelGroup(legacy.channels[0]), "");
+  assert.equal(getChannelGroup(legacy.channels[2]), "PROJECTS");
 });
 
 test("welcome is only for owners/admins in an unstarted general channel", () => {
