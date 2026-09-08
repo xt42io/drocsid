@@ -18,6 +18,29 @@ import { AppDialogs } from "./app-dialogs";
 import { usePostHog } from "@posthog/react";
 import { canManageCommunity as userCanManageCommunity } from "../../lib/community-permissions";
 
+function UnreadBadge({
+  count,
+  rail = false,
+}: {
+  count: number;
+  rail?: boolean;
+}) {
+  if (count < 1) return null;
+  return (
+    <span
+      data-ui={`a-unread-badge ${rail ? "rail" : ""}`}
+      className={
+        rail
+          ? "absolute -top-1.5 -right-1.5 z-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-(--a-rail) bg-(--a-orange) px-1 text-[9px] leading-none font-bold text-[#35150d]"
+          : "flex-none! inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-(--a-orange) px-1 text-[9px] leading-none font-bold text-[#35150d]"
+      }
+      aria-label={`${count} unread ${count === 1 ? "message" : "messages"}`}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export function AppShell() {
   const { state, setState, setModal, toast, findPerson, ready } = useApp();
   const { pathname } = useLocation();
@@ -46,6 +69,9 @@ export function AppShell() {
     pathname === "/app/welcome" || pathname.startsWith("/app/invite/");
   const unread = state.activities.filter((a) => !a.read).length;
   const dmPeople = normalDirectMessages(state);
+  const dmsByPerson = new Map(
+    state.dmConversations.map((direct) => [direct.personId, direct]),
+  );
   const requestCount = incomingMessageRequests(state).length;
   useEffect(() => setDrawer(false), [pathname]);
   useEffect(() => {
@@ -143,31 +169,40 @@ export function AppShell() {
               />
               {state.communities
                 .filter((c) => c.joined)
-                .map((c) => (
-                  <Link
-                    key={c.id}
-                    to="/app/community/$communityId/$channelId"
-                    params={{
-                      communityId: c.id,
-                      channelId: c.channels.some((ch) => ch.id === "general")
-                        ? "general"
-                        : (c.channels[0]?.id ?? "general"),
-                    }}
-                    title={c.name}
-                    aria-label={c.name}
-                    aria-current={community?.id === c.id ? "page" : undefined}
-                    data-ui={`a-community-icon tone-${c.color} ${community?.id === c.id ? "selected" : ""}`}
-                    className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl data-[ui~=selected]:[outline:1px_solid_#c48b61] data-[ui~=selected]:-outline-offset-2 [&[data-ui~=selected]::before]:[content:''] [&[data-ui~=selected]::before]:absolute [&[data-ui~=selected]::before]:-left-3.5 [&[data-ui~=selected]::before]:h-6 [&[data-ui~=selected]::before]:w-1 [&[data-ui~=selected]::before]:rounded-[0_4px_4px_0] [&[data-ui~=selected]::before]:bg-(--a-green) max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
-                  >
-                    <CommunityIcon community={c} size={25} />
-                    {c.id === "creative" && !community && (
-                      <span
-                        data-ui="a-rail-dot"
-                        className="rounded-full border-2 border-solid border-(--a-rail) bg-(--a-orange) absolute right-0 bottom-0.5 size-2"
-                      />
-                    )}
-                  </Link>
-                ))}
+                .map((c) => {
+                  const communityUnread = c.channels.reduce(
+                    (total, channel) => total + (channel.unread ?? 0),
+                    0,
+                  );
+                  return (
+                    <Link
+                      key={c.id}
+                      to="/app/community/$communityId/$channelId"
+                      params={{
+                        communityId: c.id,
+                        channelId: c.channels.some(
+                          (channel) => channel.id === "general",
+                        )
+                          ? "general"
+                          : (c.channels[0]?.id ?? "general"),
+                      }}
+                      title={c.name}
+                      aria-label={`${c.name}${
+                        communityUnread
+                          ? `, ${communityUnread} unread ${communityUnread === 1 ? "message" : "messages"}`
+                          : ""
+                      }`}
+                      aria-current={
+                        community?.id === c.id ? "page" : undefined
+                      }
+                      data-ui={`a-community-icon tone-${c.color} ${community?.id === c.id ? "selected" : ""}`}
+                      className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] hover:transform-[translateY(-2px)] hover:rounded-xl data-[ui~=selected]:[outline:1px_solid_#c48b61] data-[ui~=selected]:-outline-offset-2 [&[data-ui~=selected]::before]:[content:''] [&[data-ui~=selected]::before]:absolute [&[data-ui~=selected]::before]:-left-3.5 [&[data-ui~=selected]::before]:h-6 [&[data-ui~=selected]::before]:w-1 [&[data-ui~=selected]::before]:rounded-[0_4px_4px_0] [&[data-ui~=selected]::before]:bg-(--a-green) max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
+                    >
+                      <CommunityIcon community={c} size={25} />
+                      <UnreadBadge count={communityUnread} rail />
+                    </Link>
+                  );
+                })}
               <button
                 data-ui="a-community-icon a-create-community"
                 className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] bg-transparent text-(--a-green) size-11.5 border! border-dashed! border-[#aab994]! hover:transform-[translateY(-2px)] hover:rounded-xl in-data-[ui~=theme-dark]:border-(--a-border)! max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
@@ -465,14 +500,7 @@ export function AppShell() {
                               >
                                 <ChannelIcon channel={channel} size={19} />
                                 <span>{channel.name}</span>
-                                {!!channel.unread && (
-                                  <span
-                                    data-ui="a-count"
-                                    className="flex-none! inline-flex items-center justify-center bg-[#dde3d1] text-[#7c8b66] h-4.5 min-w-4.5 py-0 px-1 text-[10px] rounded-sm in-data-[ui~=theme-dark]:bg-(--a-selected) in-data-[ui~=theme-dark]:text-(--a-text)"
-                                  >
-                                    {channel.unread}
-                                  </span>
-                                )}
+                                <UnreadBadge count={channel.unread ?? 0} />
                               </Link>
                             ))}
                         </nav>
@@ -512,34 +540,38 @@ export function AppShell() {
                   className="[&>a:hover]:bg-(--a-hover) [&>a:hover]:text-(--a-text) [&>a[data-ui~=active]]:bg-(--a-selected) [&>a[data-ui~=active]]:text-(--a-green) [&>a[data-ui~=active]]:font-[650] [&>a]:flex [&>a]:items-center [&>a]:gap-2.25 [&>a]:min-h-12.75 [&>a]:py-1.75 [&>a]:px-2.25 [&>a]:rounded-md [&>a>span:nth-child(2)]:flex-1 [&>a>span:nth-child(2)]:min-w-0 [&_strong]:text-[12px] [&_strong]:font-[550] [&_strong]:block [&_small]:text-[9px] [&_small]:text-(--a-faint) [&_small]:block [&_small]:mt-0.75 [&_small]:truncate"
                   aria-label="Direct messages"
                 >
-                  {dmPeople.map((person) => (
-                    <Link
-                      key={person.id}
-                      to="/app/dm/$personId"
-                      params={{ personId: person.id }}
-                      data-ui={
-                        pathname === `/app/dm/${person.id}` ? "active" : ""
-                      }
-                    >
-                      <PersonAvatar person={person} presence />
-                      <span>
-                        <strong>{person.name.split(" ")[0]}</strong>
-                        <small>{person.activity}</small>
-                      </span>
-                      {person.id === "jamie" &&
-                        !state.messages.some(
-                          (m) =>
-                            m.conversation === "dm:jamie" &&
-                            m.time !== "Yesterday" &&
-                            m.author === "you",
-                        ) && (
-                          <i
-                            data-ui="a-unread-dot"
-                            className="rounded-full bg-[#df9774] size-1.5"
-                          />
-                        )}
-                    </Link>
-                  ))}
+                  {dmPeople.map((person) => {
+                    const direct = dmsByPerson.get(person.id);
+                    return (
+                      <Link
+                        key={person.id}
+                        to="/app/dm/$personId"
+                        params={{ personId: person.id }}
+                        data-ui={
+                          pathname === `/app/dm/${person.id}` ? "active" : ""
+                        }
+                        onClick={() => {
+                          if (!direct?.unread) return;
+                          setState((previous) => ({
+                            ...previous,
+                            dmConversations: previous.dmConversations.map(
+                              (dm) =>
+                                dm.personId === person.id
+                                  ? { ...dm, unread: 0 }
+                                  : dm,
+                            ),
+                          }));
+                        }}
+                      >
+                        <PersonAvatar person={person} presence />
+                        <span>
+                          <strong>{person.name.split(" ")[0]}</strong>
+                          <small>{person.activity}</small>
+                        </span>
+                        <UnreadBadge count={direct?.unread ?? 0} />
+                      </Link>
+                    );
+                  })}
                 </nav>
                 {!community && (
                   <Link
