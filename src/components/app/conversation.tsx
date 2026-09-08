@@ -14,6 +14,10 @@ import { useApp, useDraft } from "../../lib/app-state";
 import type { Message, Community, Person } from "../../types/app";
 import { personName } from "../../lib/people";
 import {
+  canManageCommunity,
+  canPinConversation,
+} from "../../lib/community-permissions";
+import {
   conversationChannels,
   isMentioned,
   mentionTargets,
@@ -32,6 +36,7 @@ import {
   IconButton,
   PersonAvatar,
 } from "./primitives";
+import { ButtonLoader } from "../button-loader";
 
 export function ConversationLink({
   conversation,
@@ -230,9 +235,7 @@ export function Conversation({
       </EmptyState>
     );
   const title = person?.name ?? channel!.name;
-  const canManage =
-    !!community &&
-    ["Owner", "Admin"].includes(community.memberRoles?.you ?? "");
+  const canManage = canManageCommunity(community);
   const welcome =
     !!community &&
     !!channel &&
@@ -259,15 +262,18 @@ export function Conversation({
             </button>
           ) : (
             <span data-ui="a-header-hash" className="flex text-(--a-muted)">
-              <button
-                type="button"
-                aria-label={canManage ? "Edit channel icon" : "Channel icon"}
-                disabled={!canManage}
-                className="inline-flex rounded-md p-1 enabled:hover:bg-(--a-hover)"
-                onClick={() => setEditingIcon(true)}
-              >
+              {canManage ? (
+                <button
+                  type="button"
+                  aria-label="Edit channel icon"
+                  className="inline-flex rounded-md p-1 hover:bg-(--a-hover)"
+                  onClick={() => setEditingIcon(true)}
+                >
+                  <ChannelIcon channel={channel!} size={25} />
+                </button>
+              ) : (
                 <ChannelIcon channel={channel!} size={25} />
-              </button>
+              )}
             </span>
           )}
           <div>
@@ -286,14 +292,20 @@ export function Conversation({
                   : person.activity}
               </span>
             ) : (
-              <button
-                data-ui="a-topic-button"
-                className="block max-w-full p-0 mt-1.25 bg-transparent text-(--a-muted) text-left truncate text-[11px]! hover:text-(--a-green) max-[760px]:text-[10px]! max-[760px]:max-w-57.5 max-[480px]:max-w-45 max-[480px]:text-[9px]!"
-                title="Edit channel topic"
-                onClick={() => setEditingTopic(true)}
-              >
-                {channel!.description}
-              </button>
+              canManage ? (
+                <button
+                  data-ui="a-topic-button"
+                  className="block max-w-full p-0 mt-1.25 bg-transparent text-(--a-muted) text-left truncate text-[11px]! hover:text-(--a-green) max-[760px]:text-[10px]! max-[760px]:max-w-57.5 max-[480px]:max-w-45 max-[480px]:text-[9px]!"
+                  title="Edit channel topic"
+                  onClick={() => setEditingTopic(true)}
+                >
+                  {channel!.description}
+                </button>
+              ) : (
+                <p className="max-w-full mt-1.25 text-(--a-muted) truncate text-[11px] max-[760px]:text-[10px] max-[760px]:max-w-57.5 max-[480px]:max-w-45 max-[480px]:text-[9px]">
+                  {channel!.description}
+                </p>
+              )
             )}
           </div>
         </div>
@@ -375,7 +387,11 @@ export function Conversation({
                   setLoadingHistory(false);
                 }}
               >
-                {loadingHistory ? "Loading…" : "Load earlier messages"}
+                {loadingHistory ? (
+                  <ButtonLoader label="Loading earlier messages" />
+                ) : (
+                  "Load earlier messages"
+                )}
               </button>
             )}
             {person ? (
@@ -587,7 +603,7 @@ export function Conversation({
           />
         )}
       </div>
-      {editingIcon && channel && community && (
+      {canManage && editingIcon && channel && community && (
         <ChannelIconEditor
           key={`${community.id}:${channel.id}`}
           communityId={community.id}
@@ -595,13 +611,13 @@ export function Conversation({
           onClose={() => setEditingIcon(false)}
         />
       )}
-      {editingCommunityIcon && community && (
+      {canManage && editingCommunityIcon && community && (
         <CommunityIconEditor
           community={community}
           onClose={() => setEditingCommunityIcon(false)}
         />
       )}
-      {editingTopic && channel && community && (
+      {canManage && editingTopic && channel && community && (
         <EditTopic
           name={channel.name}
           description={channel.description}
@@ -711,6 +727,7 @@ export const MessageCard = memo(function MessageCard({
     deleteMessage,
     retryMessage,
     notify,
+    canPin,
   } = useApp((app) => ({
     readOnly: dmReadOnly(app.state, message.conversation),
     author: app.findPerson(message.author),
@@ -728,6 +745,7 @@ export const MessageCard = memo(function MessageCard({
     deleteMessage: app.deleteMessage,
     retryMessage: app.retryMessage,
     notify: app.notify,
+    canPin: canPinConversation(app.state, message.conversation),
   }));
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(message.text);
@@ -1001,19 +1019,21 @@ export const MessageCard = memo(function MessageCard({
                   {message.saved ? "Remove from saved" : "Save for later"}
                 </button>
               </div>
-              <button
-                onClick={() => {
-                  updateMessage(message.id, { pinned: !message.pinned });
-                  notify(
-                    message.pinned
-                      ? "Message unpinned."
-                      : "Pinned to this conversation.",
-                  );
-                }}
-              >
-                <AppIcon name="pin" size={16} />
-                {message.pinned ? "Unpin message" : "Pin message"}
-              </button>
+              {canPin && (
+                <button
+                  onClick={() => {
+                    updateMessage(message.id, { pinned: !message.pinned });
+                    notify(
+                      message.pinned
+                        ? "Message unpinned."
+                        : "Pinned to this conversation.",
+                    );
+                  }}
+                >
+                  <AppIcon name="pin" size={16} />
+                  {message.pinned ? "Unpin message" : "Pin message"}
+                </button>
+              )}
               <button onClick={copy}>
                 <AppIcon name="copy" size={16} />
                 Copy text
@@ -1313,6 +1333,7 @@ function MemberPanel({
   onClose: () => void;
 }) {
   const { state, setModal, findPerson } = useApp();
+  const canManage = canManageCommunity(community);
   const members = [findPerson("you"), ...state.people]
     .filter(
       (person) =>
@@ -1391,28 +1412,29 @@ function MemberPanel({
           </div>
         ))}
       </div>
-      <div
-        data-ui="a-member-invite"
-        className="relative border border-solid border-[#dbe2cf] rounded-lg bg-[#edf0e5] mb-4.5 mx-4.25 pt-4.5 pb-3.75 px-3.75 overflow-hidden mt-auto shrink-0 in-data-[ui~=theme-dark]:bg-(--a-soft) in-data-[ui~=theme-dark]:border-(--a-border) [&>span]:font-mono [&>span]:text-[7px] [&>span]:tracking-[0.8px] [&>span]:text-[#95a17f] [&_h3]:text-[19px] [&_h3]:leading-[1.2] [&_h3]:font-medium [&_h3]:text-[#758461] [&_h3]:mt-2.5 [&_h3]:mb-4.75 [[data-ui~=theme-dark]_&_h3]:text-(--a-green) [&>svg]:absolute [&>svg]:top-6.25 [&>svg]:-right-2.5 [&>svg]:transform-[rotate(10deg)] [&>svg]:text-[#c4ceb2] **:data-[ui~=a-button]:text-[10px]! **:data-[ui~=a-button]:min-h-8.25 [[data-ui~=theme-dark]_&>span]:text-(--a-muted) [[data-ui~=theme-dark]_&>svg]:text-[#555555] max-[1250px]:mx-3 max-[760px]:mt-3.75"
-      >
-        <span>GOOD COMPANY GROWS.</span>
-        <h3>
-          There’s always
-          <br />
-          room for one more.
-        </h3>
-        <button
-          data-ui="a-button secondary full"
-          className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=full]:w-full [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
-          onClick={() =>
-            setModal({ type: "invite", communityId: community.id })
-          }
+      {canManage && (
+        <div
+          data-ui="a-member-invite"
+          className="relative border border-solid border-[#dbe2cf] rounded-lg bg-[#edf0e5] mb-4.5 mx-4.25 pt-4.5 pb-3.75 px-3.75 overflow-hidden mt-auto shrink-0 in-data-[ui~=theme-dark]:bg-(--a-soft) in-data-[ui~=theme-dark]:border-(--a-border) [&_h3]:text-[19px] [&_h3]:leading-[1.2] [&_h3]:font-medium [&_h3]:text-[#758461] [&_h3]:mb-4.75 [[data-ui~=theme-dark]_&_h3]:text-(--a-green) [&>svg]:absolute [&>svg]:top-6.25 [&>svg]:-right-2.5 [&>svg]:transform-[rotate(10deg)] [&>svg]:text-[#c4ceb2] **:data-[ui~=a-button]:text-[10px]! **:data-[ui~=a-button]:min-h-8.25 [[data-ui~=theme-dark]_&>svg]:text-[#555555] max-[1250px]:mx-3 max-[760px]:mt-3.75"
         >
-          <AppIcon name="userAdd" size={17} />
-          Invite a friend
-        </button>
-        <AppIcon name="sun" size={44} />
-      </div>
+          <h3>
+            There’s always
+            <br />
+            room for one more.
+          </h3>
+          <button
+            data-ui="a-button secondary full"
+            className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)! [&[data-ui~=secondary]:hover:not(:disabled)]:bg-(--a-hover) [&[data-ui~=secondary]:hover:not(:disabled)]:border-[#b8c2a8]! data-[ui~=full]:w-full [[data-ui~=theme-dark]_&[data-ui~=secondary]:hover:not(:disabled)]:border-[#626262]!"
+            onClick={() =>
+              setModal({ type: "invite", communityId: community.id })
+            }
+          >
+            <AppIcon name="userAdd" size={17} />
+            Invite a friend
+          </button>
+          <AppIcon name="sun" size={44} />
+        </div>
+      )}
     </aside>
   );
 }
