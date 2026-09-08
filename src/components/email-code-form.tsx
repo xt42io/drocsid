@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { authClient } from "../lib/auth-client";
 import { OtpInput } from "./otp-input";
 import { usePostHog } from "@posthog/react";
+import { ButtonLoader } from "./button-loader";
 
 export async function requestEmailCode(email: string) {
   return authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
@@ -37,10 +38,7 @@ export function EmailCodeForm({
   return (
     <div className="space-y-6">
       <header className="space-y-3">
-        <span className="font-mono text-[10px] tracking-widest text-[#707662]">
-          CHECK YOUR INBOX
-        </span>
-        <h2 className="text-4xl font-semibold tracking-tight">
+        <h2 className="mt-0 text-4xl font-semibold tracking-tight">
           Your code. Your space.
         </h2>
         <p className="text-sm leading-6 text-[#707662]">
@@ -125,13 +123,11 @@ export function EmailCodeForm({
           disabled={busy || resending}
           className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-orange px-5 py-3 text-sm font-semibold text-[#3e2118] hover:bg-[#ed724d] disabled:cursor-wait disabled:opacity-60"
         >
-          {busy && (
-            <span
-              aria-hidden="true"
-              className="size-4 rounded-full border-2 border-current border-t-transparent motion-safe:animate-spin"
-            />
+          {busy ? (
+            <ButtonLoader label="Verifying code" />
+          ) : (
+            "Verify & continue"
           )}
-          {busy ? "Checking…" : "Verify & continue"}
         </button>
       </form>
       <div className="space-y-4 text-center text-sm">
@@ -163,11 +159,13 @@ export function EmailCodeForm({
             }
           }}
         >
-          {resending
-            ? "Requesting code…"
-            : remaining > 0
-              ? `Resend code in ${remaining}s`
-              : "Resend code"}
+          {resending ? (
+            <ButtonLoader label="Requesting a new code" />
+          ) : remaining > 0 ? (
+            `Resend code in ${remaining}s`
+          ) : (
+            "Resend code"
+          )}
         </button>
         <div>
           <button
