@@ -196,6 +196,7 @@ function CreateCommunity() {
           iconUploadId: uploadedIcon?.id,
           color: "peach",
           category: "Your community",
+          discoverable: true,
           members: 1,
           memberIds: ["you"],
           memberRoles: { you: "Owner" },
