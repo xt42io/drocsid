@@ -27,3 +27,17 @@ export async function api<T>(
     );
   return data as T;
 }
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  const response = await fetch(path, {
+    method: "DELETE",
+    credentials: "same-origin",
+  });
+  const data = await response.json();
+  if (!response.ok)
+    throw new ApiError(
+      response.status,
+      data.error || data.message || "Something went wrong. Please try again.",
+    );
+  return data as T;
+}
