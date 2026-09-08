@@ -147,13 +147,13 @@ export function Conversation({
   }, [conversation, messageId, loadMessages]);
   const newest = allMessages
     .filter((m) => !m.sending && !m.sendError)
-    .at(-1)?.createdAt;
+    .at(-1);
   useEffect(() => {
     const mark = () => {
-      const key = `${conversation}:${newest}`;
+      const key = `${conversation}:${newest?.id ?? ""}:${newest?.createdAt ?? ""}`;
       if (
         (!personId || dm?.status === "accepted") &&
-        newest &&
+        newest?.createdAt &&
         lastRead.current !== key &&
         document.visibilityState === "visible"
       ) {
@@ -161,14 +161,15 @@ export function Conversation({
         void command({
           type: "conversation.read",
           conversation,
-          through: newest,
+          through: newest.createdAt,
+          messageId: newest.id,
         });
       }
     };
     mark();
     document.addEventListener("visibilitychange", mark);
     return () => document.removeEventListener("visibilitychange", mark);
-  }, [conversation, newest, command, personId, dm?.status]);
+  }, [conversation, newest?.id, newest?.createdAt, command, personId, dm?.status]);
   useEffect(() => {
     if (lastConversation.current !== conversation) {
       setPanel(personId || window.innerWidth <= 1050 ? null : "members");
