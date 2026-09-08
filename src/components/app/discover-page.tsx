@@ -13,22 +13,9 @@ export function DiscoverPage() {
   const { state, joinCommunity, setModal } = useApp();
   const navigate = useNavigate();
   const posthog = usePostHog();
-  const [category, setCategory] = useState("All corners");
   const [query, setQuery] = useState("");
   const [joiningCommunity, setJoiningCommunity] = useState<string | null>(null);
-  const categories = [
-    "All corners",
-    "Design & making",
-    "Technology",
-    "Life & hobbies",
-    "Books & culture",
-    "Gaming",
-  ];
-  const directory = useDirectory(
-    "communities",
-    query,
-    category === "All corners" ? undefined : category,
-  );
+  const directory = useDirectory("communities", query);
   const communities = (directory.communities ?? []).map(
     (community) =>
       state.communities.find((c) => c.id === community.id) ?? community,
@@ -105,31 +92,11 @@ export function DiscoverPage() {
         </div>
       </div>
       <div
-        data-ui="a-category-filters"
-        className="flex gap-2 flex-wrap mb-8.75 [&_button]:border! [&_button]:border-solid! [&_button]:border-(--a-border)! [&_button]:rounded-[20px] [&_button]:text-(--a-muted) [&_button]:bg-transparent [&_button]:py-2.25 [&_button]:px-3.5 [&_button]:text-[11px] [&_button[data-ui~=active]]:bg-(--a-text) [&_button[data-ui~=active]]:text-(--a-bg) [&_button[data-ui~=active]]:border-(--a-text)! [&_button:hover:not([data-ui~=active])]:bg-(--a-hover) max-[1050px]:[&_button]:text-[10px] max-[1050px]:[&_button]:py-2 max-[1050px]:[&_button]:px-3 max-[760px]:gap-1.75 max-[760px]:[&_button]:text-[11px] max-[480px]:mb-7 max-[480px]:[&_button]:text-[10px]"
-        aria-label="Filter communities"
-      >
-        {categories.map((item) => (
-          <button
-            key={item}
-            data-ui={category === item ? "active" : ""}
-            aria-pressed={category === item}
-            onClick={() => setCategory(item)}
-          >
-            {item}
-          </button>
-        ))}
-      </div>
-      <div
         data-ui="a-discover-heading"
         className="flex items-center justify-between gap-5 mb-4.75 [&_h2]:text-[21px] [&>span]:text-(--a-faint) [&>span]:text-[10px] max-[1050px]:[align-items:start] max-[1050px]:[&>span]:text-[9px] max-[1050px]:[&>span]:max-w-22.5 max-[1050px]:[&>span]:text-right max-[760px]:[&_h2]:text-[23px] max-[760px]:[&>span]:max-w-none max-[480px]:items-center max-[480px]:gap-3 max-[480px]:[&_h2]:text-[20px] max-[480px]:[&>span]:max-w-22 max-[480px]:[&>span]:text-[8px]"
       >
         <h2>
-          {query
-            ? "A few corners to explore."
-            : category === "All corners"
-              ? "Good places to start."
-              : category}
+          {query ? "A few corners to explore." : "Good places to start."}
         </h2>
         <span>
           {communities.length}{" "}
@@ -151,18 +118,11 @@ export function DiscoverPage() {
               data-ui={`a-community-card-cover tone-${community.color}`}
               className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] h-39.25 flex items-center justify-center relative overflow-hidden [&>svg]:transform-[rotate(-13deg)] [&>svg]:opacity-67 [&>span]:absolute [&>span]:left-3.75 [&>span]:top-3.25 [&>span]:font-mono [&>span]:text-[7px] [&>span]:tracking-[0.6px] [&>span]:opacity-75 [&>i]:flex [&>i]:items-center [&>i]:gap-1 [&>i]:absolute [&>i]:right-2.75 [&>i]:bottom-2.75 [&>i]:text-[7px] [&>i]:not-italic [&>i]:font-mono [&>i]:tracking-[0.5px] [&>i]:bg-[#fff9] [&>i]:rounded-sm [&>i]:py-1.25 [&>i]:px-1.75 min-[1600px]:h-43.75 max-[480px]:h-39 max-[480px]:[&>span]:text-[8px] max-[480px]:[&>span]:left-5 max-[480px]:[&>span]:top-4.25 max-[480px]:[&>i]:text-[8px] max-[480px]:[&>i]:right-4 max-[480px]:[&>i]:bottom-4"
             >
-              <span>{community.category.toUpperCase()}</span>
+              {community.category.toLowerCase() !== "your community" && (
+                <span>{community.category.toUpperCase()}</span>
+              )}
               <CommunityIcon community={community} size={74} />
-              <i>
-                {community.joined ? (
-                  <>
-                    <AppIcon name="check" size={13} />
-                    YOUR CORNER
-                  </>
-                ) : (
-                  "OPEN DOOR"
-                )}
-              </i>
+              {!community.joined && <i>OPEN DOOR</i>}
             </div>
             <div
               data-ui="a-community-card-body"
