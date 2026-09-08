@@ -19,6 +19,7 @@ import { Route as ApiAppRouteImport } from './routes/api.app'
 import { Route as ApiAvatarsRouteImport } from './routes/api.avatars'
 import { Route as ApiCommunityIconsRouteImport } from './routes/api.community-icons'
 import { Route as ApiDirectoryRouteImport } from './routes/api.directory'
+import { Route as ApiInvitesRouteImport } from './routes/api.invites'
 import { Route as ApiMessagesRouteImport } from './routes/api.messages'
 import { Route as ApiReactionsRouteImport } from './routes/api.reactions'
 import { Route as ApiSessionRouteImport } from './routes/api.session'
@@ -33,13 +34,14 @@ import { Route as AppSavedRouteImport } from './routes/app.saved'
 import { Route as AppSearchRouteImport } from './routes/app.search'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppWelcomeRouteImport } from './routes/app.welcome'
+import { Route as InviteCodeRouteImport } from './routes/invite.$code'
 import { Route as ApiAppSyncRouteImport } from './routes/api.app.sync'
 import { Route as ApiAttachmentsIdRouteImport } from './routes/api.attachments.$id'
 import { Route as ApiAuthSplatRouteImport } from './routes/api.auth.$'
 import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
 import { Route as ApiCommunityIconsIdRouteImport } from './routes/api.community-icons.$id'
+import { Route as ApiInvitesCodeRouteImport } from './routes/api.invites.$code'
 import { Route as AppDmPersonIdRouteImport } from './routes/app.dm.$personId'
-import { Route as AppInviteCommunityIdRouteImport } from './routes/app.invite.$communityId'
 import { Route as AppCommunityCommunityIdChannelIdRouteImport } from './routes/app.community.$communityId.$channelId'
 import { Route as AppCommunityCommunityIdSettingsRouteImport } from './routes/app.community.$communityId.settings'
 
@@ -91,6 +93,11 @@ const ApiCommunityIconsRoute = ApiCommunityIconsRouteImport.update({
 const ApiDirectoryRoute = ApiDirectoryRouteImport.update({
   id: '/api/directory',
   path: '/api/directory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInvitesRoute = ApiInvitesRouteImport.update({
+  id: '/api/invites',
+  path: '/api/invites',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMessagesRoute = ApiMessagesRouteImport.update({
@@ -163,6 +170,11 @@ const AppWelcomeRoute = AppWelcomeRouteImport.update({
   path: '/welcome',
   getParentRoute: () => AppRoute,
 } as any)
+const InviteCodeRoute = InviteCodeRouteImport.update({
+  id: '/invite/$code',
+  path: '/invite/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAppSyncRoute = ApiAppSyncRouteImport.update({
   id: '/sync',
   path: '/sync',
@@ -188,14 +200,14 @@ const ApiCommunityIconsIdRoute = ApiCommunityIconsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ApiCommunityIconsRoute,
 } as any)
+const ApiInvitesCodeRoute = ApiInvitesCodeRouteImport.update({
+  id: '/$code',
+  path: '/$code',
+  getParentRoute: () => ApiInvitesRoute,
+} as any)
 const AppDmPersonIdRoute = AppDmPersonIdRouteImport.update({
   id: '/dm/$personId',
   path: '/dm/$personId',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInviteCommunityIdRoute = AppInviteCommunityIdRouteImport.update({
-  id: '/invite/$communityId',
-  path: '/invite/$communityId',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCommunityCommunityIdChannelIdRoute =
@@ -222,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
   '/api/directory': typeof ApiDirectoryRoute
+  '/api/invites': typeof ApiInvitesRouteWithChildren
   '/api/messages': typeof ApiMessagesRoute
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
@@ -235,14 +248,15 @@ export interface FileRoutesByFullPath {
   '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/app/': typeof AppIndexRoute
   '/api/app/sync': typeof ApiAppSyncRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
+  '/api/invites/$code': typeof ApiInvitesCodeRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
-  '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
   '/app/community/$communityId/settings': typeof AppCommunityCommunityIdSettingsRoute
 }
@@ -256,6 +270,7 @@ export interface FileRoutesByTo {
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
   '/api/directory': typeof ApiDirectoryRoute
+  '/api/invites': typeof ApiInvitesRouteWithChildren
   '/api/messages': typeof ApiMessagesRoute
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
@@ -269,14 +284,15 @@ export interface FileRoutesByTo {
   '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/app': typeof AppIndexRoute
   '/api/app/sync': typeof ApiAppSyncRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
+  '/api/invites/$code': typeof ApiInvitesCodeRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
-  '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
   '/app/community/$communityId/settings': typeof AppCommunityCommunityIdSettingsRoute
 }
@@ -292,6 +308,7 @@ export interface FileRoutesById {
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
   '/api/directory': typeof ApiDirectoryRoute
+  '/api/invites': typeof ApiInvitesRouteWithChildren
   '/api/messages': typeof ApiMessagesRoute
   '/api/reactions': typeof ApiReactionsRoute
   '/api/session': typeof ApiSessionRoute
@@ -305,14 +322,15 @@ export interface FileRoutesById {
   '/app/search': typeof AppSearchRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/welcome': typeof AppWelcomeRoute
+  '/invite/$code': typeof InviteCodeRoute
   '/app/': typeof AppIndexRoute
   '/api/app/sync': typeof ApiAppSyncRoute
   '/api/attachments/$id': typeof ApiAttachmentsIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
+  '/api/invites/$code': typeof ApiInvitesCodeRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
-  '/app/invite/$communityId': typeof AppInviteCommunityIdRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
   '/app/community/$communityId/settings': typeof AppCommunityCommunityIdSettingsRoute
 }
@@ -329,6 +347,7 @@ export interface FileRouteTypes {
     | '/api/avatars'
     | '/api/community-icons'
     | '/api/directory'
+    | '/api/invites'
     | '/api/messages'
     | '/api/reactions'
     | '/api/session'
@@ -342,14 +361,15 @@ export interface FileRouteTypes {
     | '/app/search'
     | '/app/settings'
     | '/app/welcome'
+    | '/invite/$code'
     | '/app/'
     | '/api/app/sync'
     | '/api/attachments/$id'
     | '/api/auth/$'
     | '/api/avatars/$id'
     | '/api/community-icons/$id'
+    | '/api/invites/$code'
     | '/app/dm/$personId'
-    | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
     | '/app/community/$communityId/settings'
   fileRoutesByTo: FileRoutesByTo
@@ -363,6 +383,7 @@ export interface FileRouteTypes {
     | '/api/avatars'
     | '/api/community-icons'
     | '/api/directory'
+    | '/api/invites'
     | '/api/messages'
     | '/api/reactions'
     | '/api/session'
@@ -376,14 +397,15 @@ export interface FileRouteTypes {
     | '/app/search'
     | '/app/settings'
     | '/app/welcome'
+    | '/invite/$code'
     | '/app'
     | '/api/app/sync'
     | '/api/attachments/$id'
     | '/api/auth/$'
     | '/api/avatars/$id'
     | '/api/community-icons/$id'
+    | '/api/invites/$code'
     | '/app/dm/$personId'
-    | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
     | '/app/community/$communityId/settings'
   id:
@@ -398,6 +420,7 @@ export interface FileRouteTypes {
     | '/api/avatars'
     | '/api/community-icons'
     | '/api/directory'
+    | '/api/invites'
     | '/api/messages'
     | '/api/reactions'
     | '/api/session'
@@ -411,14 +434,15 @@ export interface FileRouteTypes {
     | '/app/search'
     | '/app/settings'
     | '/app/welcome'
+    | '/invite/$code'
     | '/app/'
     | '/api/app/sync'
     | '/api/attachments/$id'
     | '/api/auth/$'
     | '/api/avatars/$id'
     | '/api/community-icons/$id'
+    | '/api/invites/$code'
     | '/app/dm/$personId'
-    | '/app/invite/$communityId'
     | '/app/community/$communityId/$channelId'
     | '/app/community/$communityId/settings'
   fileRoutesById: FileRoutesById
@@ -434,11 +458,13 @@ export interface RootRouteChildren {
   ApiAvatarsRoute: typeof ApiAvatarsRouteWithChildren
   ApiCommunityIconsRoute: typeof ApiCommunityIconsRouteWithChildren
   ApiDirectoryRoute: typeof ApiDirectoryRoute
+  ApiInvitesRoute: typeof ApiInvitesRouteWithChildren
   ApiMessagesRoute: typeof ApiMessagesRoute
   ApiReactionsRoute: typeof ApiReactionsRoute
   ApiSessionRoute: typeof ApiSessionRoute
   ApiUploadsRoute: typeof ApiUploadsRoute
   ApiUsernameRoute: typeof ApiUsernameRoute
+  InviteCodeRoute: typeof InviteCodeRoute
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -513,6 +539,13 @@ declare module '@tanstack/react-router' {
       path: '/api/directory'
       fullPath: '/api/directory'
       preLoaderRoute: typeof ApiDirectoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/invites': {
+      id: '/api/invites'
+      path: '/api/invites'
+      fullPath: '/api/invites'
+      preLoaderRoute: typeof ApiInvitesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/messages': {
@@ -613,6 +646,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWelcomeRouteImport
       parentRoute: typeof AppRoute
     }
+    '/invite/$code': {
+      id: '/invite/$code'
+      path: '/invite/$code'
+      fullPath: '/invite/$code'
+      preLoaderRoute: typeof InviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/app/sync': {
       id: '/api/app/sync'
       path: '/sync'
@@ -648,18 +688,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCommunityIconsIdRouteImport
       parentRoute: typeof ApiCommunityIconsRoute
     }
+    '/api/invites/$code': {
+      id: '/api/invites/$code'
+      path: '/$code'
+      fullPath: '/api/invites/$code'
+      preLoaderRoute: typeof ApiInvitesCodeRouteImport
+      parentRoute: typeof ApiInvitesRoute
+    }
     '/app/dm/$personId': {
       id: '/app/dm/$personId'
       path: '/dm/$personId'
       fullPath: '/app/dm/$personId'
       preLoaderRoute: typeof AppDmPersonIdRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/invite/$communityId': {
-      id: '/app/invite/$communityId'
-      path: '/invite/$communityId'
-      fullPath: '/app/invite/$communityId'
-      preLoaderRoute: typeof AppInviteCommunityIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/community/$communityId/$channelId': {
@@ -690,7 +730,6 @@ interface AppRouteChildren {
   AppWelcomeRoute: typeof AppWelcomeRoute
   AppIndexRoute: typeof AppIndexRoute
   AppDmPersonIdRoute: typeof AppDmPersonIdRoute
-  AppInviteCommunityIdRoute: typeof AppInviteCommunityIdRoute
   AppCommunityCommunityIdChannelIdRoute: typeof AppCommunityCommunityIdChannelIdRoute
   AppCommunityCommunityIdSettingsRoute: typeof AppCommunityCommunityIdSettingsRoute
 }
@@ -706,7 +745,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppWelcomeRoute: AppWelcomeRoute,
   AppIndexRoute: AppIndexRoute,
   AppDmPersonIdRoute: AppDmPersonIdRoute,
-  AppInviteCommunityIdRoute: AppInviteCommunityIdRoute,
   AppCommunityCommunityIdChannelIdRoute: AppCommunityCommunityIdChannelIdRoute,
   AppCommunityCommunityIdSettingsRoute: AppCommunityCommunityIdSettingsRoute,
 }
@@ -747,6 +785,18 @@ const ApiCommunityIconsRouteChildren: ApiCommunityIconsRouteChildren = {
 const ApiCommunityIconsRouteWithChildren =
   ApiCommunityIconsRoute._addFileChildren(ApiCommunityIconsRouteChildren)
 
+interface ApiInvitesRouteChildren {
+  ApiInvitesCodeRoute: typeof ApiInvitesCodeRoute
+}
+
+const ApiInvitesRouteChildren: ApiInvitesRouteChildren = {
+  ApiInvitesCodeRoute: ApiInvitesCodeRoute,
+}
+
+const ApiInvitesRouteWithChildren = ApiInvitesRoute._addFileChildren(
+  ApiInvitesRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
@@ -758,11 +808,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAvatarsRoute: ApiAvatarsRouteWithChildren,
   ApiCommunityIconsRoute: ApiCommunityIconsRouteWithChildren,
   ApiDirectoryRoute: ApiDirectoryRoute,
+  ApiInvitesRoute: ApiInvitesRouteWithChildren,
   ApiMessagesRoute: ApiMessagesRoute,
   ApiReactionsRoute: ApiReactionsRoute,
   ApiSessionRoute: ApiSessionRoute,
   ApiUploadsRoute: ApiUploadsRoute,
   ApiUsernameRoute: ApiUsernameRoute,
+  InviteCodeRoute: InviteCodeRoute,
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
