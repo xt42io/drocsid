@@ -18,6 +18,7 @@ import {
   IconButton,
   PageHeading,
   PersonAvatar,
+  Toggle,
 } from "./primitives";
 export function CommunitySettings({ communityId }: { communityId: string }) {
   const { state, setState, setModal, notify, command } = useApp();
@@ -27,12 +28,16 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
   const [tab, setTab] = useState("overview");
   const [name, setName] = useState(community?.name ?? "");
   const [description, setDescription] = useState(community?.description ?? "");
+  const [discoverable, setDiscoverable] = useState(
+    community?.discoverable ?? true,
+  );
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
     setName(community?.name ?? "");
     setDescription(community?.description ?? "");
-  }, [community?.name, community?.description]);
+    setDiscoverable(community?.discoverable ?? true);
+  }, [community?.name, community?.description, community?.discoverable]);
   if (!community || !community.joined || !canManage)
     return (
       <EmptyState
@@ -110,6 +115,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                         ...c,
                         name: name.trim(),
                         description: description.trim(),
+                        discoverable,
                       }
                     : c,
                 ),
@@ -176,6 +182,12 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 ))}
               </select>
             </label>
+            <Toggle
+              checked={discoverable}
+              onChange={setDiscoverable}
+              label="Show in Discover"
+              description="When this is off, members can still open the community, and new people can join through a valid invite link."
+            />
             {error && (
               <p
                 role="alert"
@@ -227,8 +239,9 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                     setModal({
                       type: "confirm",
                       title: `Leave ${community.name}?`,
-                      description:
-                        "You will lose access to this community. You can rejoin from Discover.",
+                      description: community.discoverable
+                        ? "You will lose access to this community. You can rejoin from Discover."
+                        : "You will lose access to this community. You’ll need a valid invite link to rejoin.",
                       label: "Leave community",
                       action: () => {
                         setState((previous) => ({
@@ -240,9 +253,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                           ),
                         }));
                         void navigate({ to: "/app/discover" });
-                        notify(
-                          "You’ve left this corner. The door is always open.",
-                        );
+                        notify("You’ve left this corner.");
                       },
                     })
                   }
