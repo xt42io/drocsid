@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import { conversationLabel } from "../../lib/conversations";
-import { AppIcon, EmptyState, PageHeading, PersonAvatar } from "./primitives";
+import {
+  AppIcon,
+  EmptyState,
+  PageHeading,
+  PersonAvatar,
+} from "./primitives";
+import { ButtonLoader } from "../button-loader";
 import { ConversationLink } from "./conversation";
 import { api } from "../../lib/api-client";
 import type { Message } from "../../types/app";
@@ -81,7 +87,6 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
       className="h-full overflow-y-auto pt-10.75 pb-10 px-11 min-[1600px]:py-12 min-[1600px]:px-15 max-[1250px]:py-8.75 max-[1250px]:px-7.5 max-[760px]:pt-7 max-[760px]:pb-8 max-[760px]:px-6 max-[480px]:pt-6 max-[480px]:pb-8 max-[480px]:px-4.5"
     >
       <PageHeading
-        eyebrow="THERE IT IS"
         title="Find that little something."
         description="A good thought, a familiar face, a conversation worth coming back to."
       />
@@ -115,37 +120,6 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
       </form>
       {!q ? (
         <div data-ui="a-search-start" className="pt-2.25">
-          <span
-            data-ui="a-eyebrow"
-            className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
-          >
-            A FEW PLACES TO START
-          </span>
-          <div
-            data-ui="a-search-suggestions"
-            className="flex flex-wrap gap-2.75 mt-3.75 [&_button]:flex [&_button]:items-center [&_button]:gap-2.5 [&_button]:py-2.5 [&_button]:px-3.25 [&_button]:rounded-md [&_button]:bg-(--a-surface) [&_button]:text-(--a-muted) [&_button]:text-[12px] [&_button]:border! [&_button]:border-solid! [&_button]:border-(--a-border)! [&_button:hover]:bg-(--a-hover) [&_button>svg:last-child]:ml-3.75 max-[760px]:gap-2 max-[760px]:[&_button]:text-[11px] max-[480px]:[&_button]:py-2.25 max-[480px]:[&_button]:px-2.75 max-[480px]:[&_button]:text-[11px] max-[480px]:[&_button>svg:last-child]:ml-0"
-          >
-            {["coffee", "project", "#general", "Jamie"].map((term) => (
-              <button
-                key={term}
-                onClick={() => {
-                  setQuery(term);
-                  void navigate({
-                    to: "/app/search",
-                    search: { q: term },
-                    replace: true,
-                  });
-                }}
-              >
-                <AppIcon
-                  name={term.startsWith("#") ? "hash" : "search"}
-                  size={16}
-                />
-                {term}
-                <AppIcon name="external" size={14} />
-              </button>
-            ))}
-          </div>
           <EmptyState
             icon="search"
             title="Good things are in here."
@@ -223,7 +197,11 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
                   disabled={directory.loading}
                   onClick={directory.more}
                 >
-                  Load more people
+                  {directory.loading ? (
+                    <ButtonLoader label="Loading more people" />
+                  ) : (
+                    "Load more people"
+                  )}
                 </button>
               )}
               {people.map((person) => (
