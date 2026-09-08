@@ -43,10 +43,11 @@ export async function directory(
   const result = await db.execute<{
     community: Community;
   }>(sql`select jsonb_build_object('id', c.id, 'name', c.name, 'description', c.description,
-    'icon', c.icon, 'iconUrl', (select '/api/community-icons/' || i.id from community_icons i where i.community_id = c.id and i.status = 'active'), 'color', c.color, 'category', c.category,
+    'icon', c.icon, 'iconUrl', (select '/api/community-icons/' || i.id from community_icons i where i.community_id = c.id and i.status = 'active'), 'color', c.color, 'category', c.category, 'discoverable', c.discoverable,
     'members', (select count(*)::int from community_members m where m.community_id = c.id),
     'joined', false, 'channels', '[]'::jsonb, 'memberIds', '[]'::jsonb, 'memberRoles', '{}'::jsonb, 'channelCategories', '[]'::jsonb) as community
     from communities c where ${input.id ? sql`c.id = ${input.id}` : sql`(c.name ilike ${pattern} or c.description ilike ${pattern})`}
+      and (c.discoverable or exists(select 1 from community_members own where own.community_id = c.id and own.user_id = ${userId}))
       ${input.category ? sql`and c.category = ${input.category}` : sql``}
     order by c.created_at, c.id limit 51 offset ${input.offset}`);
   return {
