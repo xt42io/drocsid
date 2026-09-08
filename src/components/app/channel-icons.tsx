@@ -4,6 +4,7 @@ import type { Channel, Community } from "../../types/app";
 import { useApp } from "../../lib/app-state";
 import { EmojiPanel } from "./emoji-panel";
 import { AppIcon, Dialog } from "./primitives";
+import { ButtonLoader } from "../button-loader";
 
 export function ChannelIcon({
   channel,
@@ -121,12 +122,7 @@ export function ChannelIconEditor({
           aria-busy={saving}
           className="flex w-full items-center justify-center gap-2 rounded-md bg-(--a-orange) px-4 py-3 text-xs font-semibold text-[#462419] disabled:opacity-60"
         >
-          {saving && (
-            <span className="animate-spin">
-              <AppIcon name="reset" size={16} />
-            </span>
-          )}
-          {saving ? "Saving…" : "Save icon"}
+          {saving ? <ButtonLoader label="Saving channel icon" /> : "Save icon"}
         </button>
       </form>
     </Dialog>
@@ -225,11 +221,13 @@ export function CommunityIconEditor({
           aria-busy={saving}
           className="w-full rounded-md bg-(--a-orange) px-4 py-3 text-xs font-semibold text-[#462419] disabled:opacity-60"
         >
-          {saving
-            ? "Saving…"
-            : community.iconUrl && icon === community.icon
-              ? "Done"
-              : "Save icon"}
+          {saving ? (
+            <ButtonLoader label="Saving community icon" />
+          ) : community.iconUrl && icon === community.icon ? (
+            "Done"
+          ) : (
+            "Save icon"
+          )}
         </button>
       </form>
     </Dialog>
