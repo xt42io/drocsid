@@ -5,6 +5,7 @@ import { uploadFile } from "../../lib/upload-file";
 import { useApp } from "../../lib/app-state";
 import { CommunityIcon } from "./community-icon";
 import { AppIcon } from "./primitives";
+import { ButtonLoader } from "../button-loader";
 
 export type IconUpload = { id: string; url: string };
 export function CommunityIconUpload({
@@ -26,7 +27,10 @@ export function CommunityIconUpload({
   const draft = useRef<IconUpload | undefined>(undefined);
   const previewUrl = useRef<string | undefined>(undefined);
   const [preview, setPreview] = useState<string>();
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"upload" | "remove" | null>(
+    null,
+  );
+  const busy = busyAction !== null;
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const mounted = useRef(true);
@@ -61,7 +65,7 @@ export function CommunityIconUpload({
     }
     const controller = new AbortController();
     operation.current = controller;
-    setBusy(true);
+    setBusyAction(file ? "upload" : "remove");
     onBusyChange?.(true);
     setProgress(0);
     let uploadId: string | undefined;
@@ -160,7 +164,7 @@ export function CommunityIconUpload({
         URL.revokeObjectURL(previousPreview);
       operation.current = null;
       if (mounted.current) {
-        setBusy(false);
+        setBusyAction(null);
         onBusyChange?.(false);
       }
     }
@@ -192,8 +196,14 @@ export function CommunityIconUpload({
           className="flex items-center gap-2 rounded-md border border-(--a-border) px-4 py-2 text-xs font-medium hover:bg-(--a-hover) disabled:opacity-50"
           onClick={() => input.current?.click()}
         >
-          <AppIcon name="plus" size={16} />
-          {preview || community.iconUrl ? "Change image" : "Upload image"}
+          {busyAction === "upload" ? (
+            <ButtonLoader label="Uploading community icon" />
+          ) : (
+            <>
+              <AppIcon name="plus" size={16} />
+              {preview || community.iconUrl ? "Change image" : "Upload image"}
+            </>
+          )}
         </button>
         {(preview || community.iconUrl) && (
           <button
@@ -202,7 +212,11 @@ export function CommunityIconUpload({
             className="text-xs text-(--a-muted) hover:text-(--a-text) disabled:opacity-50"
             onClick={() => void change()}
           >
-            Remove image
+            {busyAction === "remove" ? (
+              <ButtonLoader label="Removing community icon" />
+            ) : (
+              "Remove image"
+            )}
           </button>
         )}
       </div>
