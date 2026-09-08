@@ -17,6 +17,7 @@ import {
 import { AppDialogs } from "./app-dialogs";
 import { usePostHog } from "@posthog/react";
 import { canManageCommunity as userCanManageCommunity } from "../../lib/community-permissions";
+import { appPageTitle } from "../../lib/page-title";
 
 function UnreadBadge({
   count,
@@ -43,7 +44,8 @@ function UnreadBadge({
 
 export function AppShell() {
   const { state, setState, setModal, toast, findPerson, ready } = useApp();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const navigate = useNavigate();
   const posthog = usePostHog();
   const [drawer, setDrawer] = useState(false);
@@ -73,6 +75,14 @@ export function AppShell() {
     state.dmConversations.map((direct) => [direct.personId, direct]),
   );
   const requestCount = incomingMessageRequests(state).length;
+  const browserTitle = appPageTitle(
+    pathname,
+    location.search as Record<string, unknown>,
+    state,
+  );
+  useEffect(() => {
+    document.title = browserTitle;
+  }, [browserTitle]);
   useEffect(() => setDrawer(false), [pathname]);
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
