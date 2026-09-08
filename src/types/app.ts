@@ -38,6 +38,7 @@ export type Community = {
     | "code";
   color: string;
   category: string;
+  discoverable: boolean;
   members: number;
   memberIds?: string[];
   memberRoles?: Record<string, Person["role"]>;
