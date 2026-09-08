@@ -7,7 +7,7 @@ An open-source community chat app built with TanStack Start, React, Tailwind, Hu
 Requires Node.js 22.12+ and pnpm.
 
 1. Run `pnpm install`.
-2. Copy `.env.example` to `.env` and configure `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `BYTESHIP_API_KEY`, `SENDBYTE_API_KEY`, and `SENDBYTE_FROM`. Generate the auth secret with `openssl rand -hex 32`.
+2. Copy `.env.example` to `.env` and configure `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `INVITE_SHORT_URL`, `BYTESHIP_API_KEY`, `SENDBYTE_API_KEY`, and `SENDBYTE_FROM`. Generate the auth secret with `openssl rand -hex 32`.
 3. Use your existing PostgreSQL server, or start the supplied local database with `docker compose up -d postgres`.
 4. Run `pnpm db:migrate`.
 5. Run `pnpm dev` from your terminal and open http://localhost:1515.
@@ -26,7 +26,7 @@ Use Tailwind v4 utilities directly in components, including responsive and state
 
 - Passwordless email-code registration and login through Sendbyte, plus optional GitHub login, sessions, and logout.
 - Profiles, unique usernames, appearance settings, notification preferences, activity visibility, and incoming-DM preferences.
-- Public communities, public invitation links, memberships, categories, channels, member roles, and removal.
+- Public communities, revocable short invitation links, memberships, categories, channels, member roles, and removal.
 - Private-channel access is enforced on the server. Owners/admins can access private channels and grant explicit membership through the `channel.access` command.
 - Channel messages and DMs, edits, soft deletion, threads, reactions, pins, personal saves, read state, mentions, and search. Messages render immediately with a faded pending state and clear the composer for the next message. Confirmation restores their normal color; failed messages remain in the list with a retry button.
 - Cursor-based message history and links to search results.
@@ -59,6 +59,8 @@ pnpm start
 
 The runner serves built assets, TanStack HTTP routes and WebSocket upgrades together. Set `BETTER_AUTH_URL` to your public HTTPS origin; forward HTTP/1.1 WebSocket upgrades for `/api/ws` through your reverse proxy and use an idle timeout over 60 seconds. Use a persistent Node host; a static host or a request-only serverless deployment will not run this gateway. `PORT` optionally overrides the production port.
 
+Set `INVITE_SHORT_URL=https://drocsid.cc` and attach `drocsid.cc` to the same service as the main app. The production runner accepts only `/{invite-code}` on that host and redirects valid codes to the canonical invite page on `BETTER_AUTH_URL`. Every other `.cc` path returns 404 before assets or application routes are served. Invite creation, preview, acceptance, and revocation are backed by Postgres; accepting a revoked, expired, exhausted, or unknown code is rejected by the server.
+
 To check the already-running server against the configured database:
 
 ```sh
@@ -72,6 +74,7 @@ This creates two disposable users and a community, verifies real socket delivery
 Better Auth stores its users, sessions, accounts, and verification records in Postgres. Every app endpoint checks the session. WebSocket upgrades check the same Better Auth cookie and exact origin, with session expiry, revocation and periodic validation. Mutations also enforce same-origin requests and validate input.
 
 - `BETTER_AUTH_URL`: public origin, locally `http://localhost:1515`.
+- `INVITE_SHORT_URL`: origin used for short invite links, normally `https://drocsid.cc`.
 - `BETTER_AUTH_SECRET`: random secret, at least 32 characters.
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`: optional GitHub login. Register the callback at `/api/auth/callback/github`.
 - `SENDBYTE_API_KEY`: server-only Sendbyte key with email sending permission.
