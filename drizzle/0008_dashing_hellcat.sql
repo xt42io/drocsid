@@ -1,1 +1,1 @@
-ALTER TABLE "conversations" ADD COLUMN "icon" text DEFAULT '' NOT NULL;
+ALTER TABLE "conversations" ADD COLUMN IF NOT EXISTS "icon" text DEFAULT '' NOT NULL;
