@@ -1,6 +1,7 @@
 import type { Action } from "./contracts";
 type Read = Extract<Action, { type: "conversation.read" }>;
 type Job = {
+  active?: Read;
   latest?: Read;
   waiters: ((ok: boolean) => void)[];
   timer?: ReturnType<typeof setTimeout>;
@@ -16,7 +17,7 @@ export class ReadReceipts {
         action.conversation,
         (job = { waiters: [], running: false }),
       );
-    if (!job.latest || job.latest.through < action.through) job.latest = action;
+    if (!job.latest || job.latest.through <= action.through) job.latest = action;
     const result = new Promise<boolean>((resolve) => job.waiters.push(resolve));
     this.schedule(action.conversation, job, send);
     return result;
@@ -33,6 +34,7 @@ export class ReadReceipts {
       const waiters = job.waiters.splice(0);
       job.latest = undefined;
       job.running = true;
+      job.active = action;
       void send(action)
         .then(
           (ok) => waiters.forEach((resolve) => resolve(ok)),
@@ -40,11 +42,22 @@ export class ReadReceipts {
         )
         .finally(() => {
           job.running = false;
+          job.active = undefined;
           if (this.jobs.get(key) !== job) return;
           if (job.latest) this.schedule(key, job, send);
           else this.jobs.delete(key);
         });
     }, this.delay);
+  }
+  pending() {
+    return [...this.jobs.values()].flatMap((job) => {
+      const action =
+        !job.active ||
+        (job.latest && job.active.through <= job.latest.through)
+          ? job.latest
+          : job.active;
+      return action ? [{ ...action }] : [];
+    });
   }
   clear() {
     for (const job of this.jobs.values()) {
@@ -53,4 +66,23 @@ export class ReadReceipts {
     }
     this.jobs.clear();
   }
+}
+
+export function persistReadReceipts(
+  reads: Read[],
+  request: typeof fetch = fetch,
+) {
+  const requests: Promise<Response>[] = [];
+  for (let offset = 0; offset < reads.length; offset += 50) {
+    requests.push(
+      request("/api/app", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reads.slice(offset, offset + 50)),
+        keepalive: true,
+      }),
+    );
+  }
+  return requests;
 }
