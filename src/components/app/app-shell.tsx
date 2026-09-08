@@ -4,15 +4,19 @@ import { ChannelIcon } from "./channel-icons";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import { getChannelCategories } from "../../lib/channels";
+import {
+  getChannelCategories,
+  getChannelGroup,
+} from "../../lib/channels";
 import { LogoMark } from "../ui";
-import { AppIcon, IconButton, PersonAvatar, PreviewNote } from "./primitives";
+import { AppIcon, IconButton, PersonAvatar } from "./primitives";
 import {
   incomingMessageRequests,
   normalDirectMessages,
 } from "../../lib/direct-messages";
 import { AppDialogs } from "./app-dialogs";
 import { usePostHog } from "@posthog/react";
+import { canManageCommunity as userCanManageCommunity } from "../../lib/community-permissions";
 
 export function AppShell() {
   const { state, setState, setModal, toast, findPerson, ready } = useApp();
@@ -37,6 +41,7 @@ export function AppShell() {
     ? pathname.split("/")[3]
     : null;
   const community = state.communities.find((c) => c.id === communityId);
+  const canManageCommunity = userCanManageCommunity(community);
   const standalone =
     pathname === "/app/welcome" || pathname.startsWith("/app/invite/");
   const unread = state.activities.filter((a) => !a.read).length;
@@ -205,15 +210,16 @@ export function AppShell() {
               data-ui="a-sidebar"
               className="flex flex-col w-61.25 min-h-0 bg-(--a-sidebar) [border-right-width:1px] [border-right-style:solid] border-r-(--a-border) min-[1600px]:w-65.75 max-[1250px]:w-55.75 max-[760px]:w-61"
             >
-              <header
-                data-ui="a-sidebar-header"
-                className="h-20 py-0 px-4.75 [border-bottom-width:1px] [border-bottom-style:solid] border-b-(--a-border) flex items-center shrink-0 max-[1250px]:px-3.75 max-[760px]:h-19"
-              >
-                {community ? (
-                  <details
-                    data-ui="a-community-menu"
-                    className="relative w-full [&>summary]:flex [&>summary]:items-center [&>summary]:gap-2.5 [&>summary]:cursor-pointer [&_summary>span]:flex-1 [&_summary>span]:min-w-0 [&_strong]:block [&_strong]:text-[14px] [&_strong]:font-[650] [&_strong]:tracking-[-0.25px] [&_strong]:truncate [&_small]:flex [&_small]:items-center [&_small]:gap-1.25 [&_small]:text-[9px] [&_small]:mt-1.5 [&_small]:whitespace-nowrap [&_small]:text-(--a-muted) [&_small_i]:bg-[#819b63] [&_small_i]:rounded-full [&_small_i]:size-1 **:data-[ui~=a-dropdown]:-left-1.25 **:data-[ui~=a-dropdown]:-right-1.25 **:data-[ui~=a-dropdown]:top-12.75 max-[1250px]:[&_small]:text-[8px] max-[1250px]:[&_strong]:text-[13px]"
-                  >
+              {community && (
+                <header
+                  data-ui="a-sidebar-header"
+                  className="h-20 py-0 px-4.75 [border-bottom-width:1px] [border-bottom-style:solid] border-b-(--a-border) flex items-center shrink-0 max-[1250px]:px-3.75 max-[760px]:h-19"
+                >
+                  {canManageCommunity ? (
+                    <details
+                      data-ui="a-community-menu"
+                      className="relative w-full [&>summary]:flex [&>summary]:items-center [&>summary]:gap-2.5 [&>summary]:cursor-pointer [&_summary>span]:flex-1 [&_summary>span]:min-w-0 [&_strong]:block [&_strong]:text-[14px] [&_strong]:font-[650] [&_strong]:tracking-[-0.25px] [&_strong]:truncate [&_small]:flex [&_small]:items-center [&_small]:gap-1.25 [&_small]:text-[9px] [&_small]:mt-1.5 [&_small]:whitespace-nowrap [&_small]:text-(--a-muted) [&_small_i]:bg-[#819b63] [&_small_i]:rounded-full [&_small_i]:size-1 **:data-[ui~=a-dropdown]:-left-1.25 **:data-[ui~=a-dropdown]:-right-1.25 **:data-[ui~=a-dropdown]:top-12.75 max-[1250px]:[&_small]:text-[8px] max-[1250px]:[&_strong]:text-[13px]"
+                    >
                     <summary>
                       <span>
                         <strong>{community.name}</strong>
@@ -278,17 +284,15 @@ export function AppShell() {
                         <AppIcon name="settings" size={17} /> Community settings
                       </Link>
                     </div>
-                  </details>
-                ) : (
-                  <div
-                    data-ui="a-personal-title"
-                    className="[&_strong]:block [&_strong]:text-[16px] [&_strong]:tracking-[-0.45px] [&_strong]:font-[650] [&_span]:block [&_span]:text-(--a-muted) [&_span]:text-[11px] [&_span]:mt-1"
-                  >
-                    <strong>Your little corner.</strong>
-                    <span>Good to have you around.</span>
-                  </div>
-                )}
-              </header>
+                    </details>
+                  ) : (
+                    <div className="min-w-0 [&_strong]:block [&_strong]:truncate [&_strong]:text-[14px] [&_strong]:font-[650] [&_strong]:tracking-[-0.25px] [&_small]:mt-1.5 [&_small]:block [&_small]:text-[9px] [&_small]:text-(--a-muted) max-[1250px]:[&_strong]:text-[13px] max-[1250px]:[&_small]:text-[8px]">
+                      <strong>{community.name}</strong>
+                      <small>A little corner, a lot of good company</small>
+                    </div>
+                  )}
+                </header>
+              )}
               <div
                 data-ui="a-sidebar-scroll"
                 className="flex-1 min-h-0 overflow-y-auto pt-4.25 pb-5 px-2.75"
@@ -366,53 +370,68 @@ export function AppShell() {
                     data-ui="a-channel-groups"
                     className="[&_[data-ui~=a-sidebar-label]_button]:shrink-0 [&_[data-ui~=a-sidebar-label]_button]:p-1"
                   >
-                    {getChannelCategories(community).map((group) => (
-                      <div key={group}>
-                        <div
-                          data-ui="a-sidebar-label"
-                          className="flex items-center justify-between gap-2 mt-6 mb-2.25 mx-2.25 text-(--a-faint) font-mono text-[9px] font-normal tracking-[1px] [&_button]:p-0 [&_button]:text-(--a-faint) [&_button]:bg-transparent [&_button]:flex [&_button:hover]:text-(--a-green)"
-                        >
-                          <span
-                            data-ui="a-category-name"
-                            className="min-w-0 wrap-anywhere uppercase"
-                            title={group}
+                    {[
+                      ...(community.channels.some(
+                        (channel) => !getChannelGroup(channel),
+                      )
+                        ? [""]
+                        : []),
+                      ...getChannelCategories(community),
+                    ].map((group) => (
+                      <div
+                        key={group || "uncategorized"}
+                        className={group ? undefined : "mt-5"}
+                      >
+                        {group && (
+                          <div
+                            data-ui="a-sidebar-label"
+                            className="flex items-center justify-between gap-2 mt-6 mb-2.25 mx-2.25 text-(--a-faint) font-mono text-[9px] font-normal tracking-[1px] [&_button]:p-0 [&_button]:text-(--a-faint) [&_button]:bg-transparent [&_button]:flex [&_button:hover]:text-(--a-green)"
                           >
-                            {group}
-                          </span>
-                          <button
-                            aria-label={`Create channel in ${group}`}
-                            title="Create a channel"
-                            onClick={() =>
-                              setModal({
-                                type: "create-channel",
-                                communityId: community.id,
-                                group,
-                              })
-                            }
-                          >
-                            <AppIcon name="plus" size={14} />
-                          </button>
-                        </div>
-                        <nav aria-label={group}>
-                          {!community.channels.some(
-                            (c) => c.group === group,
-                          ) && (
-                            <button
-                              data-ui="a-empty-category"
-                              className="flex items-center gap-2 w-full py-2.25 px-2.5 bg-transparent text-(--a-muted) rounded-md text-left text-[11px]! hover:text-(--a-text) hover:bg-(--a-hover)"
-                              onClick={() =>
-                                setModal({
-                                  type: "create-channel",
-                                  communityId: community.id,
-                                  group,
-                                })
-                              }
+                            <span
+                              data-ui="a-category-name"
+                              className="min-w-0 wrap-anywhere uppercase"
+                              title={group}
                             >
-                              <AppIcon name="plus" size={14} /> Add a channel
-                            </button>
-                          )}
+                              {group}
+                            </span>
+                            {canManageCommunity && (
+                              <button
+                                aria-label={`Create channel in ${group}`}
+                                title="Create a channel"
+                                onClick={() =>
+                                  setModal({
+                                    type: "create-channel",
+                                    communityId: community.id,
+                                    group,
+                                  })
+                                }
+                              >
+                                <AppIcon name="plus" size={14} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        <nav aria-label={group || "Channels"}>
+                          {canManageCommunity &&
+                            !community.channels.some(
+                              (c) => getChannelGroup(c) === group,
+                            ) && (
+                              <button
+                                data-ui="a-empty-category"
+                                className="flex items-center gap-2 w-full py-2.25 px-2.5 bg-transparent text-(--a-muted) rounded-md text-left text-[11px]! hover:text-(--a-text) hover:bg-(--a-hover)"
+                                onClick={() =>
+                                  setModal({
+                                    type: "create-channel",
+                                    communityId: community.id,
+                                    group,
+                                  })
+                                }
+                              >
+                                <AppIcon name="plus" size={14} /> Add a channel
+                              </button>
+                            )}
                           {community.channels
-                            .filter((c) => c.group === group)
+                            .filter((c) => getChannelGroup(c) === group)
                             .map((channel) => (
                               <Link
                                 key={channel.id}
@@ -459,18 +478,20 @@ export function AppShell() {
                         </nav>
                       </div>
                     ))}
-                    <button
-                      data-ui="a-create-category"
-                      className="flex items-center gap-2 w-full py-2.25 px-2.5 bg-transparent text-(--a-muted) rounded-md text-left mt-4 text-[11px]! hover:text-(--a-text) hover:bg-(--a-hover)"
-                      onClick={() =>
-                        setModal({
-                          type: "create-category",
-                          communityId: community.id,
-                        })
-                      }
-                    >
-                      <AppIcon name="folder" size={15} /> Create category
-                    </button>
+                    {canManageCommunity && (
+                      <button
+                        data-ui="a-create-category"
+                        className="flex items-center gap-2 w-full py-2.25 px-2.5 bg-transparent text-(--a-muted) rounded-md text-left mt-4 text-[11px]! hover:text-(--a-text) hover:bg-(--a-hover)"
+                        onClick={() =>
+                          setModal({
+                            type: "create-category",
+                            communityId: community.id,
+                          })
+                        }
+                      >
+                        <AppIcon name="folder" size={15} /> Create category
+                      </button>
+                    )}
                   </div>
                 )}
                 <div
@@ -534,9 +555,6 @@ export function AppShell() {
                     </small>
                   </Link>
                 )}
-              </div>
-              <div data-ui="a-sidebar-note" className="pt-0 pb-3 px-4">
-                <PreviewNote />
               </div>
               <footer
                 data-ui="a-user-bar"
