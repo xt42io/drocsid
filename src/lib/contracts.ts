@@ -67,6 +67,7 @@ const community = z.object({
   ]),
   color: z.enum(["peach", "green", "purple", "yellow", "blue"]),
   category: z.string().max(60),
+  discoverable: z.boolean().default(true),
 });
 export const actionSchema = z.discriminatedUnion("type", [
   z.object({
