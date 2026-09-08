@@ -51,9 +51,6 @@ export function ChannelWelcome({
       <span className="mb-6 flex size-16 items-center justify-center rounded-2xl bg-(--a-soft) text-(--a-orange)">
         <CommunityIcon community={community} size={32} />
       </span>
-      <p className="mb-3 font-mono text-[10px] tracking-widest text-(--a-muted)">
-        MAKE YOURSELF AT HOME
-      </p>
       <h2 className="text-3xl font-semibold tracking-tight text-(--a-text) sm:text-4xl">
         Welcome to
         <br />
