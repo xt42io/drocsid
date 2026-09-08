@@ -242,7 +242,7 @@ function LandingPage() {
 
         <section
           data-ui="manifesto-strip content-width"
-          className="mx-auto flex min-h-43 w-[calc(100%-112px)] max-w-300 items-center justify-center border-b border-line px-6 py-10 text-center text-[clamp(28px,3.2vw,48px)] leading-[1.18] tracking-[-0.045em] text-[#65675f] max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[580px]:min-h-38 max-[580px]:w-[calc(100%-36px)] max-[580px]:px-0 max-[580px]:text-[31px]"
+          className="mx-auto flex min-h-43 w-[calc(100%-112px)] max-w-300 items-center justify-center px-6 py-10 text-center text-[clamp(28px,3.2vw,48px)] leading-[1.18] tracking-[-0.045em] text-[#65675f] max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[580px]:min-h-38 max-[580px]:w-[calc(100%-36px)] max-[580px]:px-0 max-[580px]:text-[31px]"
           aria-label="Our community"
         >
           <p className="m-0 max-w-250">
@@ -259,18 +259,12 @@ function LandingPage() {
         <section
           id="open-source"
           data-ui="open-source-section content-width"
-          className="mx-auto flex w-[calc(100%-112px)] max-w-300 justify-between border-y border-line pt-17.25 pb-17 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:gap-5 max-[800px]:py-13.5 max-[580px]:w-[calc(100%-36px)] max-[580px]:flex-col max-[580px]:gap-9.25 max-[580px]:py-11.75"
+          className="mx-auto flex w-[calc(100%-112px)] max-w-300 justify-between border-b border-line pt-17.25 pb-17 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:gap-5 max-[800px]:py-13.5 max-[580px]:w-[calc(100%-36px)] max-[580px]:flex-col max-[580px]:gap-9.25 max-[580px]:py-11.75"
         >
           <div
             data-ui="open-source-copy"
             className="max-w-147.5 [&_h2]:mb-6 [&_p]:mx-0 [&_p]:mt-0 [&_p]:mb-3.25 [&_p]:max-w-115 [&_p]:text-[16px] [&_p]:leading-[1.8] [&_p]:text-[#6d7362] max-[800px]:[&_h2]:text-[31px] max-[800px]:[&_p]:text-[12px] max-[580px]:[&_h2]:text-[34px] max-[580px]:[&_p]:text-[16px]"
           >
-            <span
-              data-ui="eyebrow"
-              className="block font-mono text-[11px] leading-[1.7] font-normal tracking-[1.6px] max-[580px]:text-[9px]"
-            >
-              OPEN BY NATURE
-            </span>
             <h2>
               A little less platform.
               <br />A lot more people.
@@ -343,7 +337,6 @@ function LandingPage() {
         className="mx-auto flex min-h-27.25 w-[calc(100%-112px)] max-w-300 items-center justify-between gap-6 [&_a]:transition-colors [&_a:hover]:text-[#cc4826] [&>a:not([data-ui~=logo])]:flex [&>a:not([data-ui~=logo])]:items-center [&>a:not([data-ui~=logo])]:gap-2 [&>a:not([data-ui~=logo])]:text-[11px] [&>a:not([data-ui~=logo])]:text-[#717a60] [&>span]:text-[11px] [&>span]:text-[#909384] **:data-[ui~=logo]:text-[23px] **:data-[ui~=logo-mark]:size-6.75 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:flex-wrap max-[800px]:gap-3.75 max-[800px]:py-6.5 max-[800px]:[&>a:not([data-ui~=logo])]:ml-auto max-[800px]:[&>span:not([data-ui~=copyright])]:hidden max-[580px]:min-h-32 max-[580px]:w-[calc(100%-36px)] max-[580px]:gap-x-3 max-[580px]:py-6.5 max-[580px]:[&>a:not([data-ui~=logo])]:text-[10px]"
       >
         <Logo />
-        <span>A little corner of the internet, for you.</span>
         <a
           href="https://github.com/xt42io/drocsid"
           target="_blank"

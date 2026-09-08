@@ -17,7 +17,7 @@ type AuthMode = "sign-in" | "sign-up";
 type Errors = Partial<Record<"email", string>>;
 const copy = {
   "sign-in": {
-    eyebrow: "YOUR CORNER IS WAITING",
+    eyebrow: null,
     title: "Hey, welcome back.",
     description: "The conversation’s better with you in it.",
     submit: "Send code",
@@ -120,12 +120,6 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
           data-ui="auth-story-main"
           className="w-full max-w-115 m-auto py-[76px_70px] [&>p]:text-[16px] [&>p]:leading-[1.65] [&>p]:text-[#833c26] [&>p]:m-0 min-[1600px]:max-w-122.5 max-[1100px]:[&>p]:text-[14px] max-[800px]:[&>p]:text-[13px] max-[580px]:pt-7.75 max-[580px]:px-0 max-[580px]:max-w-none max-[580px]:pb-4.25 max-[580px]:[&>p]:hidden"
         >
-          <div
-            data-ui="auth-story-eyebrow"
-            className="flex items-center gap-2 text-[9px] tracking-[1.2px] font-mono text-[#71341f] [&>span]:text-[23px] max-[1100px]:text-[8px] max-[800px]:text-[7px] max-[800px]:tracking-[0.5px] max-[800px]:[&>span]:text-[19px] max-[580px]:text-[8px]"
-          >
-            <span>✳</span> GOOD PEOPLE. GOOD COMPANY.
-          </div>
           <h1>{content.aside}</h1>
           <p>
             For your people, your projects,
@@ -175,22 +169,6 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
               </span>
             </div>
           </div>
-          <span
-            data-ui="auth-handwritten"
-            className="block text-right pr-4.5 mt-9.5 italic text-[17px] text-[#8d422a] transform-[rotate(-6deg)] max-[580px]:hidden"
-          >
-            come as you are.
-          </span>
-        </div>
-        <div
-          data-ui="auth-story-footer"
-          className="flex items-center gap-2 font-mono tracking-[1px] text-[9px] text-[#8e3e24] max-[800px]:text-[7px] max-[800px]:tracking-[0.5px] max-[580px]:hidden"
-        >
-          <span
-            data-ui="story-footer-dot"
-            className="rounded-full bg-[#8f442e] size-1.5"
-          />{" "}
-          OPEN SOURCE. OPEN DOOR. ALWAYS.
         </div>
       </aside>
       <section
@@ -237,12 +215,14 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                 data-ui="auth-heading"
                 className="**:data-[ui~=eyebrow]:text-[9px] **:data-[ui~=eyebrow]:tracking-[1.3px] **:data-[ui~=eyebrow]:text-[#89907c] [&_h2]:text-[37px] [&_h2]:mt-3 [&_h2]:mb-3.25 [&_h2]:tracking-[-1.8px] [&_h2]:font-semibold [&>p]:text-[#707662] [&>p]:text-[14px] [&>p]:leading-[1.7] [&>p]:mt-0 [&>p]:mb-7 [&>p]:mx-0 max-[800px]:[&_h2]:text-[32px] max-[800px]:[&>p]:text-[13px] max-[800px]:**:data-[ui~=eyebrow]:text-[8px] max-[580px]:[&_h2]:text-[34px] max-[580px]:**:data-[ui~=eyebrow]:text-[8px] max-[580px]:[&>p]:text-[14px] max-[580px]:[&>p]:mb-6"
               >
-                <span
-                  data-ui="eyebrow"
-                  className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
-                >
-                  {content.eyebrow}
-                </span>
+                {content.eyebrow && (
+                  <span
+                    data-ui="eyebrow"
+                    className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
+                  >
+                    {content.eyebrow}
+                  </span>
+                )}
                 <h2>{content.title}</h2>
                 <p>{content.description}</p>
               </div>
@@ -365,13 +345,6 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
             </>
           )}
         </div>
-        <footer
-          data-ui="auth-footer"
-          className="flex items-center justify-between text-[#737d63] text-[10px] [&>span:last-child]:text-[21px] [&>span:last-child]:text-[#899577] max-[580px]:text-[9px]"
-        >
-          <span>A little corner of the internet, for you.</span>
-          <span>✳</span>
-        </footer>
       </section>
     </main>
   );
