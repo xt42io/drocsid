@@ -1,10 +1,12 @@
 import { CommunityIcon } from "./community-icon";
 import { useDirectory } from "../../lib/use-directory";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, EmptyState, PageHeading } from "./primitives";
 import { usePostHog } from "@posthog/react";
+import { api, ApiError } from "../../lib/api-client";
+import type { AcceptedInvite, InvitePreview } from "../../types/invites";
 
 export function DiscoverPage() {
   const { state, joinCommunity, setModal } = useApp();
@@ -247,14 +249,42 @@ export function DiscoverPage() {
     </div>
   );
 }
-export function InvitePage({ communityId }: { communityId: string }) {
-  const { state, joinCommunity } = useApp();
-  const navigate = useNavigate();
-  const community = state.communities.find((c) => c.id === communityId);
-  const directory = useDirectory("communities", "", undefined, communityId);
-  if (!community && directory.loading)
-    return <p role="status">Loading community…</p>;
-  if (!community)
+export function InvitePage({ code }: { code: string }) {
+  const [invite, setInvite] = useState<InvitePreview>();
+  const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let current = true;
+    void api<InvitePreview>(`/api/invites/${encodeURIComponent(code)}`)
+      .then((next) => {
+        if (current) setInvite(next);
+      })
+      .catch((cause) => {
+        if (current)
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : "This invitation is no longer available.",
+          );
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [code]);
+  if (loading)
+    return (
+      <div
+        role="status"
+        className="flex min-h-screen items-center justify-center bg-(--a-sidebar) text-sm text-(--a-muted)"
+      >
+        Opening your invitation…
+      </div>
+    );
+  if (!invite)
     return (
       <div
         data-ui="a-invitation-page"
@@ -263,18 +293,19 @@ export function InvitePage({ communityId }: { communityId: string }) {
         <EmptyState
           icon="mail"
           title="This invitation wandered off."
-          description="This community invitation is no longer available."
+          description={error || "This community invitation is no longer available."}
         >
           <Link
-            to="/app/discover"
+            to="/sign-in"
             data-ui="a-button primary"
             className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
           >
-            Explore communities
+            Go to Drocsid
           </Link>
         </EmptyState>
       </div>
     );
+  const community = invite.community;
   return (
     <div
       data-ui="a-invitation-page"
@@ -324,23 +355,42 @@ export function InvitePage({ communityId }: { communityId: string }) {
           <button
             data-ui="a-button primary full"
             className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+            disabled={joining}
             onClick={async () => {
-              const joined = await joinCommunity(community.id);
-              if (!joined) return;
-              void navigate({
-                to: "/app/community/$communityId/$channelId",
-                params: {
-                  communityId: community.id,
-                  channelId: joined.channels.some((c) => c.id === "general")
-                    ? "general"
-                    : (joined.channels[0]?.id ?? "general"),
-                },
-              });
+              setJoining(true);
+              setError("");
+              try {
+                const accepted = await api<AcceptedInvite>(
+                  `/api/invites/${encodeURIComponent(code)}`,
+                  {},
+                );
+                window.location.assign(
+                  `/app/community/${encodeURIComponent(accepted.communityId)}/${encodeURIComponent(accepted.channelId)}`,
+                );
+              } catch (cause) {
+                if (cause instanceof ApiError && cause.status === 401) {
+                  window.location.assign(
+                    `/sign-in?next=${encodeURIComponent(`/invite/${code}`)}`,
+                  );
+                  return;
+                }
+                setError(
+                  cause instanceof Error
+                    ? cause.message
+                    : "Could not accept this invitation.",
+                );
+                setJoining(false);
+              }
             }}
           >
-            {community.joined ? "Come on back in" : "Make yourself at home"}
+            {joining ? "Making room…" : "Make yourself at home"}
             <AppIcon name="right" size={18} />
           </button>
+          {error && (
+            <p role="alert" className="mt-3 text-[11px]! text-[#ff776d]!">
+              {error}
+            </p>
+          )}
           <p
             data-ui="a-form-footnote"
             className="text-(--a-muted) leading-[1.8] text-[11px]!"
@@ -350,11 +400,11 @@ export function InvitePage({ communityId }: { communityId: string }) {
         </div>
       </div>
       <Link
-        to="/app/discover"
+        to="/sign-in"
         data-ui="a-text-link"
         className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
       >
-        Or look around a little first <AppIcon name="external" size={16} />
+        Already have a home here? Sign in <AppIcon name="external" size={16} />
       </Link>
     </div>
   );
