@@ -6,12 +6,16 @@ import { useApp } from "../../lib/app-state";
 import { usePostHog } from "@posthog/react";
 import { Logo } from "../ui";
 import { AppIcon } from "./primitives";
+import { ButtonLoader } from "../button-loader";
 import { AvatarUpload } from "./avatar-upload";
 export function WelcomePage() {
   const { state, setState, notify, setModal } = useApp();
   const navigate = useNavigate();
   const posthog = usePostHog();
-  const [saving, setSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState<
+    "profile" | "join" | "skip" | "create" | null
+  >(null);
+  const saving = savingAction !== null;
   const [uploading, setUploading] = useState(false);
   const [step, setStep] = useState(1);
   const [name, setName] = useState(state.profile.name);
@@ -32,7 +36,7 @@ export function WelcomePage() {
   const [selected, setSelected] = useState<string[]>([]);
   async function saveProfile() {
     if (!canSave) return;
-    setSaving(true);
+    setSavingAction("profile");
     setError("");
     try {
       const saved = await setState((previous) => ({
@@ -57,12 +61,12 @@ export function WelcomePage() {
         availability.retry();
       }
     } finally {
-      setSaving(false);
+      setSavingAction(null);
     }
   }
   async function finish(mode: "join" | "skip" | "create" = "join") {
     if (saving || uploading) return;
-    setSaving(true);
+    setSavingAction(mode);
     const saved = await setState((previous) => ({
       ...previous,
       communities: previous.communities.map((c) =>
@@ -70,7 +74,7 @@ export function WelcomePage() {
       ),
       onboardingComplete: true,
     }));
-    setSaving(false);
+    setSavingAction(null);
     if (!saved) return;
     posthog.capture("onboarding_completed", {
       mode,
@@ -99,13 +103,19 @@ export function WelcomePage() {
             disabled={saving || uploading}
             onClick={() => void finish("skip")}
           >
-            Skip for now <AppIcon name="right" size={17} />
+            {savingAction === "skip" ? (
+              <ButtonLoader label="Skipping community selection" />
+            ) : (
+              <>
+                Skip for now <AppIcon name="right" size={17} />
+              </>
+            )}
           </button>
         )}
       </header>
       <div
         data-ui="a-welcome-content"
-        className="m-auto py-12.5 w-full max-w-180 text-center [&>h1]:text-[42px] [&>h1]:leading-[1.16] [&>h1]:mt-3.75 [&>h1]:tracking-[-1.8px] [&>p]:text-[14px] [&>p]:leading-[1.8] [&>p]:text-(--a-muted) [&>p]:mt-3.5 max-[760px]:py-10.5 max-[760px]:[&>h1]:text-[35px] max-[480px]:[&>h1]:text-[33px] max-[480px]:[&>p]:text-[13px] max-[480px]:*:data-[ui~=a-eyebrow]:text-[8px]"
+        className="m-auto py-12.5 w-full max-w-180 text-center [&>h1]:text-[42px] [&>h1]:leading-[1.16] [&>h1]:tracking-[-1.8px] [&>p]:text-[14px] [&>p]:leading-[1.8] [&>p]:text-(--a-muted) [&>p]:mt-3.5 max-[760px]:py-10.5 max-[760px]:[&>h1]:text-[35px] max-[480px]:[&>h1]:text-[33px] max-[480px]:[&>p]:text-[13px]"
       >
         <div
           data-ui="a-welcome-progress"
@@ -119,14 +129,6 @@ export function WelcomePage() {
             2
           </span>
         </div>
-        <span
-          data-ui="a-eyebrow"
-          className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
-        >
-          {step === 1
-            ? "FIRST, A LITTLE INTRODUCTION"
-            : "NOW, FIND YOUR CORNER"}
-        </span>
         <h1>
           {step === 1
             ? "Good to have you here."
@@ -237,8 +239,13 @@ export function WelcomePage() {
               type="submit"
               disabled={!canSave}
             >
-              {saving ? "Saving profile…" : "Continue"}{" "}
-              <AppIcon name="right" size={18} />
+              {savingAction === "profile" ? (
+                <ButtonLoader label="Saving profile" />
+              ) : (
+                <>
+                  Continue <AppIcon name="right" size={18} />
+                </>
+              )}
             </button>
           </form>
         ) : (
@@ -286,14 +293,20 @@ export function WelcomePage() {
                 disabled={saving}
                 onClick={() => void finish("create")}
               >
-                <span
-                  data-ui="a-community-icon"
-                  className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
-                >
-                  <AppIcon name="plus" size={29} />
-                </span>
-                <strong>Create mine</strong>
-                <small>Start your own community</small>
+                {savingAction === "create" ? (
+                  <ButtonLoader label="Creating your community" />
+                ) : (
+                  <>
+                    <span
+                      data-ui="a-community-icon"
+                      className="relative flex items-center justify-center shrink-0 rounded-[15px] [transition:transform_0.15s,border-radius_0.15s] size-11.5 hover:transform-[translateY(-2px)] hover:rounded-xl max-[1250px]:rounded-[14px] max-[1250px]:size-10.75"
+                    >
+                      <AppIcon name="plus" size={29} />
+                    </span>
+                    <strong>Create mine</strong>
+                    <small>Start your own community</small>
+                  </>
+                )}
               </button>
             </div>
             <div
@@ -315,12 +328,14 @@ export function WelcomePage() {
                 onClick={() => void finish()}
                 disabled={saving}
               >
-                {saving
-                  ? "Saving…"
-                  : selected.length
-                    ? "Join & continue"
-                    : "Continue"}{" "}
-                <AppIcon name="right" size={18} />
+                {savingAction === "join" ? (
+                  <ButtonLoader label="Joining communities" />
+                ) : (
+                  <>
+                    {selected.length ? "Join & continue" : "Continue"}{" "}
+                    <AppIcon name="right" size={18} />
+                  </>
+                )}
               </button>
             </div>
             <button
@@ -329,7 +344,11 @@ export function WelcomePage() {
               disabled={saving}
               onClick={() => void finish("skip")}
             >
-              Skip for now
+              {savingAction === "skip" ? (
+                <ButtonLoader label="Skipping community selection" />
+              ) : (
+                "Skip for now"
+              )}
             </button>
           </>
         )}
