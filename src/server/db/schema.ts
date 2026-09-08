@@ -106,6 +106,7 @@ export const communities = pgTable("communities", {
   icon: text("icon").notNull(),
   color: text("color").notNull(),
   category: text("category").notNull(),
+  discoverable: boolean("discoverable").notNull().default(true),
   createdAt: time("created_at"),
 });
 export const members = pgTable(
