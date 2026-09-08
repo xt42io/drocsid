@@ -38,14 +38,8 @@ export const Route = createRootRoute({
   notFoundComponent: () => (
     <main
       data-ui="not-found"
-      className="min-h-svh flex flex-col items-center justify-center p-7.5 text-center [&_h1]:text-[50px] [&_h1]:tracking-[-2px] [&_h1]:mt-5 [&_h1]:mb-0 [&_h1]:mx-0 [&_p]:text-[#919586] [&_p]:mb-6.25"
+      className="min-h-svh flex flex-col items-center justify-center p-7.5 text-center [&_h1]:text-[50px] [&_h1]:tracking-[-2px] [&_h1]:mt-0 [&_h1]:mb-0 [&_h1]:mx-0 [&_p]:text-[#919586] [&_p]:mb-6.25"
     >
-      <span
-        data-ui="eyebrow"
-        className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
-      >
-        404 · A LITTLE LOST?
-      </span>
       <h1>This room is empty.</h1>
       <p>Let’s get you back to your people.</p>
       <Link
