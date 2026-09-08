@@ -1193,6 +1193,7 @@ function Composer({
         <MentionTextarea
           conversation={conversation}
           textareaRef={textarea}
+          highlightMentions
           rows={1}
           aria-label={placeholder}
           placeholder={placeholder}
@@ -1216,28 +1217,30 @@ function Composer({
           className="flex items-center justify-between mt-2 [&>div]:flex [&>div]:items-center [&>div]:gap-1.75"
         >
           <div>
-            <button
-              data-ui="a-icon-button"
-              className="inline-flex items-center justify-center shrink-0 p-0 rounded-md text-(--a-muted) bg-transparent [transition:background_0.15s,color_0.15s] size-8 hover:bg-(--a-hover) hover:text-(--a-green)"
-              type="button"
-              title="Attach files"
-              aria-label="Attach files"
-              disabled={files.uploads.length >= 10}
-              onClick={() => picker.current?.click()}
-            >
-              <AppIcon name="file" size={20} />
-            </button>
             <details
               data-ui="a-compose-menu"
               className="relative [&>summary]:flex [&>summary]:items-center [&>summary]:justify-center [&>summary]:w-7.25 [&>summary]:h-7 [&>summary]:text-(--a-muted) [&>summary]:rounded-[5px] [&>summary]:cursor-pointer [&>summary:hover]:bg-(--a-hover) [&>summary:hover]:text-(--a-green) **:data-[ui~=a-dropdown]:left-0 **:data-[ui~=a-dropdown]:bottom-8.75"
             >
-              <summary title="Text formatting" aria-label="Text formatting">
+              <summary title="Add to message" aria-label="Add to message">
                 <AppIcon name="plus" size={20} />
               </summary>
               <div
                 data-ui="a-dropdown"
                 className="absolute z-30 min-w-51.25 p-1.5 border border-solid border-(--a-border) bg-(--a-surface) rounded-[9px] shadow-[0_8px_28px_#17220720] text-left [&_button]:flex [&_button]:items-center [&_button]:gap-2.25 [&_button]:w-full [&_button]:rounded-[5px] [&_button]:bg-transparent [&_button]:p-2.5 [&_button]:text-(--a-text) [&_button]:text-[12px] [&_button]:whitespace-nowrap [&_a]:flex [&_a]:items-center [&_a]:gap-2.25 [&_a]:w-full [&_a]:rounded-[5px] [&_a]:bg-transparent [&_a]:p-2.5 [&_a]:text-(--a-text) [&_a]:text-[12px] [&_a]:whitespace-nowrap [&_button:hover]:bg-(--a-hover) [&_a:hover]:bg-(--a-hover)"
               >
+                <button
+                  type="button"
+                  disabled={files.uploads.length >= 10}
+                  onClick={(event) => {
+                    event.currentTarget
+                      .closest("details")
+                      ?.removeAttribute("open");
+                    picker.current?.click();
+                  }}
+                >
+                  <AppIcon name="file" size={17} />
+                  Upload a file
+                </button>
                 <button
                   type="button"
                   onClick={(event) => {
