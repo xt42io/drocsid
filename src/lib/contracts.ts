@@ -175,6 +175,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     type: z.literal("conversation.read"),
     conversation: key,
     through: z.iso.datetime(),
+    messageId: id.optional(),
   }),
   z.object({ type: z.literal("conversation.open"), conversation: key }),
 ]);
