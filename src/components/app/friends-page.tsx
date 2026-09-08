@@ -53,7 +53,6 @@ export function FriendsPage() {
       className="h-full overflow-y-auto pt-10.75 pb-10 px-11 min-[1600px]:py-12 min-[1600px]:px-15 max-[1250px]:py-8.75 max-[1250px]:px-7.5 max-[760px]:pt-7 max-[760px]:pb-8 max-[760px]:px-6 max-[480px]:pt-6 max-[480px]:pb-8 max-[480px]:px-4.5"
     >
       <PageHeading
-        eyebrow="FAMILIAR FACES"
         title="Good company."
         description="Your people, just a little hello away."
       >
@@ -68,15 +67,9 @@ export function FriendsPage() {
       </PageHeading>
       <div
         data-ui="a-friends-banner"
-        className="flex items-center justify-between gap-5 py-7.75 px-7.5 border border-solid border-[#e0e4d5] rounded-[10px] bg-[#ecefe4] mb-8 in-data-[ui~=theme-dark]:border-(--a-border) in-data-[ui~=theme-dark]:bg-(--a-soft) **:data-[ui~=a-eyebrow]:text-[8px] **:data-[ui~=a-eyebrow]:text-[#8c9979] **:data-[ui~=a-eyebrow]:mb-2.5 [&_h2]:text-[28px] [&_h2]:text-(--a-green) [&_h2]:font-medium [&_h2]:tracking-[-1px] [&_p]:text-[12px] [&_p]:leading-[1.7] [&_p]:text-(--a-muted) [&_p]:max-w-90 [&_p]:mt-2.5 [[data-ui~=theme-dark]_&_[data-ui~=a-eyebrow]]:text-(--a-muted) max-[1250px]:p-6.25 max-[1250px]:[&_p]:max-w-75 max-[1050px]:py-6.25 max-[1050px]:px-5 max-[760px]:p-6 max-[760px]:mb-7 max-[760px]:[&_p]:max-w-none max-[760px]:[&_h2]:text-[27px] max-[480px]:py-5.75 max-[480px]:px-5 max-[480px]:[&_h2]:text-[26px] max-[480px]:**:data-[ui~=a-eyebrow]:text-[7px] max-[480px]:[&_p]:text-[12px]"
+        className="flex items-center justify-between gap-5 py-7.75 px-7.5 border border-solid border-[#e0e4d5] rounded-[10px] bg-[#ecefe4] mb-8 in-data-[ui~=theme-dark]:border-(--a-border) in-data-[ui~=theme-dark]:bg-(--a-soft) [&_h2]:text-[28px] [&_h2]:text-(--a-green) [&_h2]:font-medium [&_h2]:tracking-[-1px] [&_p]:text-[12px] [&_p]:leading-[1.7] [&_p]:text-(--a-muted) [&_p]:max-w-90 [&_p]:mt-2.5 max-[1250px]:p-6.25 max-[1250px]:[&_p]:max-w-75 max-[1050px]:py-6.25 max-[1050px]:px-5 max-[760px]:p-6 max-[760px]:mb-7 max-[760px]:[&_p]:max-w-none max-[760px]:[&_h2]:text-[27px] max-[480px]:py-5.75 max-[480px]:px-5 max-[480px]:[&_h2]:text-[26px] max-[480px]:[&_p]:text-[12px]"
       >
         <div>
-          <span
-            data-ui="a-eyebrow"
-            className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
-          >
-            THE BEST PART OF BEING HERE
-          </span>
           <h2>People who just get it.</h2>
           <p>
             The late-night ideas. The everyday updates. The comfortable
