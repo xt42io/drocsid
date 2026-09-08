@@ -71,6 +71,13 @@
       "when": 1788780020648,
       "tag": "0009_hard_thunderbird",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788833182046,
+      "tag": "0010_black_liz_osborn",
+      "breakpoints": true
     }
   ]
 }
