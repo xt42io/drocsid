@@ -48,7 +48,7 @@ export const channelSchema = z.object({
     .max(60)
     .regex(/^[a-z0-9-]+$/),
   description: z.string().max(250),
-  group: z.string().min(1).max(60),
+  group: z.string().max(60),
   private: z.boolean().optional(),
 });
 const community = z.object({
