@@ -23,7 +23,6 @@ export function InboxPage() {
       className="h-full overflow-y-auto pt-10.75 pb-10 px-11 min-[1600px]:py-12 min-[1600px]:px-15 max-[1250px]:py-8.75 max-[1250px]:px-7.5 max-[760px]:pt-7 max-[760px]:pb-8 max-[760px]:px-6 max-[480px]:pt-6 max-[480px]:pb-8 max-[480px]:px-4.5"
     >
       <PageHeading
-        eyebrow="WHILE YOU WERE AWAY"
         title="You’re in the loop."
         description="A few things with your name on them."
       >
@@ -174,7 +173,6 @@ export function SavedPage() {
       className="h-full overflow-y-auto pt-10.75 pb-10 px-11 min-[1600px]:py-12 min-[1600px]:px-15 max-[1250px]:py-8.75 max-[1250px]:px-7.5 max-[760px]:pt-7 max-[760px]:pb-8 max-[760px]:px-6 max-[480px]:pt-6 max-[480px]:pb-8 max-[480px]:px-4.5"
     >
       <PageHeading
-        eyebrow="THE THINGS WORTH KEEPING"
         title="For a quieter moment."
         description="Good ideas, useful links, and words you want to come back to."
       />
