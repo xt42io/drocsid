@@ -14,7 +14,7 @@ import { snapshot, messagePage, searchMessages } from "../src/server/queries";
 import { liveMessage, authorizeRoom } from "../src/server/realtime/data";
 import { prepareUpload } from "../src/server/uploads";
 import { actionSchema, defaults } from "../src/lib/contracts";
-import { applyLiveMessage } from "../src/lib/live-state";
+import { applyLiveMessage, applyLiveRead } from "../src/lib/live-state";
 import {
   incomingMessageRequests,
   normalDirectMessages,
@@ -81,7 +81,10 @@ test("non-friend DMs arrive atomically as requests, stay read-only, and become n
   const frame = await liveMessage(db, "bob", "dm:alice:bob", sent.message!.id);
   assert.equal(frame?.dmConversation?.status, "pending");
   assert.equal(frame?.dmConversation?.incoming, true);
+  assert.equal(frame?.dmConversation?.conversation, "dm:alice:bob");
+  assert.equal(frame?.dmConversation?.unread, 1);
   const live = applyLiveMessage(beforeMessage, frame!);
+  assert.equal(live.dmConversations[0].unread, 1);
   assert.equal(incomingMessageRequests(live).length, 1);
   assert.equal(
     normalDirectMessages(live).length,
@@ -178,6 +181,16 @@ test("non-friend DMs arrive atomically as requests, stay read-only, and become n
   );
   assert.equal(incomingMessageRequests(accepted).length, 0);
   assert.equal(normalDirectMessages(accepted).length, 1);
+  assert.equal(accepted.dmConversations[0].unread, 1);
+  assert.equal(
+    applyLiveRead(
+      accepted,
+      "dm:alice:bob",
+      sent.message!.createdAt!,
+    ).dmConversations[0].unread,
+    0,
+    "Read events clear the badge in other tabs using the canonical DM id",
+  );
   assert.equal(
     incomingMessageRequests(applyLiveMessage(accepted, frame!)).length,
     0,
@@ -194,6 +207,7 @@ test("non-friend DMs arrive atomically as requests, stay read-only, and become n
     through: new Date().toISOString(),
   });
   assert.equal((await db.select().from(schema.readStates)).length, 1);
+  assert.equal((await state("bob")).dmConversations[0].unread, 0);
 });
 
 test("declining persists and revokes recipient history, while every send path and reopening stay blocked", async () => {
