@@ -127,6 +127,27 @@ export const members = pgTable(
     index("membership_user_idx").on(t.userId),
   ],
 );
+export const communityInvites = pgTable(
+  "community_invites",
+  {
+    code: text("code").primaryKey(),
+    communityId: text("community_id")
+      .notNull()
+      .references(() => communities.id, { onDelete: "cascade" }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: time("created_at"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    maxUses: integer("max_uses"),
+    useCount: integer("use_count").notNull().default(0),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("community_invite_community_idx").on(t.communityId, t.createdAt),
+    index("community_invite_creator_idx").on(t.createdBy, t.createdAt),
+  ],
+);
 export const categories = pgTable(
   "channel_categories",
   {
