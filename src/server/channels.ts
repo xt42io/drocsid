@@ -7,8 +7,8 @@ import { HttpError } from "./http";
 
 type PutChannel = Extract<Action, { type: "channel.put" }>;
 
-// The common single-channel write commits authorization, quota, category,
-// channel and member notifications together in one database round trip.
+// The common single-channel write commits authorization, quota, optional
+// category, channel and member notifications together in one database round trip.
 export async function putChannel(
   db: Database,
   userId: string,
@@ -35,11 +35,17 @@ export async function putChannel(
         count = case when ${s.limits.windowStart} < now() - interval '1 minute' then 1 else ${s.limits.count} + 1 end,
         window_start = case when ${s.limits.windowStart} < now() - interval '1 minute' then now() else ${s.limits.windowStart} end
       returning count
-    ), category as (
+    ), category_write as (
       insert into ${s.categories} (id, community_id, name)
-      select ${crypto.randomUUID()}, target.community_id, ${channel.group} from target, quota where quota.count <= 120
+      select ${crypto.randomUUID()}, target.community_id, ${channel.group} from target, quota
+      where quota.count <= 120 and ${channel.group} <> ''
       on conflict (community_id, name) do update set name = excluded.name
       returning id, name
+    ), category as (
+      select id, name from category_write
+      union all
+      select null::text as id, ''::text as name from target, quota
+      where quota.count <= 120 and ${channel.group} = ''
     ), written as (
       insert into ${s.conversations} (id, kind, community_id, channel_id, name, description, icon, category_id, private)
       select ${id}, 'channel', allowed.community_id, ${channel.id}, ${channel.name}, ${channel.description}, ${channel.icon ?? ""}, category.id, ${!!channel.private}
@@ -60,7 +66,7 @@ export async function putChannel(
       union all
       select c.channel_id, c.name, c.description, c.private, c.icon from ${s.conversations} c, allowed, category
       where c.id = ${id} and c.kind = 'channel' and c.community_id = allowed.community_id and c.channel_id = ${channel.id}
-        and c.icon = ${channel.icon ?? ""} and c.name = ${channel.name} and c.description = ${channel.description} and c.category_id = category.id and c.private = ${!!channel.private}
+        and c.icon = ${channel.icon ?? ""} and c.name = ${channel.name} and c.description = ${channel.description} and c.category_id is not distinct from category.id and c.private = ${!!channel.private}
         and not exists(select 1 from written)
     )
     select exists(select 1 from allowed) as allowed, (select count from quota) as requests,
