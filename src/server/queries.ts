@@ -273,7 +273,7 @@ export async function snapshot(
             hasMessages: startedChannels.has(ch.id),
             group:
               categoryRows.find((g) => g.id === ch.categoryId)?.name ??
-              "CHANNELS",
+              "",
             private: ch.private,
             unread: unread.find((r) => r.conversationId === ch.id)?.count ?? 0,
           })),
