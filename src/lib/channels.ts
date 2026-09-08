@@ -1,5 +1,15 @@
 import type { AppState, Channel, Community, Message } from "../types/app";
 
+const legacyDefaultCategories = new Set([
+  "START HERE",
+  "THE COMMON ROOM",
+  "CHANNELS",
+]);
+
+export function getChannelGroup(channel: Channel): string {
+  return legacyDefaultCategories.has(channel.group) ? "" : channel.group;
+}
+
 export function showChannelWelcome(
   community: Community,
   channel: Channel,
@@ -24,29 +34,19 @@ export function getChannelCategories(community: Community): string[] {
   return [
     ...new Set([
       ...(community.channelCategories ?? []),
-      ...community.channels.map((channel) => channel.group),
+      ...community.channels.map(getChannelGroup),
     ]),
-  ];
+  ].filter(
+    (category) => category && !legacyDefaultCategories.has(category),
+  );
 }
 export function createDefaultChannels(): Channel[] {
   return [
     {
-      id: "welcome",
-      name: "welcome",
-      group: "START HERE",
-      description: "A few things to help you feel at home.",
-    },
-    {
-      id: "introductions",
-      name: "introductions",
-      group: "START HERE",
-      description: "Come as you are. Tell us a little about yourself.",
-    },
-    {
       id: "general",
       hasMessages: false,
       name: "general",
-      group: "THE COMMON ROOM",
+      group: "",
       description: "A place for a little bit of everything.",
     },
   ];
@@ -65,12 +65,14 @@ export function applyChannel(
       const exists = community.channels.some((c) => c.id === result.channel.id);
       return {
         ...community,
-        channelCategories: [
-          ...new Set([
-            ...(community.channelCategories ?? []),
-            result.channel.group,
-          ]),
-        ],
+        channelCategories: result.channel.group
+          ? [
+              ...new Set([
+                ...(community.channelCategories ?? []),
+                result.channel.group,
+              ]),
+            ]
+          : community.channelCategories,
         channels: exists
           ? community.channels.map((c) =>
               c.id === result.channel.id
