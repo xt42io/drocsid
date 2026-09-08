@@ -1,5 +1,5 @@
 import { AppLoading, workspaceThemeKey } from "../components/app/app-loading";
-import { ReadReceipts } from "./read-receipts";
+import { persistReadReceipts, ReadReceipts } from "./read-receipts";
 import { selectionStore, shallowEqual } from "./selection-store";
 import { ActionQueue } from "./action-scope";
 import { Drafts } from "./drafts";
@@ -407,7 +407,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const focus = () => {
       if (!client.isConnected) void refresh();
     };
+    const persistReads = () => {
+      try {
+        for (const request of persistReadReceipts(
+          readReceipts.current.pending(),
+        ))
+          void request.catch(() => {});
+      } catch {
+        // Unloading must remain quiet when the browser has exhausted its
+        // keepalive budget. The regular receipt may already be in flight.
+      }
+    };
+    const persistHiddenReads = () => {
+      if (document.visibilityState === "hidden") persistReads();
+    };
     window.addEventListener("focus", focus);
+    window.addEventListener("pagehide", persistReads);
+    document.addEventListener("visibilitychange", persistHiddenReads);
     return () => {
       active.current = false;
       realtime.current = null;
@@ -418,6 +434,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearTimeout(refreshTimer);
       clearTimeout(timer.current);
       window.removeEventListener("focus", focus);
+      window.removeEventListener("pagehide", persistReads);
+      document.removeEventListener("visibilitychange", persistHiddenReads);
     };
   }, [apply, refresh]);
   const observeRoom = useCallback(
