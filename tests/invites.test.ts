@@ -56,12 +56,15 @@ before(async () => {
 
 after(async () => engine.close());
 
-test("members create stable short invite links and outsiders cannot", async () => {
-  await assert.rejects(() => createInvite(db, "guest", communityId), {
-    message: "Join this community before inviting people.",
+test("only owners and admins can create stable short invite links", async () => {
+  await assert.rejects(() => createInvite(db, "member", communityId), {
+    message: "Only community owners and admins can do that.",
   });
-  const first = await createInvite(db, "member", communityId);
-  const repeated = await createInvite(db, "member", communityId);
+  await assert.rejects(() => createInvite(db, "guest", communityId), {
+    message: "Only community owners and admins can do that.",
+  });
+  const first = await createInvite(db, "owner", communityId);
+  const repeated = await createInvite(db, "owner", communityId);
   assert.equal(first.code, repeated.code);
   assert.equal(first.url, `https://drocsid.cc/${first.code}`);
   assert.equal(await inviteExists(db, first.code), true);
@@ -89,12 +92,12 @@ test("accepting is atomic and only counts a newly joined member", async () => {
   assert.equal(joined.length, 1);
 });
 
-test("only the creator can revoke a link and revoked links stop resolving", async () => {
-  const invite = await createInvite(db, "member", communityId);
-  await assert.rejects(() => revokeInvite(db, "owner", invite.code), {
-    message: "You can only revoke invite links you created.",
+test("members cannot revoke links and an owner can revoke any community link", async () => {
+  const invite = await createInvite(db, "owner", communityId);
+  await assert.rejects(() => revokeInvite(db, "member", invite.code), {
+    message: "Only community owners and admins can do that.",
   });
-  await revokeInvite(db, "member", invite.code);
+  await revokeInvite(db, "owner", invite.code);
   assert.equal(await inviteExists(db, invite.code), false);
   await assert.rejects(() => invitePreview(db, invite.code), {
     message: "Invite not found.",
