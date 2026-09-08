@@ -12,12 +12,12 @@ import {
 import { Avatar, Icon, Logo } from "./ui";
 import { authClient } from "../lib/auth-client";
 import { EmailCodeForm, requestEmailCode } from "./email-code-form";
+import { ButtonLoader } from "./button-loader";
 
 type AuthMode = "sign-in" | "sign-up";
 type Errors = Partial<Record<"email", string>>;
 const copy = {
   "sign-in": {
-    eyebrow: null,
     title: "Hey, welcome back.",
     description: "The conversation’s better with you in it.",
     submit: "Send code",
@@ -29,7 +29,6 @@ const copy = {
     ),
   },
   "sign-up": {
-    eyebrow: null,
     title: "Good to have you.",
     description: null,
     submit: "Send code",
@@ -48,7 +47,10 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
     email: string;
   } | null>(null);
   const [socialNotice, setSocialNotice] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState<"email" | "github" | null>(
+    null,
+  );
+  const busy = busyAction !== null;
   const [serverError, setServerError] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
   const id = useId();
@@ -67,7 +69,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
       emailRef.current?.focus();
       return;
     }
-    setBusy(true);
+    setBusyAction("email");
     setServerError("");
     try {
       const address = email.trim().toLowerCase();
@@ -85,7 +87,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
     } catch {
       setServerError("Could not reach the server. Please try again.");
     } finally {
-      setBusy(false);
+      setBusyAction(null);
     }
   }
 
@@ -212,16 +214,8 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
             <>
               <div
                 data-ui="auth-heading"
-                className="**:data-[ui~=eyebrow]:text-[9px] **:data-[ui~=eyebrow]:tracking-[1.3px] **:data-[ui~=eyebrow]:text-[#89907c] [&_h2]:text-[37px] [&_h2]:mt-3 [&_h2]:mb-3.25 [&_h2]:tracking-[-1.8px] [&_h2]:font-semibold [&>p]:text-[#707662] [&>p]:text-[14px] [&>p]:leading-[1.7] [&>p]:mt-0 [&>p]:mb-7 [&>p]:mx-0 max-[800px]:[&_h2]:text-[32px] max-[800px]:[&>p]:text-[13px] max-[800px]:**:data-[ui~=eyebrow]:text-[8px] max-[580px]:[&_h2]:text-[34px] max-[580px]:**:data-[ui~=eyebrow]:text-[8px] max-[580px]:[&>p]:text-[14px] max-[580px]:[&>p]:mb-6"
+                className="[&_h2]:text-[37px] [&_h2]:mt-0 [&_h2]:mb-3.25 [&_h2]:tracking-[-1.8px] [&_h2]:font-semibold [&>p]:text-[#707662] [&>p]:text-[14px] [&>p]:leading-[1.7] [&>p]:mt-0 [&>p]:mb-7 [&>p]:mx-0 max-[800px]:[&_h2]:text-[32px] max-[800px]:[&>p]:text-[13px] max-[580px]:[&_h2]:text-[34px] max-[580px]:[&>p]:text-[14px] max-[580px]:[&>p]:mb-6"
               >
-                {content.eyebrow && (
-                  <span
-                    data-ui="eyebrow"
-                    className="block font-mono text-[11px] tracking-[1.6px] font-normal leading-[1.7] max-[580px]:text-[9px]"
-                  >
-                    {content.eyebrow}
-                  </span>
-                )}
                 <h2>{content.title}</h2>
                 {content.description && <p>{content.description}</p>}
               </div>
@@ -233,7 +227,7 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     className="w-full min-h-12 flex items-center justify-center gap-2 border border-solid border-[#d9dbcf] bg-transparent rounded-md text-[14px] font-semibold [transition:background_0.2s,border-color_0.2s] hover:bg-[#eeefe7] hover:border-[#b7c0a7] max-[580px]:text-[13px] max-[580px]:min-h-12"
                     disabled={busy}
                     onClick={async () => {
-                      setBusy(true);
+                      setBusyAction("github");
                       posthog.capture("github_sign_in_clicked", { mode });
                       try {
                         const result = await authClient.signIn.social({
@@ -244,11 +238,17 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                       } catch {
                         setSocialNotice(true);
                       } finally {
-                        setBusy(false);
+                        setBusyAction(null);
                       }
                     }}
                   >
-                    <Icon icon={GithubIcon} size={21} /> Continue with GitHub
+                    {busyAction === "github" ? (
+                      <ButtonLoader label="Connecting to GitHub" />
+                    ) : (
+                      <>
+                        <Icon icon={GithubIcon} size={21} /> Continue with GitHub
+                      </>
+                    )}
                   </button>
                   {socialNotice && (
                     <p
@@ -323,8 +323,14 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                   type="submit"
                   disabled={busy}
                 >
-                  {busy ? "One moment…" : content.submit}
-                  <Icon icon={ArrowRight01Icon} size={19} />
+                  {busyAction === "email" ? (
+                    <ButtonLoader label="Sending sign-in code" />
+                  ) : (
+                    <>
+                      {content.submit}
+                      <Icon icon={ArrowRight01Icon} size={19} />
+                    </>
+                  )}
                 </button>
               </form>
               {
