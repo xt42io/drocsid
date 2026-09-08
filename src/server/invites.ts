@@ -3,6 +3,7 @@ import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "./db";
 import * as s from "./db/schema";
 import { HttpError } from "./http";
+import { requireManager } from "./access";
 import type {
   AcceptedInvite,
   InviteLink,
@@ -57,18 +58,7 @@ export async function createInvite(
   userId: string,
   communityId: string,
 ): Promise<InviteLink> {
-  const [membership] = await db
-    .select({ communityId: s.members.communityId })
-    .from(s.members)
-    .where(
-      and(
-        eq(s.members.communityId, communityId),
-        eq(s.members.userId, userId),
-      ),
-    )
-    .limit(1);
-  if (!membership)
-    throw new HttpError(403, "Join this community before inviting people.");
+  await requireManager(db, userId, communityId);
 
   const [existing] = await db
     .select({ code: s.communityInvites.code })
@@ -110,19 +100,24 @@ export async function revokeInvite(
   code: string,
 ) {
   if (!validInviteCode(code)) throw new HttpError(404, "Invite not found.");
+  const [invite] = await db
+    .select({ communityId: s.communityInvites.communityId })
+    .from(s.communityInvites)
+    .where(eq(s.communityInvites.code, code))
+    .limit(1);
+  if (!invite) throw new HttpError(404, "Invite not found.");
+  await requireManager(db, userId, invite.communityId);
   const revoked = await db
     .update(s.communityInvites)
     .set({ revokedAt: new Date() })
     .where(
       and(
         eq(s.communityInvites.code, code),
-        eq(s.communityInvites.createdBy, userId),
         isNull(s.communityInvites.revokedAt),
       ),
     )
     .returning({ code: s.communityInvites.code });
-  if (!revoked[0])
-    throw new HttpError(403, "You can only revoke invite links you created.");
+  if (!revoked[0]) throw new HttpError(404, "Invite not found.");
 }
 
 export async function invitePreview(
