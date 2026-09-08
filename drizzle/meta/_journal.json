@@ -78,6 +78,13 @@
       "when": 1788833182046,
       "tag": "0010_black_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788859048000,
+      "tag": "0011_remove_default_channel_categories",
+      "breakpoints": true
     }
   ]
 }
