@@ -70,13 +70,15 @@ export async function mutate(db: Database, userId: string, action: Action) {
         .insert(s.members)
         .values({ communityId: action.id, userId, role: "Owner" });
       const categories = [
-        ...new Set(action.channels.map((channel) => channel.group)),
+        ...new Set(
+          action.channels.map((channel) => channel.group).filter(Boolean),
+        ),
       ].map((name) => ({
         id: crypto.randomUUID(),
         communityId: action.id,
         name,
       }));
-      await db.insert(s.categories).values(categories);
+      if (categories.length) await db.insert(s.categories).values(categories);
       const categoryIds = new Map(
         categories.map((category) => [category.name, category.id]),
       );
@@ -89,7 +91,7 @@ export async function mutate(db: Database, userId: string, action: Action) {
           name: channel.name,
           description: channel.description,
           icon: channel.icon ?? "",
-          categoryId: categoryIds.get(channel.group)!,
+          categoryId: categoryIds.get(channel.group) ?? null,
           private: !!channel.private,
         })),
       );
@@ -157,27 +159,32 @@ export async function mutate(db: Database, userId: string, action: Action) {
       break;
     case "channel.put": {
       await requireManager(db, userId, action.communityId);
-      await mutate(db, userId, {
-        type: "category.create",
-        communityId: action.communityId,
-        name: action.channel.group,
-      });
-      const [category] = await db
-        .select()
-        .from(s.categories)
-        .where(
-          and(
-            eq(s.categories.communityId, action.communityId),
-            eq(s.categories.name, action.channel.group),
-          ),
-        );
+      const category = action.channel.group
+        ? await (async () => {
+            await mutate(db, userId, {
+              type: "category.create",
+              communityId: action.communityId,
+              name: action.channel.group,
+            });
+            const [created] = await db
+              .select()
+              .from(s.categories)
+              .where(
+                and(
+                  eq(s.categories.communityId, action.communityId),
+                  eq(s.categories.name, action.channel.group),
+                ),
+              );
+            return created;
+          })()
+        : null;
       const id = `${action.communityId}:${action.channel.id}`;
       const { name, description } = action.channel;
       const values = {
         icon: action.channel.icon ?? "",
         name,
         description,
-        categoryId: category.id,
+        categoryId: category?.id ?? null,
         private: !!action.channel.private,
       };
       await db
