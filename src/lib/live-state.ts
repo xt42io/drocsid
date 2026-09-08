@@ -77,7 +77,38 @@ export function applyLiveRead(
   return {
     ...state,
     communities: updateUnread(state.communities, conversation, unread),
+    dmConversations: updateDirectUnread(
+      state.dmConversations,
+      state.messages,
+      conversation,
+      through,
+    ),
   };
+}
+
+function updateDirectUnread(
+  conversations: AppState["dmConversations"],
+  messages: AppState["messages"],
+  conversation: string,
+  through: string,
+) {
+  const index = conversations.findIndex(
+    (dm) =>
+      dm.conversation === conversation || `dm:${dm.personId}` === conversation,
+  );
+  if (index < 0) return conversations;
+  const dm = conversations[index];
+  const cursor = new Date(through).toISOString();
+  const unread = messages.filter(
+    (message) =>
+      message.conversation === `dm:${dm.personId}` &&
+      message.author !== "you" &&
+      (message.createdAt ?? "") > cursor,
+  ).length;
+  if (dm.unread === unread) return conversations;
+  return conversations.map((item, itemIndex) =>
+    itemIndex === index ? { ...item, unread } : item,
+  );
 }
 
 function updateUnread(
