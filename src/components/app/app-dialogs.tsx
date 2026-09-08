@@ -2,7 +2,7 @@ import { CommunityIconUpload, type IconUpload } from "./community-icon-upload";
 import { CommunityIcon } from "./community-icon";
 import { ChannelIconField } from "./channel-icons";
 import { useDirectory } from "../../lib/use-directory";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
@@ -12,6 +12,8 @@ import {
   createDefaultChannels,
 } from "../../lib/channels";
 import type { Community, Person } from "../../types/app";
+import type { InviteLink } from "../../types/invites";
+import { api, apiDelete } from "../../lib/api-client";
 import { AppIcon, Dialog, EmptyState, PersonAvatar } from "./primitives";
 
 export function AppDialogs() {
@@ -653,18 +655,53 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
 function Invite({ communityId }: { communityId: string }) {
   const { state, setModal, notify } = useApp();
   const [copied, setCopied] = useState(false);
+  const [invite, setInvite] = useState<InviteLink>();
+  const [loading, setLoading] = useState(true);
+  const [revoking, setRevoking] = useState(false);
+  const [error, setError] = useState("");
   const community = state.communities.find((c) => c.id === communityId);
-  const [origin] = useState(() =>
-    typeof window !== "undefined" ? window.location.origin : "",
-  );
-  const url = `${origin}/app/invite/${communityId}`;
+  useEffect(() => {
+    let current = true;
+    setLoading(true);
+    setError("");
+    void api<InviteLink>("/api/invites", { communityId })
+      .then((next) => {
+        if (current) setInvite(next);
+      })
+      .catch((cause) => {
+        if (current)
+          setError(
+            cause instanceof Error ? cause.message : "Could not make an invite.",
+          );
+      })
+      .finally(() => {
+        if (current) setLoading(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [communityId]);
   async function copy() {
+    if (!invite) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(invite.url);
       setCopied(true);
-      notify("Preview invitation link copied.");
+      notify("Invitation link copied.");
     } catch {
       notify("Copy isn’t available here. Select the link to copy it manually.");
+    }
+  }
+  async function revoke() {
+    if (!invite) return;
+    setRevoking(true);
+    try {
+      await apiDelete(`/api/invites/${encodeURIComponent(invite.code)}`);
+      setInvite(undefined);
+      notify("Invitation link revoked.");
+    } catch (cause) {
+      notify(cause instanceof Error ? cause.message : "Could not revoke invite.");
+    } finally {
+      setRevoking(false);
     }
   }
   return (
@@ -700,33 +737,75 @@ function Invite({ communityId }: { communityId: string }) {
         <input
           id="invite-link"
           readOnly
-          value={url}
+          value={loading ? "Making your invite…" : (invite?.url ?? "")}
+          aria-invalid={!!error}
           onFocus={(event) => event.target.select()}
         />
         <button
           data-ui="a-button primary"
           className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954]"
+          disabled={!invite || loading}
           onClick={copy}
         >
           <AppIcon name={copied ? "check" : "copy"} size={17} />
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
+      {error && (
+        <p role="alert" className="mb-3 text-xs text-[#ff776d]">
+          {error}
+        </p>
+      )}
       <p
         data-ui="a-form-footnote"
         className="text-(--a-muted) leading-[1.8] text-[11px]!"
       >
-        Anyone with this link can join this public community.
+        Anyone with this link can join this community.
       </p>
-      <Link
-        to="/app/invite/$communityId"
-        params={{ communityId }}
-        data-ui="a-text-link"
-        className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
-        onClick={() => setModal(null)}
-      >
-        Preview the invitation <AppIcon name="external" size={15} />
-      </Link>
+      {invite ? (
+        <div className="flex items-center justify-between gap-4">
+          <Link
+            to="/invite/$code"
+            params={{ code: invite.code }}
+            data-ui="a-text-link"
+            className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
+            onClick={() => setModal(null)}
+          >
+            Preview invitation <AppIcon name="external" size={15} />
+          </Link>
+          <button
+            type="button"
+            className="text-[11px] font-[550] text-(--a-muted) hover:text-[#ff776d] disabled:cursor-wait disabled:opacity-60"
+            disabled={revoking}
+            onClick={revoke}
+          >
+            {revoking ? "Revoking…" : "Revoke link"}
+          </button>
+        </div>
+      ) : (
+        !loading && !error && (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) hover:text-(--a-orange)"
+            onClick={() => {
+              setLoading(true);
+              setError("");
+              void api<InviteLink>("/api/invites", { communityId })
+                .then(setInvite)
+                .catch((cause) =>
+                  setError(
+                    cause instanceof Error
+                      ? cause.message
+                      : "Could not make an invite.",
+                  ),
+                )
+                .finally(() => setLoading(false));
+            }}
+          >
+            Make a new invite link <AppIcon name="right" size={15} />
+          </button>
+        )
+      )}
     </Dialog>
   );
 }
