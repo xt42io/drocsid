@@ -298,12 +298,10 @@ export function Toggle({
   );
 }
 export function PageHeading({
-  eyebrow,
   title,
   description,
   children,
 }: {
-  eyebrow?: string;
   title: string;
   description?: string;
   children?: ReactNode;
@@ -311,31 +309,13 @@ export function PageHeading({
   return (
     <div
       data-ui="a-page-heading"
-      className="flex items-center justify-between gap-6 mb-8.25 **:data-[ui~=a-eyebrow]:mb-3 [&_h1]:mb-2.75 [&_p]:text-[14px] [&_p]:leading-[1.7] [&_p]:text-(--a-muted) *:data-[ui~=a-button]:self-center max-[1250px]:[&_h1]:text-[32px] max-[1250px]:[&_p]:text-[13px] max-[1050px]:[&_h1]:text-[29px] max-[1050px]:*:data-[ui~=a-button]:text-[11px]! max-[1050px]:*:data-[ui~=a-button]:py-2.25 max-[1050px]:*:data-[ui~=a-button]:px-3 max-[760px]:mb-6.25 max-[760px]:gap-5 max-[760px]:[&_h1]:text-[32px] max-[760px]:[&_p]:text-[13px] max-[760px]:[&_p]:leading-[1.75] max-[760px]:**:data-[ui~=a-eyebrow]:text-[8px] max-[760px]:**:data-[ui~=a-eyebrow]:tracking-[1px] max-[760px]:*:data-[ui~=a-button]:text-[11px]! max-[760px]:*:data-[ui~=a-button]:whitespace-nowrap max-[480px]:[align-items:start] max-[480px]:gap-3 max-[480px]:flex-wrap max-[480px]:[&_h1]:text-[30px] max-[480px]:*:data-[ui~=a-button]:min-h-9"
+      className="flex items-center justify-between gap-6 mb-8.25 [&_h1]:mb-2.75 [&_p]:text-[14px] [&_p]:leading-[1.7] [&_p]:text-(--a-muted) *:data-[ui~=a-button]:self-center max-[1250px]:[&_h1]:text-[32px] max-[1250px]:[&_p]:text-[13px] max-[1050px]:[&_h1]:text-[29px] max-[1050px]:*:data-[ui~=a-button]:text-[11px]! max-[1050px]:*:data-[ui~=a-button]:py-2.25 max-[1050px]:*:data-[ui~=a-button]:px-3 max-[760px]:mb-6.25 max-[760px]:gap-5 max-[760px]:[&_h1]:text-[32px] max-[760px]:[&_p]:text-[13px] max-[760px]:[&_p]:leading-[1.75] max-[760px]:*:data-[ui~=a-button]:text-[11px]! max-[760px]:*:data-[ui~=a-button]:whitespace-nowrap max-[480px]:[align-items:start] max-[480px]:gap-3 max-[480px]:flex-wrap max-[480px]:[&_h1]:text-[30px] max-[480px]:*:data-[ui~=a-button]:min-h-9"
     >
       <div>
-        {eyebrow && (
-          <span
-            data-ui="a-eyebrow"
-            className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
-          >
-            {eyebrow}
-          </span>
-        )}
         <h1>{title}</h1>
         {description && <p>{description}</p>}
       </div>
       {children}
     </div>
-  );
-}
-export function PreviewNote() {
-  return (
-    <span
-      data-ui="a-preview-note"
-      className="flex items-center justify-center gap-1.5 text-[7px] tracking-[0.65px] font-mono text-(--a-faint) [&>span]:bg-[#b9a276] [&>span]:rounded-full [&>span]:size-1"
-    >
-      <span /> YOUR COMMUNITY · CONNECTED
-    </span>
   );
 }
