@@ -8,6 +8,7 @@ const details = (c: Community) => ({
   icon: c.icon,
   color: c.color as "peach",
   category: c.category,
+  discoverable: c.discoverable ?? true,
 });
 // Translate UI edits into narrow commands; the server never accepts arbitrary state.
 export function stateActions(previous: AppState, next: AppState): Action[] {
