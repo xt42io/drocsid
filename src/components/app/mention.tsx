@@ -22,7 +22,10 @@ import { AppIcon, PersonAvatar } from "./primitives";
 import { WorkspacePortal } from "./floating-panel";
 
 export function Mention({ target }: { target: MentionTarget }) {
-  const { setModal } = useApp((app) => ({ setModal: app.setModal }));
+  const { setModal, profile } = useApp((app) => ({
+    setModal: app.setModal,
+    profile: app.state.profile,
+  }));
   const [open, setOpen] = useState(false);
   const { refs, floatingStyles, context } = useFloating({
     open,
@@ -42,13 +45,17 @@ export function Mention({ target }: { target: MentionTarget }) {
     useRole(context),
   ]);
   const person = target.kind === "person" ? target.person : null;
+  const self =
+    person &&
+    (person.id === profile.id ||
+      person.handle.toLowerCase() === profile.handle.toLowerCase());
   return (
     <>
       <button
         type="button"
         ref={refs.setReference}
-        data-ui={`a-mention ${person ? "" : "a-group-mention"}`}
-        className="inline py-px px-1 rounded-sm bg-[#f4ded2] text-[#954b32] leading-[inherit] cursor-pointer text-left wrap-anywhere font-[550]! hover:bg-[#edc4ae] aria-expanded:bg-[#edc4ae] in-data-[ui~=theme-dark]:bg-[#f45e3826] in-data-[ui~=theme-dark]:text-[#ffb29c] [[data-ui~=theme-dark]_&:hover]:bg-[#f45e3840] [[data-ui~=theme-dark]_&[aria-expanded='true']]:bg-[#f45e3840]"
+        data-ui={`a-mention ${person ? "" : "a-group-mention"} ${self ? "a-self-mention" : ""}`}
+        className="inline py-px px-1 rounded-sm bg-[#f4ded2] text-[#954b32] leading-[inherit] cursor-pointer text-left wrap-anywhere font-[550]! hover:bg-[#edc4ae] aria-expanded:bg-[#edc4ae] data-[ui~=a-self-mention]:bg-[#ddd9ff] data-[ui~=a-self-mention]:text-[#5147b8] data-[ui~=a-self-mention]:hover:bg-[#cbc5ff] data-[ui~=a-self-mention]:aria-expanded:bg-[#cbc5ff] in-data-[ui~=theme-dark]:bg-[#f45e3826] in-data-[ui~=theme-dark]:text-[#ffb29c] [[data-ui~=theme-dark]_&:hover]:bg-[#f45e3840] [[data-ui~=theme-dark]_&[aria-expanded='true']]:bg-[#f45e3840] [[data-ui~=theme-dark]_&[data-ui~=a-self-mention]]:bg-[#6655d65c] [[data-ui~=theme-dark]_&[data-ui~=a-self-mention]]:text-[#d7d1ff] [[data-ui~=theme-dark]_&[data-ui~=a-self-mention]:hover]:bg-[#7563ed75] [[data-ui~=theme-dark]_&[data-ui~=a-self-mention][aria-expanded='true']]:bg-[#7563ed75]"
         {...getReferenceProps({ onClick: () => setOpen(true) })}
       >
         @{person?.name ?? target.handle}
