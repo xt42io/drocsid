@@ -14,12 +14,37 @@ import {
 import type { Community, Person } from "../../types/app";
 import type { InviteLink } from "../../types/invites";
 import { api, apiDelete } from "../../lib/api-client";
-import { AppIcon, Dialog, EmptyState, PersonAvatar } from "./primitives";
+import {
+  AppIcon,
+  Dialog,
+  EmptyState,
+  PersonAvatar,
+} from "./primitives";
+import { ButtonLoader } from "../button-loader";
+import { canManageCommunity } from "../../lib/community-permissions";
 
 export function AppDialogs() {
   const app = useApp();
-  if (!app.modal) return null;
   const modal = app.modal;
+  const managedCommunityId =
+    modal?.type === "create-category" ||
+    modal?.type === "create-channel" ||
+    modal?.type === "invite"
+      ? modal.communityId
+      : modal?.type === "confirm"
+        ? (modal.managedCommunityId ?? null)
+      : null;
+  const blockedManagementDialog =
+    !!managedCommunityId &&
+    !canManageCommunity(
+      app.state.communities.find(
+        (community) => community.id === managedCommunityId,
+      ),
+    );
+  useEffect(() => {
+    if (blockedManagementDialog) app.setModal(null);
+  }, [app.setModal, blockedManagementDialog]);
+  if (!modal || blockedManagementDialog) return null;
   if (modal.type === "create-community") return <CreateCommunity />;
   if (modal.type === "create-category")
     return <CreateCategory communityId={modal.communityId} />;
@@ -270,10 +295,13 @@ function CreateCommunity() {
           data-ui="a-button primary full"
           className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
         >
-          {creating ? "Creating community…" : "Create your corner"}
-          <span className={creating ? "animate-spin" : ""}>
-            <AppIcon name={creating ? "reset" : "right"} size={17} />
-          </span>
+          {creating ? (
+            <ButtonLoader label="Creating community" />
+          ) : (
+            <>
+              Create your corner <AppIcon name="right" size={17} />
+            </>
+          )}
         </button>
       </form>
     </Dialog>
@@ -283,9 +311,11 @@ function CreateCategory({ communityId }: { communityId: string }) {
   const { state, setState, setModal, notify } = useApp();
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [creating, setCreating] = useState(false);
   const community = state.communities.find((c) => c.id === communityId);
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (creating) return;
     const normalized = name.trim().replace(/\s+/g, " ");
     if (!normalized) {
       setError("Give your category a name.");
@@ -300,6 +330,7 @@ function CreateCategory({ communityId }: { communityId: string }) {
       setError("There’s already a category with that name.");
       return;
     }
+    setCreating(true);
     const saved = await setState((previous) => ({
       ...previous,
       communities: previous.communities.map((c) =>
@@ -311,6 +342,7 @@ function CreateCategory({ communityId }: { communityId: string }) {
           : c,
       ),
     }));
+    setCreating(false);
     if (!saved) return;
     setModal(null);
     notify(`${normalized} is ready. Add a channel to get started.`);
@@ -330,6 +362,7 @@ function CreateCategory({ communityId }: { communityId: string }) {
           Category name
           <input
             autoFocus
+            disabled={creating}
             value={name}
             onChange={(event) => {
               setName(event.target.value);
@@ -360,10 +393,18 @@ function CreateCategory({ communityId }: { communityId: string }) {
         </p>
         <button
           type="submit"
+          disabled={creating}
+          aria-busy={creating}
           data-ui="a-button primary full"
           className="disabled:cursor-wait disabled:opacity-60 inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
         >
-          Create category <AppIcon name="plus" size={18} />
+          {creating ? (
+            <ButtonLoader label="Creating category" />
+          ) : (
+            <>
+              Create category <AppIcon name="plus" size={18} />
+            </>
+          )}
         </button>
       </form>
     </Dialog>
@@ -383,12 +424,7 @@ function CreateChannel({
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("");
 
-  const [group, setGroup] = useState(
-    initialGroup ??
-      (categories.includes("THE COMMON ROOM")
-        ? "THE COMMON ROOM"
-        : (categories[0] ?? "")),
-  );
+  const [group, setGroup] = useState(initialGroup ?? "");
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
   const submitting = useRef(false);
@@ -420,7 +456,7 @@ function CreateChannel({
         name: normalized,
         description: "",
         icon,
-        group: group || "CHANNELS",
+        group,
       });
     } finally {
       submitting.current = false;
@@ -477,18 +513,21 @@ function CreateChannel({
           />
         </label>
         <ChannelIconField value={icon} onChange={setIcon} disabled={creating} />
-        <label>
-          Category
-          <select
-            disabled={creating}
-            value={group}
-            onChange={(event) => setGroup(event.target.value)}
-          >
-            {categories.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </label>
+        {categories.length > 0 && (
+          <label>
+            Category
+            <select
+              disabled={creating}
+              value={group}
+              onChange={(event) => setGroup(event.target.value)}
+            >
+              <option value="">No category</option>
+              {categories.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+          </label>
+        )}
         {error && (
           <p
             data-ui="a-form-error"
@@ -505,10 +544,13 @@ function CreateChannel({
           disabled={creating}
           aria-busy={creating}
         >
-          {creating ? "Creating channel…" : "Create channel"}{" "}
-          <span className={creating ? "animate-spin" : ""}>
-            <AppIcon name={creating ? "reset" : "plus"} size={18} />
-          </span>
+          {creating ? (
+            <ButtonLoader label="Creating channel" />
+          ) : (
+            <>
+              Create channel <AppIcon name="plus" size={18} />
+            </>
+          )}
         </button>
       </form>
     </Dialog>
@@ -638,7 +680,11 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
             disabled={directory.loading}
             onClick={directory.more}
           >
-            {directory.loading ? "Loading…" : "Load more"}
+            {directory.loading ? (
+              <ButtonLoader label="Loading more people" />
+            ) : (
+              "Load more"
+            )}
           </button>
         )}
         {results.length === 0 && !directory.loading && !directory.error && (
@@ -779,7 +825,11 @@ function Invite({ communityId }: { communityId: string }) {
             disabled={revoking}
             onClick={revoke}
           >
-            {revoking ? "Revoking…" : "Revoke link"}
+            {revoking ? (
+              <ButtonLoader label="Revoking invite link" />
+            ) : (
+              "Revoke link"
+            )}
           </button>
         </div>
       ) : (
@@ -821,10 +871,9 @@ function Profile({ personId }: { personId: string }) {
     >
       <div
         data-ui={`a-profile-cover tone-${person.color}`}
-        className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] h-23.75 rounded-lg flex items-center justify-between p-5.5 mb-0 overflow-hidden [&>svg]:transform-[rotate(-12deg)] [&>svg]:opacity-60 [&>span]:text-[8px] [&>span]:font-mono [&>span]:tracking-[1px]"
+        className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] h-23.75 rounded-lg flex items-center justify-center p-5.5 mb-0 overflow-hidden [&>svg]:transform-[rotate(-12deg)] [&>svg]:opacity-60"
       >
         <AppIcon name="sun" size={56} />
-        <span>COME AS YOU ARE.</span>
       </div>
       <div
         data-ui="a-profile-details"
@@ -844,14 +893,8 @@ function Profile({ personId }: { personId: string }) {
         <p>{person.bio || "Sometimes a hello says enough."}</p>
         <div
           data-ui="a-profile-meta"
-          className="flex flex-col gap-2.5 py-5 px-0 my-4.5 [border-block:1px_solid_var(--a-border)] [&>span:last-child]:flex [&>span:last-child]:items-center [&>span:last-child]:gap-1.5 [&>span:last-child]:text-(--a-muted) [&>span:last-child]:text-[11px] [&>span:last-child]:leading-[1.6] max-[480px]:[&>span:last-child]:text-[10px]"
+          className="flex flex-col py-5 px-0 my-4.5 [border-block:1px_solid_var(--a-border)] [&>span]:flex [&>span]:items-center [&>span]:gap-1.5 [&>span]:text-(--a-muted) [&>span]:text-[11px] [&>span]:leading-[1.6] max-[480px]:[&>span]:text-[10px]"
         >
-          <span
-            data-ui="a-eyebrow"
-            className="block font-mono text-[9px] font-normal tracking-[1.3px] leading-[1.6] text-(--a-muted)"
-          >
-            AROUND HERE
-          </span>
           <span>
             <i
               data-ui={`a-status-dot ${person.status}`}
