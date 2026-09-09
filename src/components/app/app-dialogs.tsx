@@ -21,6 +21,7 @@ import {
   PersonAvatar,
 } from "./primitives";
 import { ButtonLoader } from "../button-loader";
+import { AutoLinkText } from "./auto-link-text";
 import { canManageCommunity } from "../../lib/community-permissions";
 
 export function AppDialogs() {
@@ -891,7 +892,11 @@ function Profile({ personId }: { personId: string }) {
             {person.role}
           </span>
         </span>
-        <p>{person.bio || "Sometimes a hello says enough."}</p>
+        <p className="[&_a]:text-(--a-green) [&_a]:underline [&_a]:underline-offset-3">
+          <AutoLinkText
+            text={person.bio || "Sometimes a hello says enough."}
+          />
+        </p>
         <div
           data-ui="a-profile-meta"
           className="flex flex-col py-5 px-0 my-4.5 [border-block:1px_solid_var(--a-border)] [&>span]:flex [&>span]:items-center [&>span]:gap-1.5 [&>span]:text-(--a-muted) [&>span]:text-[11px] [&>span]:leading-[1.6] max-[480px]:[&>span]:text-[10px]"
