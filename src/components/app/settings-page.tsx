@@ -16,7 +16,14 @@ const sections: { id: string; label: string; icon: IconName }[] = [
   { id: "data", label: "Your data", icon: "code" },
 ];
 export function SettingsPage({ section }: { section: string }) {
-  const { state, setState, setModal, notify, reset } = useApp();
+  const {
+    state,
+    setState,
+    setModal,
+    notify,
+    previewNotificationSound,
+    reset,
+  } = useApp();
   const posthog = usePostHog();
   const [name, setName] = useState(state.profile.name);
   const [handle, setHandle] = useState(state.profile.handle);
@@ -486,7 +493,10 @@ export function SettingsPage({ section }: { section: string }) {
                 label="Notification sounds"
                 description="A gentle sound when a new message comes in."
                 checked={state.preferences.sounds}
-                onChange={(value) => updatePreference("sounds", value)}
+                onChange={(value) => {
+                  if (value) previewNotificationSound();
+                  void updatePreference("sounds", value);
+                }}
               />
               <div
                 data-ui="a-settings-divider"
