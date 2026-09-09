@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomInt } from "node:crypto";
 import { and, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import type { Database } from "./db";
 import * as s from "./db/schema";
@@ -10,7 +10,17 @@ import type {
   InvitePreview,
 } from "../types/invites";
 
-const codePattern = /^[A-Za-z0-9_-]{10,24}$/;
+const currentCodePattern = /^[A-Za-z0-9]{7}$/;
+const legacyCodePattern = /^[A-Za-z0-9_-]{10,24}$/;
+const codeAlphabet =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+function randomInviteCode(length = 7) {
+  return Array.from(
+    { length },
+    () => codeAlphabet[randomInt(codeAlphabet.length)],
+  ).join("");
+}
 
 export function inviteShortOrigin() {
   const configured = process.env.INVITE_SHORT_URL || "https://drocsid.cc";
@@ -21,7 +31,7 @@ export function inviteShortOrigin() {
 }
 
 export function validInviteCode(code: string) {
-  return codePattern.test(code);
+  return currentCodePattern.test(code) || legacyCodePattern.test(code);
 }
 
 function link(code: string): InviteLink {
@@ -80,10 +90,11 @@ export async function createInvite(
     )
     .orderBy(desc(s.communityInvites.createdAt))
     .limit(1);
-  if (existing) return link(existing.code);
+  if (existing && currentCodePattern.test(existing.code))
+    return link(existing.code);
 
   for (let attempt = 0; attempt < 4; attempt++) {
-    const code = randomBytes(9).toString("base64url");
+    const code = randomInviteCode();
     const inserted = await db
       .insert(s.communityInvites)
       .values({ code, communityId, createdBy: userId })
