@@ -520,6 +520,7 @@ export function Conversation({
                 inputRef={composerRef}
                 key={conversation}
                 conversation={conversation}
+                typeToFocus={panel !== "thread"}
                 placeholder={
                   person
                     ? `Message ${person.handle ? `@${person.handle}` : person.name}`
@@ -1089,6 +1090,7 @@ const ignoreThread = () => {};
 function Composer({
   inputRef,
   typingEnabled = true,
+  typeToFocus = true,
   conversation,
   placeholder,
   threadOf,
@@ -1096,6 +1098,7 @@ function Composer({
   conversation: string;
   placeholder: string;
   typingEnabled?: boolean;
+  typeToFocus?: boolean;
   inputRef?: RefObject<HTMLTextAreaElement | null>;
   threadOf?: string;
 }) {
@@ -1129,6 +1132,59 @@ function Composer({
     if (typingEnabled) setTyping({ conversation, threadOf }, !!text.trim());
     writeDraft(text.slice(0, 4000));
   };
+  useEffect(() => {
+    if (!typeToFocus) return;
+    function focusComposerOnTyping(event: KeyboardEvent) {
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        [...event.key].length !== 1
+      )
+        return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest(
+          "input, textarea, select, [contenteditable='true'], [contenteditable='']",
+        ) ||
+        document.querySelector("dialog[open], [role='dialog'], [aria-modal='true']")
+      )
+        return;
+      if (
+        event.key === " " &&
+        target?.closest("button, a, summary, [role='button'], [role='menuitem']")
+      )
+        return;
+      const node = textarea.current;
+      if (!node || node.disabled || node.readOnly) return;
+      const start = node.selectionStart ?? draft.length;
+      const end = node.selectionEnd ?? draft.length;
+      if (draft.length - (end - start) >= 4000) {
+        node.focus({ preventScroll: true });
+        return;
+      }
+      event.preventDefault();
+      setDraft(draft.slice(0, start) + event.key + draft.slice(end));
+      requestAnimationFrame(() => {
+        const caret = start + event.key.length;
+        node.focus({ preventScroll: true });
+        node.setSelectionRange(caret, caret);
+      });
+    }
+    document.addEventListener("keydown", focusComposerOnTyping);
+    return () => document.removeEventListener("keydown", focusComposerOnTyping);
+  }, [
+    conversation,
+    draft,
+    setTyping,
+    textarea,
+    threadOf,
+    typeToFocus,
+    typingEnabled,
+    writeDraft,
+  ]);
   useEffect(() => {
     if (textarea.current) {
       textarea.current.style.height = "auto";
