@@ -1,15 +1,15 @@
 import { and, eq, sql } from "drizzle-orm";
-import type { Database } from "./db";
-import * as s from "./db/schema";
-import type { Action } from "../lib/contracts";
-import type { Message } from "../types/app";
+import type { Database } from "./db/index.ts";
+import * as s from "./db/schema.ts";
+import type { Action } from "../lib/contracts.ts";
+import type { Message } from "../types/app.ts";
 import {
   conversationSendAccess,
   conversationIdFor,
   requireConversation,
-} from "./access";
-import { rowJson } from "./sql-json";
-import { HttpError } from "./http";
+} from "./access.ts";
+import { rowJson } from "./sql-json.ts";
+import { HttpError } from "./http.ts";
 
 type Send = Extract<Action, { type: "message.send" }>;
 function serialize(
