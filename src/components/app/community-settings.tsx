@@ -488,7 +488,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 <PersonAvatar person={person} presence />
                 <span>
                   <strong>{person.name}</strong>
-                  <small>@{person.handle}</small>
+                  {person.handle && <small>@{person.handle}</small>}
                 </span>
                 <span
                   data-ui="a-role-tag"
