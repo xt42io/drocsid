@@ -1,5 +1,11 @@
 export type ImageVariant =
-  "avatar-40" | "avatar-80" | "avatar-160" | "chat-420" | "chat-840";
+  | "avatar-40"
+  | "avatar-80"
+  | "avatar-160"
+  | "community-cover-960"
+  | "community-cover-1920"
+  | "chat-420"
+  | "chat-840";
 
 // Only stored app images have a transformation endpoint. Local upload previews
 // and external profile images must keep their original URL.
@@ -7,7 +13,9 @@ export function mediaImageUrl(src: string, variant: ImageVariant) {
   const [path] = src.split(/[?#]/);
   const kind = variant.startsWith("avatar-")
     ? "(?:avatars|community-icons)"
-    : "attachments";
+    : variant.startsWith("community-cover-")
+      ? "community-icons"
+      : "attachments";
   if (!new RegExp(`^/api/${kind}/[^/]+$`).test(path)) return src;
   const url = new URL(src, "http://drocsid.local");
   url.searchParams.set("variant", variant);
@@ -22,5 +30,16 @@ export function avatarImageSources(src: string, large = false) {
       normal === src
         ? undefined
         : `${normal} 1x, ${mediaImageUrl(src, large ? "avatar-160" : "avatar-80")} 2x`,
+  };
+}
+
+export function communityCoverImageSources(src: string) {
+  const normal = mediaImageUrl(src, "community-cover-960");
+  return {
+    src: normal,
+    srcSet:
+      normal === src
+        ? undefined
+        : `${normal} 1x, ${mediaImageUrl(src, "community-cover-1920")} 2x`,
   };
 }
