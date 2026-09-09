@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight01Icon,
   ArrowUpRight01Icon,
-  GithubIcon,
   HeartCheckIcon,
   LaptopIcon,
   SmartPhone01Icon,
@@ -231,7 +230,13 @@ function LandingPage() {
               data-ui="button button-outline"
               className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-[#d9d8d0] bg-transparent px-5.5 py-3.5 text-[14px] font-semibold transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:border-[#b7b7af] hover:bg-[#efeee9] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
-              Star on GitHub <Icon icon={GithubIcon} size={19} />
+              Star on GitHub
+              <img
+                src="/icons/github.svg"
+                alt=""
+                aria-hidden="true"
+                className="size-4.75"
+              />
             </a>
           </div>
           <div
@@ -305,7 +310,12 @@ function LandingPage() {
               data-ui="button github-button"
               className="mt-7 inline-flex min-h-12 items-center gap-3 rounded-[9px] bg-ink px-4.5 py-2.5 text-[13px] font-semibold text-white shadow-[0_5px_18px_rgba(41,42,38,0.16)] transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] hover:shadow-[0_8px_24px_rgba(41,42,38,0.22)] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
-              <Icon icon={GithubIcon} size={20} />
+              <img
+                src="/icons/github.svg"
+                alt=""
+                aria-hidden="true"
+                className="size-5 invert"
+              />
               <span>Star on GitHub</span>
               <span className="ml-1 flex items-center border-l border-white/20 pl-3 text-[#ffd766]">
                 <Icon icon={StarIcon} size={18} />
