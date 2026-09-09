@@ -90,6 +90,7 @@ test("WebSockets authenticate, acknowledge, scope typing, expire it and revoke a
         type: "message",
         id: input.id,
         conversationId: input.conversation,
+        newMessage: true,
       });
       return { message };
     },
@@ -201,6 +202,10 @@ test("WebSockets authenticate, acknowledge, scope typing, expire it and revoke a
   assert.equal(
     b.frames.some((f) => f.type === "invalidate"),
     false,
+  );
+  assert.equal(
+    b.frames.find((f) => f.type === "message" && f.id === id)?.newMessage,
+    true,
   );
   const privateId = crypto.randomUUID();
   a.send({
