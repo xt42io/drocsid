@@ -12,6 +12,7 @@ import {
   inviteExists,
   invitePreview,
   revokeInvite,
+  validInviteCode,
 } from "../src/server/invites";
 
 const engine = new PGlite();
@@ -66,11 +67,23 @@ test("only owners and admins can create stable short invite links", async () => 
   const first = await createInvite(db, "owner", communityId);
   const repeated = await createInvite(db, "owner", communityId);
   assert.equal(first.code, repeated.code);
+  assert.match(first.code, /^[A-Za-z0-9]{7}$/);
   assert.equal(first.url, `https://drocsid.cc/${first.code}`);
   assert.equal(await inviteExists(db, first.code), true);
   const preview = await invitePreview(db, first.code);
   assert.equal(preview.community.name, "Invite room");
   assert.equal(preview.community.members, 2);
+});
+
+test("invite validation accepts current codes and previously issued legacy codes", () => {
+  assert.equal(validInviteCode("Abc1234"), true);
+  assert.equal(validInviteCode("6F_70I_yzEwM"), true);
+  assert.equal(validInviteCode("Abc_234"), false);
+  assert.equal(validInviteCode("Abc-234"), false);
+  assert.equal(validInviteCode("Abc123!"), false);
+  assert.equal(validInviteCode("Ａbc1234"), false);
+  assert.equal(validInviteCode("Abc123"), false);
+  assert.equal(validInviteCode("Abc12345"), false);
 });
 
 test("accepting is atomic and only counts a newly joined member", async () => {
