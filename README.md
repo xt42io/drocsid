@@ -59,7 +59,7 @@ pnpm start
 
 The runner serves built assets, TanStack HTTP routes and WebSocket upgrades together. Set `BETTER_AUTH_URL` to your public HTTPS origin; forward HTTP/1.1 WebSocket upgrades for `/api/ws` through your reverse proxy and use an idle timeout over 60 seconds. Use a persistent Node host; a static host or a request-only serverless deployment will not run this gateway. `PORT` optionally overrides the production port.
 
-Set `INVITE_SHORT_URL=https://drocsid.cc` and attach `drocsid.cc` to the same service as the main app. The production runner accepts only `/{invite-code}` on that host and redirects valid codes to the canonical invite page on `BETTER_AUTH_URL`. Every other `.cc` path returns 404 before assets or application routes are served. Invite creation, preview, acceptance, and revocation are backed by Postgres; accepting a revoked, expired, exhausted, or unknown code is rejected by the server.
+Set `INVITE_SHORT_URL=https://drocsid.cc` and attach `drocsid.cc` to the same service as the main app. New invites use a seven-character ASCII alphanumeric code. The production runner redirects those codes, plus previously issued URL-safe legacy codes, to the canonical invite page on `BETTER_AUTH_URL`. Every other `.cc` path returns 404 before assets or application routes are served. Invite creation, preview, acceptance, and revocation are backed by Postgres; accepting a revoked, expired, exhausted, or unknown code is rejected by the server.
 
 To check the already-running server against the configured database:
 
