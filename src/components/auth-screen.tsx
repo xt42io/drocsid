@@ -384,6 +384,13 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
                     </>
                   )}
                 </button>
+                {signup && (
+                  <p className="m-0 text-center text-[10px] leading-5 text-[#7b806f] [&_a]:font-semibold [&_a]:text-[#596148] [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-[#c84b2b] max-[580px]:text-[10px]">
+                    By creating an account, you agree to the <Link to="/terms">Terms</Link>
+                    {" and "}
+                    <Link to="/privacy">Privacy Policy</Link>.
+                  </p>
+                )}
               </form>
               {
                 <div
