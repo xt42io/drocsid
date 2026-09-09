@@ -33,6 +33,7 @@ export type TypingPerson = Room & {
 export type MessageUpdate = {
   type: "message";
   id: string;
+  newMessage?: boolean;
   message: Message | null;
   person?: Person;
   conversation?: string;
