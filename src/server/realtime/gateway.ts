@@ -134,7 +134,11 @@ export function attachRealtime(
       job = { running: false, ids: new Map() };
       jobs.set(conversationId, job);
     }
-    job.ids.set(event.id, event);
+    const pending = job.ids.get(event.id);
+    job.ids.set(event.id, {
+      ...event,
+      newMessage: event.newMessage || pending?.newMessage,
+    });
     if (job.ids.size > 500) {
       for (const peer of peers)
         if ([...peer.rooms.values()].some((room) => room.id === conversationId))
@@ -165,7 +169,11 @@ export function attachRealtime(
           );
           for (const peer of peers) {
             const frame = byUser.get(peer.identity.userId);
-            if (frame) send(peer, frame);
+            if (frame)
+              send(
+                peer,
+                next.newMessage ? { ...frame, newMessage: true } : frame,
+              );
           }
         }
       } catch (error) {
