@@ -101,7 +101,11 @@ export function appPageTitle(
     const personId = decode(direct[1]);
     const person = state.people.find((item) => item.id === personId);
     return formatPageTitle(
-      person ? `${person.name} (@${person.handle})` : "Direct message",
+      person
+        ? person.handle
+          ? `${person.name} (@${person.handle})`
+          : person.name
+        : "Direct message",
       unread,
     );
   }
