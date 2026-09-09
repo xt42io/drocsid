@@ -5,51 +5,28 @@ export const notificationSoundPath = "/sounds/new-notification-07.mp3";
 type IncomingMessageSoundContext = {
   message: Message | null;
   newMessage: boolean;
-  alreadyKnown: boolean;
   notifications: boolean;
   sounds: boolean;
   muted: readonly string[];
-  pathname: string;
-  visibility: DocumentVisibilityState;
 };
-
-export function isConversationOpen(conversation: string, pathname: string) {
-  if (conversation.startsWith("dm:"))
-    return pathname === `/app/dm/${conversation.slice(3)}`;
-
-  const separator = conversation.indexOf(":");
-  if (separator === -1) return false;
-  return (
-    pathname ===
-    `/app/community/${conversation.slice(0, separator)}/${conversation.slice(separator + 1)}`
-  );
-}
 
 export function shouldPlayIncomingMessageSound({
   message,
   newMessage,
-  alreadyKnown,
   notifications,
   sounds,
   muted,
-  pathname,
-  visibility,
 }: IncomingMessageSoundContext) {
   if (
     !message ||
     !newMessage ||
-    alreadyKnown ||
     message.author === "you" ||
     !notifications ||
     !sounds ||
     muted.includes(message.conversation)
   )
     return false;
-
-  return !(
-    visibility === "visible" &&
-    isConversationOpen(message.conversation, pathname)
-  );
+  return true;
 }
 
 export class IncomingMessageSound {
@@ -65,30 +42,32 @@ export class IncomingMessageSound {
     return this.audio;
   }
 
-  unlock() {
+  unlock(): Promise<boolean> {
     const audio = this.getAudio();
-    if (!audio) return;
+    if (!audio) return Promise.resolve(false);
     audio.muted = true;
-    const playback = audio.play();
-    if (!playback) return;
-    void playback
+    return audio
+      .play()
       .then(() => {
         audio.pause();
         audio.currentTime = 0;
         audio.muted = false;
+        return true;
       })
       .catch(() => {
         audio.muted = false;
+        return false;
       });
   }
 
-  play() {
+  play(): Promise<boolean> {
     const audio = this.getAudio();
-    if (!audio) return;
+    if (!audio) return Promise.resolve(false);
     audio.muted = false;
     audio.currentTime = 0;
-    void audio.play().catch(() => {
-      // Browsers can reject audio before the first user interaction.
-    });
+    return audio
+      .play()
+      .then(() => true)
+      .catch(() => false);
   }
 }
