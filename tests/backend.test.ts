@@ -1130,7 +1130,7 @@ test("live message projections reauthorize recipients and include edits, reactio
 
 test("database notifications publish committed messages, never rolled-back writes or retries", async () => {
   const room = await community();
-  const received: { type: string; id?: string }[] = [];
+  const received: { type: string; id?: string; newMessage?: boolean }[] = [];
   const unlisten = await engine.listen("drocsid_live", (payload) =>
     received.push(JSON.parse(payload)),
   );
@@ -1155,6 +1155,11 @@ test("database notifications publish committed messages, never rolled-back write
     assert.equal(
       received.filter((e) => e.type === "message" && e.id === input.id).length,
       1,
+    );
+    assert.equal(
+      received.find((e) => e.type === "message" && e.id === input.id)
+        ?.newMessage,
+      true,
     );
     await send(db, "owner", input);
     assert.equal(received.filter((e) => e.id === input.id).length, 1);
