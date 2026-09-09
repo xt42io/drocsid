@@ -24,6 +24,7 @@ import {
 import type { Community, AppState, Message, Person } from "../types/app";
 import { HttpError } from "./http";
 import { hydrate, rowJson } from "./sql-json";
+import { chosenUsername } from "../lib/usernames";
 
 function uiKey(
   c: typeof s.conversations.$inferSelect,
@@ -224,7 +225,7 @@ export async function snapshot(
     id: p.profile.userId === userId ? "you" : p.profile.userId,
     name: p.name,
     avatarUrl: p.avatarId ? `/api/avatars/${p.avatarId}` : undefined,
-    handle: p.profile.handle,
+    handle: chosenUsername(p.profile.handle),
     bio: p.profile.bio,
     color: p.profile.color,
     activity: p.profile.preferences.activity ? p.profile.activity : "",
@@ -326,7 +327,9 @@ export async function snapshot(
       })),
     preferences: own.profile.preferences,
     muted: own.profile.muted,
-    onboardingComplete: own.profile.onboardingComplete,
+    onboardingComplete:
+      own.profile.onboardingComplete &&
+      Boolean(chosenUsername(own.profile.handle)),
     drafts: {},
   };
 }
