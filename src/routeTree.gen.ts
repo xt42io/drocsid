@@ -10,11 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcceptableUseRouteImport } from './routes/acceptable-use'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as CommunityGuidelinesRouteImport } from './routes/community-guidelines'
+import { Route as CookiesRouteImport } from './routes/cookies'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiAppRouteImport } from './routes/api.app'
 import { Route as ApiAvatarsRouteImport } from './routes/api.avatars'
 import { Route as ApiCommunityIconsRouteImport } from './routes/api.community-icons'
@@ -50,14 +55,34 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AcceptableUseRoute = AcceptableUseRouteImport.update({
+  id: '/acceptable-use',
+  path: '/acceptable-use',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunityGuidelinesRoute = CommunityGuidelinesRouteImport.update({
+  id: '/community-guidelines',
+  path: '/community-guidelines',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CookiesRoute = CookiesRouteImport.update({
+  id: '/cookies',
+  path: '/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: '/forgot-password',
   path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -73,6 +98,11 @@ const SignInRoute = SignInRouteImport.update({
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAppRoute = ApiAppRouteImport.update({
@@ -225,11 +255,16 @@ const AppCommunityCommunityIdSettingsRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acceptable-use': typeof AcceptableUseRoute
   '/app': typeof AppRouteWithChildren
+  '/community-guidelines': typeof CommunityGuidelinesRoute
+  '/cookies': typeof CookiesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/terms': typeof TermsRoute
   '/api/app': typeof ApiAppRouteWithChildren
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
@@ -262,10 +297,15 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acceptable-use': typeof AcceptableUseRoute
+  '/community-guidelines': typeof CommunityGuidelinesRoute
+  '/cookies': typeof CookiesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/terms': typeof TermsRoute
   '/api/app': typeof ApiAppRouteWithChildren
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
@@ -299,11 +339,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acceptable-use': typeof AcceptableUseRoute
   '/app': typeof AppRouteWithChildren
+  '/community-guidelines': typeof CommunityGuidelinesRoute
+  '/cookies': typeof CookiesRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/terms': typeof TermsRoute
   '/api/app': typeof ApiAppRouteWithChildren
   '/api/avatars': typeof ApiAvatarsRouteWithChildren
   '/api/community-icons': typeof ApiCommunityIconsRouteWithChildren
@@ -338,11 +383,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acceptable-use'
     | '/app'
+    | '/community-guidelines'
+    | '/cookies'
     | '/forgot-password'
+    | '/privacy'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/terms'
     | '/api/app'
     | '/api/avatars'
     | '/api/community-icons'
@@ -375,10 +425,15 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acceptable-use'
+    | '/community-guidelines'
+    | '/cookies'
     | '/forgot-password'
+    | '/privacy'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/terms'
     | '/api/app'
     | '/api/avatars'
     | '/api/community-icons'
@@ -411,11 +466,16 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/acceptable-use'
     | '/app'
+    | '/community-guidelines'
+    | '/cookies'
     | '/forgot-password'
+    | '/privacy'
     | '/reset-password'
     | '/sign-in'
     | '/sign-up'
+    | '/terms'
     | '/api/app'
     | '/api/avatars'
     | '/api/community-icons'
@@ -449,11 +509,16 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcceptableUseRoute: typeof AcceptableUseRoute
   AppRoute: typeof AppRouteWithChildren
+  CommunityGuidelinesRoute: typeof CommunityGuidelinesRoute
+  CookiesRoute: typeof CookiesRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  TermsRoute: typeof TermsRoute
   ApiAppRoute: typeof ApiAppRouteWithChildren
   ApiAvatarsRoute: typeof ApiAvatarsRouteWithChildren
   ApiCommunityIconsRoute: typeof ApiCommunityIconsRouteWithChildren
@@ -478,6 +543,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/acceptable-use': {
+      id: '/acceptable-use'
+      path: '/acceptable-use'
+      fullPath: '/acceptable-use'
+      preLoaderRoute: typeof AcceptableUseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -485,11 +557,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/community-guidelines': {
+      id: '/community-guidelines'
+      path: '/community-guidelines'
+      fullPath: '/community-guidelines'
+      preLoaderRoute: typeof CommunityGuidelinesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cookies': {
+      id: '/cookies'
+      path: '/cookies'
+      fullPath: '/cookies'
+      preLoaderRoute: typeof CookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/forgot-password': {
       id: '/forgot-password'
       path: '/forgot-password'
       fullPath: '/forgot-password'
       preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -511,6 +604,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-up'
       fullPath: '/sign-up'
       preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/app': {
@@ -799,11 +899,16 @@ const ApiInvitesRouteWithChildren = ApiInvitesRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcceptableUseRoute: AcceptableUseRoute,
   AppRoute: AppRouteWithChildren,
+  CommunityGuidelinesRoute: CommunityGuidelinesRoute,
+  CookiesRoute: CookiesRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  TermsRoute: TermsRoute,
   ApiAppRoute: ApiAppRouteWithChildren,
   ApiAvatarsRoute: ApiAvatarsRouteWithChildren,
   ApiCommunityIconsRoute: ApiCommunityIconsRouteWithChildren,
