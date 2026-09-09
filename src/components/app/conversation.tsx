@@ -404,7 +404,10 @@ export function Conversation({
                 <h2>{person.name}</h2>
                 <p>
                   The beginning of your conversation with{" "}
-                  <strong>@{person.handle}</strong>.
+                  <strong>
+                    {person.handle ? `@${person.handle}` : person.name}
+                  </strong>
+                  .
                 </p>
                 <button
                   data-ui="a-button secondary small"
@@ -515,7 +518,7 @@ export function Conversation({
                 conversation={conversation}
                 placeholder={
                   person
-                    ? `Message @${person.handle}`
+                    ? `Message ${person.handle ? `@${person.handle}` : person.name}`
                     : `Message #${channel!.name}`
                 }
                 typingEnabled={!personId || dm?.status === "accepted"}
