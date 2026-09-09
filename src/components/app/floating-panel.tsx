@@ -5,7 +5,12 @@ import type { ReactNode } from "react";
 export function WorkspacePortal({ children }: { children: ReactNode }) {
   return (
     <FloatingPortal
-      root={document.querySelector<HTMLElement>("[data-ui~=workspace]")}
+      root={
+        typeof document !== "undefined"
+          ? (document.querySelector<HTMLElement>("[data-ui~=workspace]") ??
+            undefined)
+          : undefined
+      }
     >
       {children}
     </FloatingPortal>
