@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
+import { eq } from "drizzle-orm";
 import * as schema from "../src/server/db/schema";
 import type { Database } from "../src/server/db";
 import { mutate } from "../src/server/actions";
@@ -11,6 +12,7 @@ import { snapshot } from "../src/server/queries";
 import { actionSchema } from "../src/lib/contracts";
 import { stateActions } from "../src/lib/state-actions";
 import type { AppState } from "../src/lib/app-state";
+import { peopleFor } from "../src/server/directory";
 
 const engine = new PGlite();
 const database = drizzle(engine, { schema });
@@ -116,4 +118,14 @@ test("profile gender can be saved, updated, and queried in snapshots", async () 
   assert.equal(diffs.length, 1);
   assert.equal(diffs[0].type, "profile");
   assert.equal((diffs[0] as typeof profileAction).gender, "he/him");
+
+  // 9. Legacy values are normalized in snapshot and directory projections
+  await db
+    .update(schema.profiles)
+    .set({ gender: "legacy-value" })
+    .where(eq(schema.profiles.userId, userA.id));
+  const legacySnapshot = await snapshot(db, userA);
+  assert.equal(legacySnapshot.profile.gender, "");
+  const [legacyPerson] = await peopleFor(db, userB.id, [userA.id]);
+  assert.equal(legacyPerson.gender, "");
 });

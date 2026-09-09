@@ -1,6 +1,11 @@
 import { sql, type SQL } from "drizzle-orm";
 import type { Database } from "./db";
 import type { Community, Person } from "../types/app";
+import { normalizeGender } from "../lib/people";
+
+function normalizePerson(person: Person): Person {
+  return { ...person, gender: normalizeGender(person.gender) };
+}
 
 export function personJson(userId: string) {
   return sql`jsonb_build_object('id', case when p.user_id = ${userId} then 'you' else p.user_id end,
@@ -14,7 +19,7 @@ export async function peopleFor(db: Database, userId: string, ids: string[]) {
   const result = await db.execute<{ person: Person }>(
     sql`select ${personJson(userId)} as person from profiles p join "user" u on u.id = p.user_id where p.user_id = any(${sql.param(ids)}::text[])`,
   );
-  return result.rows.map((row) => row.person);
+  return result.rows.map((row) => normalizePerson(row.person));
 }
 export async function directory(
   db: Database,
@@ -38,7 +43,9 @@ export async function directory(
         and not exists(select 1 from blocked_users b where b.user_id = ${userId} and b.target_id = p.user_id)
       order by p.handle, p.user_id limit 51 offset ${input.offset}`);
     return {
-      people: result.rows.slice(0, 50).map((row) => row.person),
+      people: result.rows.slice(0, 50).map((row) =>
+        normalizePerson(row.person),
+      ),
       hasMore: result.rows.length > 50,
     };
   }

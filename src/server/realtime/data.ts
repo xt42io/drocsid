@@ -12,6 +12,7 @@ import { HttpError } from "../http.ts";
 import { sendMessage } from "../send-message.ts";
 import type { MessageUpdate, Room } from "../../lib/realtime-protocol.ts";
 import type { Person, Message, DirectConversation } from "../../types/app.ts";
+import { normalizeGender } from "../../lib/people.ts";
 
 export type Identity = {
   userId: string;
@@ -100,7 +101,14 @@ export async function liveMessages(
       ...(row.dmConversation
         ? { dmConversation: { ...row.dmConversation, unread: row.unread } }
         : {}),
-      ...(row.person ? { person: row.person } : {}),
+      ...(row.person
+        ? {
+            person: {
+              ...row.person,
+              gender: normalizeGender(row.person.gender),
+            },
+          }
+        : {}),
     };
     return { userId: row.userId, frame };
   });
