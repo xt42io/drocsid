@@ -10,7 +10,7 @@ import stylesheet from "../styles.css?url";
 
 const siteDescription =
   "An open-source home for your community. Thoughtful text chat, shared interests, and a little more human connection.";
-const siteImage = "https://drocsid.app/og.png";
+const siteImage = "https://drocsid.app/og.png?v=2";
 
 const postHogHost =
   import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
