@@ -614,7 +614,7 @@ function PeoplePicker({ mode }: { mode: "new-message" | "add-friend" }) {
             <PersonAvatar person={person} presence />
             <span>
               <strong>{person.name}</strong>
-              <small>@{person.handle}</small>
+              {person.handle && <small>@{person.handle}</small>}
             </span>
             {mode === "new-message" ? (
               <button
@@ -883,7 +883,7 @@ function Profile({ personId }: { personId: string }) {
         <PersonAvatar person={person} large presence />
         <h3>{person.name}</h3>
         <span>
-          @{person.handle}{" "}
+          {person.handle && <>@{person.handle} </>}
           <span
             data-ui="a-role-tag"
             className="inline-block py-0.75 px-1.75 border border-solid border-(--a-border) rounded-sm bg-(--a-soft) text-[9px] text-(--a-muted)"
