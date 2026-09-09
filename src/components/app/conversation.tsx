@@ -37,6 +37,10 @@ import {
   PersonAvatar,
 } from "./primitives";
 import { ButtonLoader } from "../button-loader";
+import {
+  externalTextLink,
+  textLinkPatternSource,
+} from "../../lib/text-links";
 
 export function ConversationLink({
   conversation,
@@ -653,21 +657,22 @@ function MessageText({
     ? null
     : conversation.split(":")[0];
   function inline(content: string): ReactNode {
+    const tokens = new RegExp(
+      `(\`[^\`]+\`|\\*\\*[^*]+\\*\\*|${textLinkPatternSource}|(?<![\\p{L}\\p{N}_@])@[\\p{L}\\p{N}_-]+|(?<![\\p{L}\\p{N}_#])#[\\p{L}\\p{N}_-]+)`,
+      "giu",
+    );
     return content
-      .split(
-        /(https?:\/\/[^\s]+|`[^`]+`|\*\*[^*]+\*\*|(?<![\p{L}\p{N}_@])@[\p{L}\p{N}_-]+|(?<![\p{L}\p{N}_#])#[\p{L}\p{N}_-]+)/gu,
-      )
+      .split(tokens)
       .map((part, index) => {
-        if (/^https?:\/\//.test(part))
+        const link = externalTextLink(part);
+        if (link)
           return (
-            <a
-              key={index}
-              href={part}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              {part}
-            </a>
+            <span key={index}>
+              <a href={link.href} target="_blank" rel="noreferrer noopener">
+                {link.text}
+              </a>
+              {link.trailing}
+            </span>
           );
         if (part.startsWith("`"))
           return <code key={index}>{part.slice(1, -1)}</code>;
