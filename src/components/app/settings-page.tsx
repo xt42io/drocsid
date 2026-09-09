@@ -28,6 +28,7 @@ export function SettingsPage({ section }: { section: string }) {
   const [name, setName] = useState(state.profile.name);
   const [handle, setHandle] = useState(state.profile.handle);
   const [bio, setBio] = useState(state.profile.bio);
+  const [gender, setGender] = useState(state.profile.gender ?? "");
   const [activity, setActivity] = useState(state.profile.activity);
   const [color, setColor] = useState(state.profile.color);
   const [error, setError] = useState("");
@@ -35,12 +36,14 @@ export function SettingsPage({ section }: { section: string }) {
     setName(state.profile.name);
     setHandle(state.profile.handle);
     setBio(state.profile.bio);
+    setGender(state.profile.gender ?? "");
     setActivity(state.profile.activity);
     setColor(state.profile.color);
   }, [
     state.profile.name,
     state.profile.handle,
     state.profile.bio,
+    state.profile.gender,
     state.profile.activity,
     state.profile.color,
   ]);
@@ -56,12 +59,14 @@ export function SettingsPage({ section }: { section: string }) {
     ...state.profile,
     name: name || state.profile.name,
     bio,
+    gender,
     color,
   };
   const dirty =
     name !== state.profile.name ||
     handle !== state.profile.handle ||
     bio !== state.profile.bio ||
+    gender !== (state.profile.gender ?? "") ||
     activity !== state.profile.activity ||
     color !== state.profile.color;
   function exportData() {
@@ -171,6 +176,7 @@ export function SettingsPage({ section }: { section: string }) {
                       name: name.trim(),
                       handle,
                       bio: bio.trim(),
+                      gender: gender.trim(),
                       activity: activity.trim(),
                       color,
                     },
@@ -212,6 +218,15 @@ export function SettingsPage({ section }: { section: string }) {
                         required
                       />
                     </div>
+                  </label>
+                  <label>
+                    Gender
+                    <input
+                      value={gender}
+                      maxLength={40}
+                      onChange={(event) => setGender(event.target.value)}
+                      placeholder="e.g. Woman, Man, Non-binary"
+                    />
                   </label>
                   <label>
                     A little about you
@@ -308,7 +323,17 @@ export function SettingsPage({ section }: { section: string }) {
                     <section>
                       <PersonAvatar person={preview} large presence />
                       <h3>{name || "Your name"}</h3>
-                      <span>@{handle || "yourname"}</span>
+                      <span className="flex items-center gap-1.5 flex-wrap">
+                        <span>@{handle || "yourname"}</span>
+                        {gender.trim() && (
+                          <span
+                            data-ui="a-gender-tag"
+                            className="inline-block py-0.5 px-1.75 border border-solid border-(--a-border) rounded-sm bg-(--a-soft) text-[9px] text-(--a-muted)"
+                          >
+                            {gender.trim()}
+                          </span>
+                        )}
+                      </span>
                       <p>{bio || "Sometimes a hello says enough."}</p>
                       <small>
                         <i

@@ -8,6 +8,7 @@ export type Person = {
   status: Presence;
   bio: string;
   activity: string;
+  gender?: string;
   role: "Owner" | "Admin" | "Moderator" | "Member";
 };
 export type Channel = {

@@ -97,6 +97,14 @@ export function Mention({ target }: { target: MentionTarget }) {
                     >
                       {person.role}
                     </span>
+                    {person.gender && (
+                      <span
+                        data-ui="a-gender-tag"
+                        className="inline-block py-0.75 px-1.75 border border-solid border-(--a-border) rounded-sm bg-(--a-soft) text-[9px] text-(--a-muted)"
+                      >
+                        {person.gender}
+                      </span>
+                    )}
                   </div>
                   <p className="whitespace-pre-wrap [&_a]:text-(--a-green) [&_a]:underline [&_a]:underline-offset-3">
                     <AutoLinkText

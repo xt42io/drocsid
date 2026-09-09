@@ -1,0 +1,1 @@
+ALTER TABLE "profiles" ADD COLUMN "gender" text DEFAULT '' NOT NULL;

@@ -22,6 +22,7 @@ export function stateActions(previous: AppState, next: AppState): Action[] {
       color: color as "peach",
       bio,
       activity,
+      gender: next.profile.gender ?? "",
       status,
     });
   }

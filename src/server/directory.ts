@@ -4,7 +4,7 @@ import type { Community, Person } from "../types/app";
 
 export function personJson(userId: string) {
   return sql`jsonb_build_object('id', case when p.user_id = ${userId} then 'you' else p.user_id end,
-    'name', u.name, 'handle', case when p.handle ~ '^user_[a-z0-9]{19}$' then '' else coalesce(p.handle, '') end, 'color', p.color, 'bio', p.bio,
+    'name', u.name, 'handle', case when p.handle ~ '^user_[a-z0-9]{19}$' then '' else coalesce(p.handle, '') end, 'color', p.color, 'bio', p.bio, 'gender', coalesce(p.gender, ''),
     'activity', case when (p.preferences->>'activity')::boolean then p.activity else '' end,
     'status', case when p.last_seen_at < now() - interval '90 seconds' then 'offline' else p.status end,
     'role', 'Member', 'avatarUrl', (select '/api/avatars/' || a.id from avatars a where a.uploader_id = p.user_id and a.status = 'active'))`;
