@@ -514,22 +514,35 @@ function LandingPage() {
 
       <footer
         data-ui="site-footer content-width"
-        className="mx-auto flex min-h-27.25 w-[calc(100%-112px)] max-w-300 items-center justify-between gap-6 [&_a]:transition-colors [&_a:hover]:text-[#cc4826] [&>a:not([data-ui~=logo])]:flex [&>a:not([data-ui~=logo])]:items-center [&>a:not([data-ui~=logo])]:gap-2 [&>a:not([data-ui~=logo])]:text-[11px] [&>a:not([data-ui~=logo])]:text-[#717a60] [&>span]:text-[11px] [&>span]:text-[#909384] **:data-[ui~=logo]:text-[23px] **:data-[ui~=logo-mark]:size-6.75 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:flex-wrap max-[800px]:gap-3.75 max-[800px]:py-6.5 max-[800px]:[&>a:not([data-ui~=logo])]:ml-auto max-[800px]:[&>span:not([data-ui~=copyright])]:hidden max-[580px]:min-h-32 max-[580px]:w-[calc(100%-36px)] max-[580px]:gap-x-3 max-[580px]:py-6.5 max-[580px]:[&>a:not([data-ui~=logo])]:text-[10px]"
+        className="mx-auto flex min-h-27.25 w-[calc(100%-112px)] max-w-300 items-center justify-between gap-6 [&_a]:transition-colors [&_a:hover]:text-[#cc4826] [&>span]:text-[11px] [&>span]:text-[#909384] **:data-[ui~=logo]:text-[23px] **:data-[ui~=logo-mark]:size-6.75 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:flex-wrap max-[800px]:gap-3.75 max-[800px]:py-6.5 max-[580px]:min-h-32 max-[580px]:w-[calc(100%-36px)] max-[580px]:gap-x-3 max-[580px]:py-6.5"
       >
         <Logo />
-        <a
-          href="https://github.com/xt42io/drocsid"
-          target="_blank"
-          rel="noreferrer"
+        <nav
+          aria-label="Footer"
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[10px] text-[#717a60] max-[800px]:order-3 max-[800px]:w-full max-[580px]:justify-start max-[580px]:gap-x-3 max-[580px]:text-[9px]"
         >
-          Made in the open <Icon icon={HeartCheckIcon} size={16} />
-        </a>
-        <span
-          data-ui="copyright"
-          className="font-mono text-[9px]! max-[580px]:w-full max-[580px]:text-center max-[580px]:text-[8px]!"
-        >
-          © {new Date().getFullYear()} Drocsid
-        </span>
+          <Link to="/privacy">Privacy</Link>
+          <Link to="/terms">Terms</Link>
+          <Link to="/acceptable-use">Acceptable use</Link>
+          <Link to="/community-guidelines">Guidelines</Link>
+          <Link to="/cookies">Cookies</Link>
+        </nav>
+        <div className="flex items-center gap-4 max-[580px]:gap-3">
+          <span
+            data-ui="copyright"
+            className="font-mono text-[9px] text-[#909384] max-[580px]:text-[8px]"
+          >
+            © {new Date().getFullYear()} Drocsid
+          </span>
+          <a
+            href="https://github.com/xt42io/drocsid"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#cc4826] hover:text-[#a83b20]! max-[580px]:text-[11px]"
+          >
+            Made in the open <Icon icon={HeartCheckIcon} size={15} />
+          </a>
+        </div>
       </footer>
     </div>
   );
