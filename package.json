@@ -1,6 +1,7 @@
 {
   "name": "drocsid",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development NODE_OPTIONS='--import ./instrument.server.mjs' vite --port 1515",
