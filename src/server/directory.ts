@@ -4,7 +4,7 @@ import type { Community, Person } from "../types/app";
 
 export function personJson(userId: string) {
   return sql`jsonb_build_object('id', case when p.user_id = ${userId} then 'you' else p.user_id end,
-    'name', u.name, 'handle', p.handle, 'color', p.color, 'bio', p.bio,
+    'name', u.name, 'handle', case when p.handle ~ '^user_[a-z0-9]{19}$' then '' else coalesce(p.handle, '') end, 'color', p.color, 'bio', p.bio,
     'activity', case when (p.preferences->>'activity')::boolean then p.activity else '' end,
     'status', case when p.last_seen_at < now() - interval '90 seconds' then 'offline' else p.status end,
     'role', 'Member', 'avatarUrl', (select '/api/avatars/' || a.id from avatars a where a.uploader_id = p.user_id and a.status = 'active'))`;
@@ -32,7 +32,9 @@ export async function directory(
     const result = await db.execute<{
       person: Person;
     }>(sql`select ${personJson(userId)} as person from profiles p join "user" u on u.id = p.user_id
-      where p.user_id <> ${userId} and ${input.id ? sql`p.user_id = ${input.id}` : sql`(p.handle ilike ${pattern} or u.name ilike ${pattern})`}
+      where p.user_id <> ${userId} and p.handle is not null
+        and p.handle !~ '^user_[a-z0-9]{19}$' and p.onboarding_complete
+        and ${input.id ? sql`p.user_id = ${input.id}` : sql`(p.handle ilike ${pattern} or u.name ilike ${pattern})`}
         and not exists(select 1 from blocked_users b where b.user_id = ${userId} and b.target_id = p.user_id)
       order by p.handle, p.user_id limit 51 offset ${input.offset}`);
     return {
