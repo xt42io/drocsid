@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { avatarImageSources, mediaImageUrl } from "../src/lib/media-images";
+import {
+  avatarImageSources,
+  communityCoverImageSources,
+  mediaImageUrl,
+} from "../src/lib/media-images";
 import { imageVariant, storedImage } from "../src/server/media-images";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -52,6 +56,15 @@ test("image sources resize stored previews and leave local and external images a
     mediaImageUrl("/api/attachments/id?retry=1", "chat-840"),
     "/api/attachments/id?retry=1&variant=chat-840",
   );
+  assert.deepEqual(communityCoverImageSources("/api/community-icons/id"), {
+    src: "/api/community-icons/id?variant=community-cover-960",
+    srcSet:
+      "/api/community-icons/id?variant=community-cover-960 1x, /api/community-icons/id?variant=community-cover-1920 2x",
+  });
+  assert.equal(
+    mediaImageUrl("/api/avatars/id", "community-cover-960"),
+    "/api/avatars/id",
+  );
   assert.equal(mediaImageUrl("/api/avatars/id", "chat-420"), "/api/avatars/id");
 });
 
@@ -74,6 +87,20 @@ test("delivery accepts only the bounded variants for each endpoint", () => {
       () => imageVariant(request(query), "avatar"),
       /Unknown image size/,
     );
+  const communityRequest = (variant: string) =>
+    new Request(`http://localhost/api/community-icons/id?variant=${variant}`);
+  assert.equal(
+    imageVariant(communityRequest("community-cover-1920"), "community"),
+    "community-cover-1920",
+  );
+  assert.equal(
+    imageVariant(communityRequest("avatar-80"), "community"),
+    "avatar-80",
+  );
+  assert.throws(
+    () => imageVariant(communityRequest("chat-840"), "community"),
+    /Unknown image size/,
+  );
 });
 
 test("private transformations preserve signed tokens, animation and original delivery fallback", async (t) => {
@@ -157,4 +184,13 @@ test("community icons render uploaded images with small Byteship variants", asyn
   );
   assert.match(preview, /src="blob:local-icon"/);
   assert.doesNotMatch(preview, /variant=/);
+  const cover = renderToStaticMarkup(
+    createElement(CommunityIcon, {
+      community: { icon: "sun", iconUrl: "/api/community-icons/photo" },
+      size: 74,
+      cover: true,
+    }),
+  );
+  assert.match(cover, /variant=community-cover-960/);
+  assert.match(cover, /community-cover-1920 2x/);
 });
