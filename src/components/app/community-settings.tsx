@@ -4,10 +4,7 @@ import { ChannelIcon } from "./channel-icons";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import {
-  getChannelCategories,
-  getChannelGroup,
-} from "../../lib/channels";
+import { getChannelCategories, getChannelGroup } from "../../lib/channels";
 import {
   canManageCommunity,
   canManageCommunityMember,
@@ -20,6 +17,9 @@ import {
   PersonAvatar,
   Toggle,
 } from "./primitives";
+
+const communityColors = ["peach", "green", "yellow", "purple", "blue"] as const;
+
 export function CommunitySettings({ communityId }: { communityId: string }) {
   const { state, setState, setModal, notify, command } = useApp();
   const navigate = useNavigate();
@@ -162,26 +162,43 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 onChange={(event) => setDescription(event.target.value)}
               />
             </label>
-            <label>
-              Your corner’s color
-              <select
-                value={community.color}
-                onChange={(event) =>
-                  setState((previous) => ({
-                    ...previous,
-                    communities: previous.communities.map((c) =>
-                      c.id === communityId
-                        ? { ...c, color: event.target.value }
-                        : c,
-                    ),
-                  }))
-                }
-              >
-                {["peach", "green", "yellow", "purple", "blue"].map((color) => (
-                  <option key={color}>{color}</option>
-                ))}
-              </select>
-            </label>
+            <fieldset className="border-0 p-0">
+              <legend className="mb-2.5 text-xs/normal font-[550]">
+                Your corner’s color
+              </legend>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {communityColors.map((color) => {
+                  const selected = community.color === color;
+
+                  return (
+                    <button
+                      key={color}
+                      type="button"
+                      data-ui={`color-swatch tone-${color}${selected ? " selected" : ""}`}
+                      aria-label={`${color[0].toUpperCase()}${color.slice(1)}`}
+                      aria-pressed={selected}
+                      className="size-10 rounded-full border-2 border-transparent bg-transparent p-1 transition-[transform,border-color] hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--a-orange) data-[ui~=selected]:border-(--a-text)"
+                      onClick={() =>
+                        setState((previous) => ({
+                          ...previous,
+                          communities: previous.communities.map((c) =>
+                            c.id === communityId ? { ...c, color } : c,
+                          ),
+                        }))
+                      }
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="flex size-full items-center justify-center rounded-full data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#5f713e] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#8c733e] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#79648b] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#567984]"
+                        data-ui={`tone-${color}`}
+                      >
+                        {selected && <AppIcon name="check" size={15} />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
             <Toggle
               checked={discoverable}
               onChange={setDiscoverable}
@@ -247,9 +264,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                         setState((previous) => ({
                           ...previous,
                           communities: previous.communities.map((c) =>
-                            c.id === communityId
-                              ? { ...c, joined: false }
-                              : c,
+                            c.id === communityId ? { ...c, joined: false } : c,
                           ),
                         }));
                         void navigate({ to: "/app/discover" });
@@ -305,9 +320,7 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
             </div>
           </div>
           {[
-            ...(community.channels.some(
-              (channel) => !getChannelGroup(channel),
-            )
+            ...(community.channels.some((channel) => !getChannelGroup(channel))
               ? [""]
               : []),
             ...getChannelCategories(community),
@@ -484,49 +497,49 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                   {community.memberRoles?.[person.id] ?? "Member"}
                 </span>
                 {canManageCommunityMember(community, person.id) && (
-                    <>
-                      <select
-                        aria-label={`Role for ${person.name}`}
-                        value={community.memberRoles?.[person.id] ?? "Member"}
-                        onChange={(event) => {
-                          void command({
-                            type: "member.role",
-                            communityId,
-                            userId: person.id,
-                            role: event.target.value as
-                              "Admin" | "Moderator" | "Member",
-                          });
-                        }}
-                      >
-                        <option>Member</option>
-                        <option>Moderator</option>
-                        {community.memberRoles?.you === "Owner" && (
-                          <option>Admin</option>
-                        )}
-                      </select>
-                      <IconButton
-                        name="userRemove"
-                        label={`Remove ${person.name}`}
-                        onClick={() =>
-                          setModal({
-                            type: "confirm",
-                            title: `Remove ${person.name}?`,
-                            description:
-                              "They will lose access to this community. Public communities can be rejoined.",
-                            label: "Remove member",
-                            managedCommunityId: communityId,
-                            action: () => {
-                              void command({
-                                type: "member.remove",
-                                communityId,
-                                userId: person.id,
-                              });
-                            },
-                          })
-                        }
-                      />
-                    </>
-                  )}
+                  <>
+                    <select
+                      aria-label={`Role for ${person.name}`}
+                      value={community.memberRoles?.[person.id] ?? "Member"}
+                      onChange={(event) => {
+                        void command({
+                          type: "member.role",
+                          communityId,
+                          userId: person.id,
+                          role: event.target.value as
+                            "Admin" | "Moderator" | "Member",
+                        });
+                      }}
+                    >
+                      <option>Member</option>
+                      <option>Moderator</option>
+                      {community.memberRoles?.you === "Owner" && (
+                        <option>Admin</option>
+                      )}
+                    </select>
+                    <IconButton
+                      name="userRemove"
+                      label={`Remove ${person.name}`}
+                      onClick={() =>
+                        setModal({
+                          type: "confirm",
+                          title: `Remove ${person.name}?`,
+                          description:
+                            "They will lose access to this community. Public communities can be rejoined.",
+                          label: "Remove member",
+                          managedCommunityId: communityId,
+                          action: () => {
+                            void command({
+                              type: "member.remove",
+                              communityId,
+                              userId: person.id,
+                            });
+                          },
+                        })
+                      }
+                    />
+                  </>
+                )}
                 <IconButton
                   name="more"
                   label={`View ${person.name}'s profile`}
