@@ -216,7 +216,7 @@ export function SearchPage({ initialQuery }: { initialQuery: string }) {
                   <PersonAvatar person={person} presence />
                   <span>
                     <strong>{person.name}</strong>
-                    <small>@{person.handle}</small>
+                    {person.handle && <small>@{person.handle}</small>}
                   </span>
                   <AppIcon name="right" size={17} />
                 </button>
