@@ -57,7 +57,7 @@ test("short invite host exposes only valid invite redirects", async () => {
       canonicalOrigin: "https://drocsid.app",
       resolve: async (code) => {
         seen.push(code);
-        return code === "GoodInvite12";
+        return code === "Good123" || code === "6F_70I_yzEwM";
       },
     },
   );
@@ -96,20 +96,28 @@ test("short invite host exposes only valid invite redirects", async () => {
       call.end();
     });
   try {
-    const invite = await request("/GoodInvite12");
+    const invite = await request("/Good123");
     assert.equal(invite.status, 302);
     assert.equal(
       invite.headers.location,
-      "https://drocsid.app/invite/GoodInvite12",
+      "https://drocsid.app/invite/Good123",
     );
-    assert.equal((await request("/MissingCode1")).status, 404);
+    assert.equal((await request("/Miss123")).status, 404);
+    const legacyInvite = await request("/6F_70I_yzEwM");
+    assert.equal(legacyInvite.status, 302);
+    assert.equal(
+      legacyInvite.headers.location,
+      "https://drocsid.app/invite/6F_70I_yzEwM",
+    );
+    assert.equal((await request("/Bad_123")).status, 404);
+    assert.equal((await request("/Bad-123")).status, 404);
     assert.equal((await request("/app")).status, 404);
     assert.equal((await request("/api/session")).status, 404);
     assert.equal((await request("/app.css")).status, 404);
     assert.equal((await request("/app", "GET", "drocsid.cc:443")).status, 404);
     assert.equal((await request("/app", "GET", "drocsid.cc.")).status, 404);
-    assert.equal((await request("/GoodInvite12", "POST")).status, 405);
-    assert.deepEqual(seen, ["GoodInvite12", "MissingCode1"]);
+    assert.equal((await request("/Good123", "POST")).status, 405);
+    assert.deepEqual(seen, ["Good123", "Miss123", "6F_70I_yzEwM"]);
 
     const application = await request("/app.css", "GET", "drocsid.app");
     assert.equal(application.status, 200);
