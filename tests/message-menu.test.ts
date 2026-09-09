@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { JSDOM } from "jsdom";
 import { act, createElement } from "react";
+import type { Root } from "react-dom/client";
 import type { AppState, Message } from "../src/types/app";
 import { defaults } from "../src/lib/contracts";
 
@@ -45,7 +46,9 @@ test("message options menu triggers open state, displays action buttons, and clo
     dom.window.cancelAnimationFrame.bind(dom.window),
   );
   install("IS_REACT_ACT_ENVIRONMENT", true);
+  let root: Root | undefined;
 
+  try {
   const testMessage: Message = {
     id: "msg-123",
     conversation: "room:general",
@@ -110,7 +113,7 @@ test("message options menu triggers open state, displays action buttons, and clo
   const workspaceRoot = dom.window.document.querySelector<HTMLElement>(
     "[data-ui~=workspace]",
   )!;
-  const root = createRoot(workspaceRoot);
+  root = createRoot(workspaceRoot);
 
   await act(async () => {
     root.render(
@@ -156,9 +159,21 @@ test("message options menu triggers open state, displays action buttons, and clo
     "[data-ui~=a-dropdown]",
   );
   assert.ok(dropdown, "Dropdown rendered upon opening menu");
+  assert.ok(
+    workspaceRoot.contains(dropdown),
+    "Dropdown is portaled into the workspace element",
+  );
+  assert.equal(dropdown.getAttribute("role"), "menu");
+  assert.equal(dropdown.getAttribute("aria-label"), "Message options");
 
   const buttons = Array.from(dropdown.querySelectorAll("button")).map((b) =>
     b.textContent?.trim(),
+  );
+  assert.ok(
+    Array.from(dropdown.querySelectorAll("button")).every(
+      (button) => button.getAttribute("role") === "menuitem",
+    ),
+    "Every visible action has menuitem semantics",
   );
   assert.ok(
     buttons.some((text) => text?.includes("Copy text")),
@@ -189,12 +204,16 @@ test("message options menu triggers open state, displays action buttons, and clo
     "Trigger reflects closed state after action",
   );
 
-  await act(async () => {
-    root.unmount();
-  });
-
-  for (const [key, descriptor] of previous) {
-    if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-    else delete (globalThis as Record<string, unknown>)[key];
+  } finally {
+    if (root) {
+      await act(async () => {
+        root?.unmount();
+      });
+    }
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete (globalThis as Record<string, unknown>)[key];
+    }
+    dom.window.close();
   }
 });

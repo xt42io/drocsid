@@ -35,6 +35,7 @@ import {
   useDismiss,
   useFloating,
   useInteractions,
+  useListNavigation,
   useRole,
 } from "@floating-ui/react";
 import { WorkspacePortal } from "./floating-panel";
@@ -752,9 +753,23 @@ function MessageMenu({
     }),
   );
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [showMobileActions, setShowMobileActions] = useState(false);
+  const listRef = useRef<Array<HTMLButtonElement | null>>([]);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(max-width: 480px)");
+    const update = () => setShowMobileActions(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
   const { refs, floatingStyles, context } = useFloating({
     open,
-    onOpenChange: setOpen,
+    onOpenChange: (nextOpen) => {
+      setOpen(nextOpen);
+      setActiveIndex(nextOpen ? 0 : null);
+    },
     placement: "bottom-end",
     strategy: "fixed",
     whileElementsMounted: autoUpdate,
@@ -764,11 +779,28 @@ function MessageMenu({
       shift({ padding: 8 }),
     ],
   });
-  const { getReferenceProps, getFloatingProps } = useInteractions([
+  const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
     useClick(context),
     useDismiss(context),
     useRole(context, { role: "menu" }),
+    useListNavigation(context, {
+      listRef,
+      activeIndex,
+      onNavigate: setActiveIndex,
+      loop: true,
+    }),
   ]);
+  let itemIndex = 0;
+  const menuItemProps = () => {
+    const index = itemIndex++;
+    return getItemProps({
+      ref: (node: HTMLButtonElement | null) => {
+        listRef.current[index] = node;
+      },
+      role: "menuitem",
+      tabIndex: activeIndex === index ? 0 : -1,
+    });
+  };
 
   return (
     <div data-ui="a-message-menu" className="relative">
@@ -790,7 +822,7 @@ function MessageMenu({
           <FloatingFocusManager
             context={context}
             modal={false}
-            initialFocus={-1}
+            initialFocus={0}
           >
             <div
               ref={refs.setFloating}
@@ -798,19 +830,23 @@ function MessageMenu({
               data-ui="a-dropdown"
               className="z-80 min-w-51.25 max-h-[calc(100dvh-24px)] overflow-y-auto p-1.5 border border-solid border-(--a-border) bg-(--a-surface) rounded-[9px] shadow-[0_8px_28px_#17220720] text-left [&_button]:flex [&_button]:items-center [&_button]:gap-2.25 [&_button]:w-full [&_button]:rounded-[5px] [&_button]:bg-transparent [&_button]:p-2.5 [&_button]:text-(--a-text) [&_button]:text-[12px] [&_button]:whitespace-nowrap [&_a]:flex [&_a]:items-center [&_a]:gap-2.25 [&_a]:w-full [&_a]:rounded-[5px] [&_a]:bg-transparent [&_a]:p-2.5 [&_a]:text-(--a-text) [&_a]:text-[12px] [&_a]:whitespace-nowrap [&_button:hover]:bg-(--a-hover) [&_a:hover]:bg-(--a-hover)"
               onClick={() => setOpen(false)}
-              {...getFloatingProps()}
+              {...getFloatingProps({ "aria-label": "Message options" })}
             >
-              <div
-                data-ui="a-mobile-message-options"
-                className="hidden max-[480px]:block"
-              >
+              {showMobileActions && (
+                <div data-ui="a-mobile-message-options">
                 {!compact && (
-                  <button onClick={() => onThread(message.id)}>
+                  <button
+                    onClick={() => onThread(message.id)}
+                    {...menuItemProps()}
+                  >
                     <AppIcon name="reply" size={16} />
                     Reply in thread
                   </button>
                 )}
-                <button onClick={() => react(message.id, "🧡")}>
+                <button
+                  onClick={() => react(message.id, "🧡")}
+                  {...menuItemProps()}
+                >
                   <AppIcon name="heart" size={16} />
                   React with a heart
                 </button>
@@ -823,11 +859,13 @@ function MessageMenu({
                         : "Saved for later.",
                     );
                   }}
+                  {...menuItemProps()}
                 >
                   <AppIcon name="bookmark" size={16} />
                   {message.saved ? "Remove from saved" : "Save for later"}
                 </button>
-              </div>
+                </div>
+              )}
               {canPin && (
                 <button
                   onClick={() => {
@@ -838,18 +876,19 @@ function MessageMenu({
                         : "Pinned to this conversation.",
                     );
                   }}
+                  {...menuItemProps()}
                 >
                   <AppIcon name="pin" size={16} />
                   {message.pinned ? "Unpin message" : "Pin message"}
                 </button>
               )}
-              <button onClick={onCopy}>
+              <button onClick={onCopy} {...menuItemProps()}>
                 <AppIcon name="copy" size={16} />
                 Copy text
               </button>
               {message.author === "you" && (
                 <>
-                  <button onClick={onEdit}>
+                  <button onClick={onEdit} {...menuItemProps()}>
                     <AppIcon name="edit" size={16} />
                     Edit message
                   </button>
@@ -866,6 +905,7 @@ function MessageMenu({
                         action: () => deleteMessage(message.id),
                       })
                     }
+                    {...menuItemProps()}
                   >
                     <AppIcon name="trash" size={16} />
                     Delete message
@@ -1124,7 +1164,7 @@ export const MessageCard = memo(function MessageCard({
       {!readOnly && !editing && !message.sending && !message.sendError && (
         <div
           data-ui="a-message-toolbar"
-          className="flex items-center absolute right-5.5 -top-3.75 p-0.75 bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] shadow-[0_3px_7px_#1d2c0907] opacity-0 pointer-events-none z-5 [&:has(details[open])]:z-40 [&:has(details[open])]:opacity-100 [&:has(details[open])]:pointer-events-auto [&:has([data-ui~=a-message-menu-trigger][aria-expanded='true'])]:z-40 [&:has([data-ui~=a-message-menu-trigger][aria-expanded='true'])]:opacity-100 [&:has([data-ui~=a-message-menu-trigger][aria-expanded='true'])]:pointer-events-auto **:data-[ui~=a-icon-button]:w-7 **:data-[ui~=a-icon-button]:h-6.75 [&_[data-ui~=a-icon-button]_svg]:w-4 max-[760px]:right-4.5 max-[760px]:-top-3 max-[760px]:**:data-[ui~=a-icon-button]:w-7.5 max-[760px]:**:data-[ui~=a-icon-button]:h-7.25 max-[480px]:shadow-none max-[480px]:self-end max-[480px]:absolute max-[480px]:top-2 max-[480px]:right-1.75 max-[480px]:flex max-[480px]:opacity-100 max-[480px]:pointer-events-auto max-[480px]:p-0 max-[480px]:border-0 max-[480px]:border-none max-[480px]:border-[currentColor] max-[480px]:bg-transparent max-[480px]:m-0 max-[480px]:*:data-[ui~=a-icon-button]:hidden max-[480px]:[&_[data-ui~=a-message-menu]>summary]:size-6 max-[480px]:[&_[data-ui~=a-message-menu]_[data-ui~=a-message-menu-trigger]]:size-6 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:opacity-100 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:pointer-events-auto max-[480px]:*:data-[ui~=a-emoji-trigger]:flex"
+          className="flex items-center absolute right-5.5 -top-3.75 p-0.75 bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] shadow-[0_3px_7px_#1d2c0907] opacity-0 pointer-events-none z-5 [&:has([data-ui~=a-message-menu-trigger][aria-expanded='true'])]:z-40 [&:has([data-ui~=a-message-menu-trigger][aria-expanded='true'])]:opacity-100 [&:has([data-ui~=a-message-menu-trigger][aria-expanded='true'])]:pointer-events-auto **:data-[ui~=a-icon-button]:w-7 **:data-[ui~=a-icon-button]:h-6.75 [&_[data-ui~=a-icon-button]_svg]:w-4 max-[760px]:right-4.5 max-[760px]:-top-3 max-[760px]:**:data-[ui~=a-icon-button]:w-7.5 max-[760px]:**:data-[ui~=a-icon-button]:h-7.25 max-[480px]:shadow-none max-[480px]:self-end max-[480px]:absolute max-[480px]:top-2 max-[480px]:right-1.75 max-[480px]:flex max-[480px]:opacity-100 max-[480px]:pointer-events-auto max-[480px]:p-0 max-[480px]:border-0 max-[480px]:border-none max-[480px]:border-[currentColor] max-[480px]:bg-transparent max-[480px]:m-0 max-[480px]:*:data-[ui~=a-icon-button]:hidden max-[480px]:[&_[data-ui~=a-message-menu]_[data-ui~=a-message-menu-trigger]]:size-6 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:opacity-100 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:pointer-events-auto max-[480px]:*:data-[ui~=a-emoji-trigger]:flex"
         >
           <EmojiPanel reaction onSelect={(emoji) => react(message.id, emoji)} />
           {!compact && (
