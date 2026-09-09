@@ -1,7 +1,7 @@
 import type { Plugin } from "vite";
-import { attachRealtime } from "./gateway";
-import { realtimeData } from "./data";
-import { postgresBus } from "./bus";
+import { attachRealtime } from "./gateway.ts";
+import { realtimeData } from "./data.ts";
+import { postgresBus } from "./bus.ts";
 
 export function realtimePlugin(): Plugin {
   return {
