@@ -1,4 +1,4 @@
-import { usernameError } from "./usernames";
+import { usernameError } from "./usernames.ts";
 import { z } from "zod";
 
 const id = z
