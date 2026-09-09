@@ -11,6 +11,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
     "db:seed": "tsx --env-file=.env scripts/seed.ts",
+    "og:generate": "tsx scripts/generate-og.ts",
     "uploads:cleanup": "tsx --env-file=.env scripts/cleanup.ts",
     "start": "node --env-file-if-exists=.env --import ./instrument.server.mjs --import tsx scripts/server.ts"
   },
@@ -24,6 +25,7 @@
     "@hugeicons/core-free-icons": "^4.3.0",
     "@hugeicons/react": "^1.1.10",
     "@posthog/react": "^1.10.6",
+    "@resvg/resvg-js": "^2.6.2",
     "@sendbyte/node": "^0.2.1",
     "@sentry/tanstackstart-react": "10.73.0",
     "@tanstack/react-router": "^1.170.32",
