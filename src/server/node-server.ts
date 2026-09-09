@@ -66,7 +66,19 @@ export function createAppServer(
   assetDirectory = "dist/client",
   shortInvites?: ShortInviteOptions,
 ) {
-  const handler = getRequestListener(fetch, { overrideGlobalObjects: false });
+  const handler = getRequestListener(async (request) => {
+    const response = await fetch(request);
+    if (!response.headers.get("content-type")?.includes("text/html"))
+      return response;
+    const headers = new Headers(response.headers);
+    // A navigation must see the current asset manifest after a deployment.
+    headers.set("Cache-Control", "no-cache");
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }, { overrideGlobalObjects: false });
   const assets = sirv(assetDirectory, {
     etag: true,
     gzip: true,
