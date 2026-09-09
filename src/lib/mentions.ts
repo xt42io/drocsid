@@ -49,12 +49,14 @@ export function mentionTargets(
   conversation: string,
 ): MentionTarget[] {
   const people = conversationPeople(state, conversation);
-  const targets: MentionTarget[] = people.map((person) => ({
-    kind: "person",
-    key: person.id,
-    handle: person.handle,
-    person,
-  }));
+  const targets: MentionTarget[] = people
+    .filter((person) => Boolean(person.handle))
+    .map((person) => ({
+      kind: "person",
+      key: person.id,
+      handle: person.handle,
+      person,
+    }));
   if (!conversation.startsWith("dm:")) {
     targets.push(
       {
