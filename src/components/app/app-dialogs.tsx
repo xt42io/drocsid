@@ -867,7 +867,7 @@ function Profile({ personId }: { personId: string }) {
   const blocked = state.blocked.includes(personId);
   return (
     <Dialog
-      title={own ? "Your little introduction." : "A familiar face."}
+      title={own ? "Your little introduction." : "Profile"}
       onClose={() => setModal(null)}
     >
       <div
