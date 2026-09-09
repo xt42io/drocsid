@@ -21,6 +21,9 @@ import {
   searchMentions,
 } from "../../lib/mentions";
 import type { ComposerQuery, MentionTarget } from "../../lib/mentions";
+import { emojiAtCaret } from "../../lib/emoji-query.ts";
+import type { EmojiQuery } from "../../lib/emoji-query.ts";
+import type { EmojiSuggestion } from "../../lib/emoji-suggestions.ts";
 import type { Channel } from "../../types/app";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, PersonAvatar } from "./primitives";
@@ -46,7 +49,11 @@ export function MentionTextarea({
   ...props
 }: Props) {
   const { state, notify } = useApp();
-  const [query, setQuery] = useState<ComposerQuery | null>(null);
+  const [query, setQuery] = useState<ComposerQuery | EmojiQuery | null>(null);
+  const [emojiResult, setEmojiResult] = useState<{
+    query: string;
+    matches: EmojiSuggestion[];
+  } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const ignoredStart = useRef<number | null>(null);
   const completedToken = useRef("");
@@ -59,17 +66,26 @@ export function MentionTextarea({
   const matches: Array<
     | { kind: "mention"; target: MentionTarget }
     | { kind: "channel"; channel: Channel }
+    | { kind: "emoji"; suggestion: EmojiSuggestion }
   > = query
     ? query.kind === "mention"
       ? searchMentions(targets, query.query).map((target) => ({
           kind: "mention",
           target,
         }))
-      : searchChannels(channels, query.query).map((channel) => ({
-          kind: "channel",
-          channel,
-        }))
+      : query.kind === "channel"
+        ? searchChannels(channels, query.query).map((channel) => ({
+            kind: "channel",
+            channel,
+          }))
+        : emojiResult?.query === query.query
+          ? emojiResult.matches.map((suggestion) => ({
+              kind: "emoji",
+              suggestion,
+            }))
+          : []
     : [];
+  const suggestionsOpen = !!query && matches.length > 0;
   const selectedIndex = Math.min(activeIndex, Math.max(0, matches.length - 1));
   const highlighted = highlightMentions
     ? composerHighlightParts(value, targets, state.profile)
@@ -80,7 +96,7 @@ export function MentionTextarea({
     setQuery(null);
   }
   const { refs, floatingStyles, context } = useFloating({
-    open: !!query,
+    open: suggestionsOpen,
     onOpenChange: (open) => {
       if (!open) dismiss();
     },
@@ -115,6 +131,32 @@ export function MentionTextarea({
         .getElementById(`${listId}-${selectedIndex}`)
         ?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex, listId, query?.query]);
+  useEffect(() => {
+    if (query?.kind !== "emoji") return;
+    const current = query;
+    let active = true;
+    void import("../../lib/emoji-suggestions.ts").then(
+      ({ searchEmojiSuggestions }) => {
+        if (!active) return;
+        const emojiMatches = searchEmojiSuggestions(current.query);
+        if (!emojiMatches.length) {
+          ignoredStart.current = current.start;
+          setQuery((openQuery) =>
+            openQuery?.kind === "emoji" &&
+            openQuery.start === current.start &&
+            openQuery.query === current.query
+              ? null
+              : openQuery,
+          );
+          return;
+        }
+        setEmojiResult({ query: current.query, matches: emojiMatches });
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [query]);
   function updateQuery(node: HTMLTextAreaElement) {
     const candidates =
       node.selectionStart === node.selectionEnd
@@ -123,7 +165,10 @@ export function MentionTextarea({
             channels.length
               ? channelAtCaret(node.value, node.selectionStart)
               : null,
-          ].filter((candidate): candidate is ComposerQuery => !!candidate)
+            emojiAtCaret(node.value, node.selectionStart),
+          ].filter(
+            (candidate): candidate is ComposerQuery | EmojiQuery => !!candidate,
+          )
         : [];
     const next = candidates.sort((a, b) => b.start - a.start)[0] ?? null;
     if (!next) {
@@ -139,7 +184,9 @@ export function MentionTextarea({
     const hasMatches =
       next.kind === "mention"
         ? searchMentions(targets, next.query).length > 0
-        : searchChannels(channels, next.query).length > 0;
+        : next.kind === "channel"
+          ? searchChannels(channels, next.query).length > 0
+          : true;
     if (!hasMatches) {
       ignoredStart.current = next.start;
       completedToken.current = "";
@@ -155,12 +202,14 @@ export function MentionTextarea({
     const insertion =
       match.kind === "mention"
         ? `@${match.target.handle} `
-        : `#${match.channel.name} `;
+        : match.kind === "channel"
+          ? `#${match.channel.name} `
+          : `${match.suggestion.emoji} `;
     const next =
       value.slice(0, query.start) + insertion + value.slice(query.end);
     if (next.length > (props.maxLength ?? 4000)) {
       notify(
-        "There isn’t enough room for that mention. Shorten your message first.",
+        "There isn’t enough room for that suggestion. Shorten your message first.",
       );
       return;
     }
@@ -186,9 +235,9 @@ export function MentionTextarea({
       }}
       value={value}
       aria-autocomplete="list"
-      aria-controls={query ? listId : undefined}
+      aria-controls={suggestionsOpen ? listId : undefined}
       aria-activedescendant={
-        query && matches.length ? `${listId}-${selectedIndex}` : undefined
+        suggestionsOpen ? `${listId}-${selectedIndex}` : undefined
       }
       onChange={(event) => {
         if (
@@ -286,7 +335,7 @@ export function MentionTextarea({
       ) : (
         input
       )}
-      {query && (
+      {suggestionsOpen && query && (
         <WorkspacePortal>
           <div
             ref={refs.setFloating}
@@ -299,7 +348,9 @@ export function MentionTextarea({
               <strong>
                 {query.kind === "mention"
                   ? "Mention someone"
-                  : "Mention a channel"}
+                  : query.kind === "channel"
+                    ? "Mention a channel"
+                    : "Choose an emoji"}
               </strong>
               <span>↑ ↓ to browse · Enter to choose</span>
             </header>
@@ -309,7 +360,9 @@ export function MentionTextarea({
               aria-label={
                 query.kind === "mention"
                   ? "Mention suggestions"
-                  : "Channel suggestions"
+                  : query.kind === "channel"
+                    ? "Channel suggestions"
+                    : "Emoji suggestions"
               }
             >
               {matches.map((match, index) => (
@@ -317,7 +370,9 @@ export function MentionTextarea({
                   key={
                     match.kind === "mention"
                       ? `mention-${match.target.key}`
-                      : `channel-${match.channel.id}`
+                      : match.kind === "channel"
+                        ? `channel-${match.channel.id}`
+                        : `emoji-${match.suggestion.shortcode}-${index}`
                   }
                   id={`${listId}-${index}`}
                   type="button"
@@ -330,7 +385,14 @@ export function MentionTextarea({
                   onClick={() => select(match)}
                   onMouseMove={() => setActiveIndex(index)}
                 >
-                  {match.kind === "channel" ? (
+                  {match.kind === "emoji" ? (
+                    <span
+                      aria-hidden="true"
+                      className="flex size-8 shrink-0 items-center justify-center text-[24px]"
+                    >
+                      {match.suggestion.emoji}
+                    </span>
+                  ) : match.kind === "channel" ? (
                     <span
                       data-ui="a-mention-group-icon"
                       className="rounded-[10px] text-[13px] flex items-center justify-center shrink-0 text-(--a-green) bg-(--a-soft) size-8"
@@ -356,14 +418,18 @@ export function MentionTextarea({
                     <strong>
                       {match.kind === "channel"
                         ? `#${match.channel.name}`
-                        : match.target.kind === "person"
+                        : match.kind === "emoji"
+                          ? `:${match.suggestion.shortcode}:`
+                          : match.target.kind === "person"
                           ? match.target.person.name
                           : `@${match.target.handle}`}
                     </strong>
                     <small>
                       {match.kind === "channel"
                         ? match.channel.description
-                        : match.target.kind === "person"
+                        : match.kind === "emoji"
+                          ? match.suggestion.name
+                          : match.target.kind === "person"
                           ? `@${match.target.handle}`
                           : match.target.description}
                     </small>
