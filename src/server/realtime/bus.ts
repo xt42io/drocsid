@@ -1,5 +1,5 @@
 import { Client } from "pg";
-import type { Presence } from "../../types/app";
+import type { Presence } from "../../types/app.ts";
 
 export type BusEvent =
   | {
