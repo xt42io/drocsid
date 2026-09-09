@@ -6,18 +6,26 @@ const variants = {
   "avatar-40": { width: 40, height: 40, fit: "cover" },
   "avatar-80": { width: 80, height: 80, fit: "cover" },
   "avatar-160": { width: 160, height: 160, fit: "cover" },
+  "community-cover-960": { width: 960, height: 360, fit: "cover" },
+  "community-cover-1920": { width: 1920, height: 720, fit: "cover" },
   "chat-420": { width: 420, height: 320, fit: "scale-down" },
   "chat-840": { width: 840, height: 640, fit: "scale-down" },
 } as const;
 
-export function imageVariant(request: Request, kind: "avatar" | "chat") {
+export function imageVariant(
+  request: Request,
+  kind: "avatar" | "chat" | "community",
+) {
   const values = new URL(request.url).searchParams.getAll("variant");
   if (!values.length) return undefined;
   const value = values[0];
   if (
     values.length !== 1 ||
     !Object.hasOwn(variants, value) ||
-    !value.startsWith(`${kind}-`)
+    (kind === "community"
+      ? !value.startsWith("avatar-") &&
+        !value.startsWith("community-cover-")
+      : !value.startsWith(`${kind}-`))
   )
     throw new HttpError(400, "Unknown image size.");
   return value as ImageVariant;
