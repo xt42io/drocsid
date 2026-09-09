@@ -17,6 +17,13 @@ test("production Node runner serves assets and forwards authenticated Fetch requ
         cookie: request.headers.get("cookie"),
         body: await request.text(),
       });
+    if (new URL(request.url).pathname === "/page")
+      return new Response("<h1>Drocsid</h1>", {
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
     return new Response("not found", { status: 404 });
   }, directory);
   server.listen(0, "127.0.0.1");
@@ -37,6 +44,9 @@ test("production Node runner serves assets and forwards authenticated Fetch requ
       cookie: "session=test",
       body: "payload",
     });
+    const page = await fetch(`${base}/page`);
+    assert.equal(page.headers.get("cache-control"), "no-cache");
+    assert.equal(await page.text(), "<h1>Drocsid</h1>");
     assert.equal((await fetch(`${base}/.env`)).status, 404);
     assert.equal((await fetch(`${base}/missing`)).status, 404);
   } finally {
