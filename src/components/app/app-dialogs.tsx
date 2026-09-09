@@ -154,6 +154,7 @@ export function AppDialogs() {
 function CreateCommunity() {
   const { setState, setModal, notify } = useApp();
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -208,20 +209,30 @@ function CreateCommunity() {
     submitting.current = false;
     setCreating(false);
     if (!saved) {
+      posthog.capture("community_create_failed", { source: "sidebar" });
       setError("Could not create your community. Please try again.");
       return;
     }
-    setModal(null);
-    notify("Your corner is ready. Make it your own.");
+    posthog.capture("community_created", {
+      community_id: id,
+      has_icon: !!(uploadedIcon || icon),
+      source: "sidebar",
+    });
+    // Route into the new community before the dialog unmounts, so a saved
+    // community always lands the viewer inside it.
     void navigate({
       to: "/app/community/$communityId/$channelId",
       params: { communityId: id, channelId: "general" },
     });
+    notify("Your corner is ready. Make it your own.");
+    setModal(null);
   }
+  const dirty = name.trim().length > 0 || icon !== "" || !!uploadedIcon;
   return (
     <Dialog
       title="A place for your people."
       description="Your book club, side project, or very specific obsession. Give it a home."
+      dismissable={!dirty && !uploading}
       onClose={() => {
         if (!submitting.current && !uploading) setModal(null);
       }}

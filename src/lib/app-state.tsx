@@ -62,6 +62,10 @@ export type ModalState =
       managedCommunityId?: string;
     }
   | null;
+// How long to keep a just-created community visible while the server snapshot
+// catches up with the write. Long enough to cover a lagging read, short enough
+// that a community the server never reports does not linger as a phantom.
+const createdCommunityGraceMs = 30_000;
 const empty: AppState = {
   version: 1,
   profile: {
@@ -192,6 +196,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const syncHistory = useRef(true);
   const historyRequests = useRef(new Map<string, Promise<boolean>>());
   const version = useRef(0);
+  // Communities the viewer just created, mapped to the moment we stop holding
+  // them. A snapshot read can lag the write, so hold the community in state until
+  // the server reports it or the grace window ends, then let the server own it.
+  const createdCommunities = useRef(new Map<string, number>());
   const inFlightMessages = useRef(new Set<string>());
   const pendingReactions = useRef(new PendingReactions());
   const notify = useCallback((message: string) => {
@@ -311,6 +319,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
             ...p,
             status: livePresence.current.get(p.id) ?? p.status,
           }));
+          if (createdCommunities.current.size) {
+            const known = new Set(next.communities.map((c) => c.id));
+            const now = Date.now();
+            const held: Community[] = [];
+            for (const [id, expires] of createdCommunities.current)
+              if (known.has(id) || now > expires)
+                createdCommunities.current.delete(id);
+              else {
+                const community = current.current.communities.find(
+                  (c) => c.id === id,
+                );
+                if (community) held.push(community);
+              }
+            if (held.length)
+              merged.communities = [...merged.communities, ...held];
+          }
           apply(merged);
           setReady(true);
           setError("");
@@ -616,30 +640,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
             (existing) => existing.id === community.id,
           ),
       );
-      if (additions.length) {
-        const ids = new Set(additions.map((community) => community.id));
-        apply({
-          ...next,
-          communities: next.communities.filter(
-            (community) => !ids.has(community.id),
-          ),
-        });
-        return execute(actions).then((saved) => {
-          if (saved && active.current)
-            apply({
-              ...current.current,
-              communities: [
-                ...current.current.communities.filter(
-                  (community) => !ids.has(community.id),
-                ),
-                ...additions,
-              ],
-            });
-          return saved;
-        });
-      }
       apply(next);
-      return execute(actions);
+      const saved = execute(actions);
+      if (!additions.length) return saved;
+      const expires = Date.now() + createdCommunityGraceMs;
+      for (const community of additions)
+        createdCommunities.current.set(community.id, expires);
+      return saved.then((ok) => {
+        if (!ok)
+          for (const community of additions)
+            createdCommunities.current.delete(community.id);
+        return ok;
+      });
     },
     [apply, execute],
   );

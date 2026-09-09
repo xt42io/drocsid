@@ -336,9 +336,10 @@ test("React keeps drafts local, windows long histories, and preserves failed sen
     id: "confirmed-community",
     name: "Confirmed",
   };
+  // The write succeeds, but the snapshot read still lags and does not report
+  // the new community yet.
   actionReply = async () => {
     await gate;
-    initial.communities.push(created);
     return Response.json({ ok: true });
   };
   let saving!: Promise<boolean>;
@@ -349,8 +350,8 @@ test("React keeps drafts local, windows long histories, and preserves failed sen
     }));
   });
   assert.ok(
-    !app.state.communities.some((community) => community.id === created.id),
-    "Creation stays out of the UI while its request is pending",
+    app.state.communities.some((community) => community.id === created.id),
+    "Creation shows immediately while its request is pending",
   );
   await act(async () => {
     release();
@@ -358,7 +359,32 @@ test("React keeps drafts local, windows long histories, and preserves failed sen
   });
   assert.ok(
     app.state.communities.some((community) => community.id === created.id),
-    "Successful creation is available immediately",
+    "A successful creation survives a snapshot that still lags the write",
+  );
+  await act(async () => {
+    await app.refresh();
+  });
+  assert.ok(
+    app.state.communities.some((community) => community.id === created.id),
+    "Repeated lagging refreshes never drop the created community",
+  );
+  await act(async () => {
+    initial.communities.push(created);
+    await app.refresh();
+  });
+  assert.ok(
+    app.state.communities.some((community) => community.id === created.id),
+    "The community stays once the snapshot finally reports it",
+  );
+  await act(async () => {
+    initial.communities = initial.communities.filter(
+      (community) => community.id !== created.id,
+    );
+    await app.refresh();
+  });
+  assert.ok(
+    !app.state.communities.some((community) => community.id === created.id),
+    "Once acknowledged, the server owns the community and can drop it",
   );
   actionReply = async () =>
     new Response(JSON.stringify({ error: "Creation failed" }), { status: 503 });
@@ -374,10 +400,13 @@ test("React keeps drafts local, windows long histories, and preserves failed sen
       false,
     );
   });
+  await act(async () => {
+    await app.refresh();
+  });
   assert.ok(
     !app.state.communities.some(
       (community) => community.id === "failed-community",
     ),
-    "Failed creations never enter the sidebar",
+    "A failed creation does not persist in the sidebar",
   );
 });
