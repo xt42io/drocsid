@@ -1,6 +1,6 @@
 import { CommunityIcon } from "./community-icon";
 import { useDirectory } from "../../lib/use-directory";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, EmptyState, PageHeading } from "./primitives";
@@ -9,7 +9,6 @@ import { Logo } from "../ui";
 import { usePostHog } from "@posthog/react";
 import { api, ApiError } from "../../lib/api-client";
 import type { AcceptedInvite, InvitePreview } from "../../types/invites";
-import { formatPageTitle } from "../../lib/page-title";
 
 export function DiscoverPage() {
   const { state, joinCommunity, setModal } = useApp();
@@ -228,48 +227,16 @@ export function DiscoverPage() {
     </div>
   );
 }
-export function InvitePage({ code }: { code: string }) {
-  const [invite, setInvite] = useState<InvitePreview>();
-  const [loading, setLoading] = useState(true);
+export function InvitePage({
+  code,
+  initialInvite,
+}: {
+  code: string;
+  initialInvite: InvitePreview | null;
+}) {
+  const invite = initialInvite;
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
-  useEffect(() => {
-    let current = true;
-    void api<InvitePreview>(`/api/invites/${encodeURIComponent(code)}`)
-      .then((next) => {
-        if (current) setInvite(next);
-      })
-      .catch((cause) => {
-        if (current)
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : "This invitation is no longer available.",
-          );
-      })
-      .finally(() => {
-        if (current) setLoading(false);
-      });
-    return () => {
-      current = false;
-    };
-  }, [code]);
-  const browserTitle = invite
-    ? formatPageTitle(`Join ${invite.community.name}`)
-    : formatPageTitle(error ? "Invite unavailable" : "Opening invitation");
-  useEffect(() => {
-    document.title = browserTitle;
-  }, [browserTitle]);
-  if (loading)
-    return (
-      <div
-        role="status"
-        className="flex min-h-svh flex-col items-center justify-center gap-6 bg-[#f2f1ec] text-sm text-(--a-muted)"
-      >
-        <Logo />
-        Opening your invitation…
-      </div>
-    );
   if (!invite)
     return (
       <div
