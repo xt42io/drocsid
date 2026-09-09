@@ -2,7 +2,13 @@ import { workspaceTheme } from "./workspace-theme";
 import { CommunityIcon } from "./community-icon";
 import { ChannelIcon } from "./channel-icons";
 import { useEffect, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import {
   getChannelCategories,
@@ -119,6 +125,8 @@ export function AppShell() {
       window.removeEventListener("pointerdown", closeOutsideMenus);
     };
   }, [navigate]);
+  if (!state.onboardingComplete && pathname !== "/app/welcome")
+    return <Navigate to="/app/welcome" replace />;
   return (
     <div
       data-ui={`workspace theme-${state.preferences.theme} density-${state.preferences.density} text-${state.preferences.fontSize} ${standalone ? "workspace-standalone" : ""}`}
