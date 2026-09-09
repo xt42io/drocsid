@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { getAuth } from "./auth";
+import { getAuth } from "./auth.ts";
 
 export class HttpError extends Error {
   constructor(
