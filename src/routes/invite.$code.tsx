@@ -17,7 +17,7 @@ export const Route = createFileRoute("/invite/$code")({
   loader: ({ params }) => getInvitePreview({ data: { code: params.code } }),
   head: ({ loaderData, params }) => {
     const canonicalUrl = `${siteOrigin}/invite/${encodeURIComponent(params.code)}`;
-    const imageUrl = `${siteOrigin}/api/og/invite/${encodeURIComponent(params.code)}`;
+    const imageUrl = `${siteOrigin}/api/og/invite/${encodeURIComponent(params.code)}?v=2`;
     const community = loaderData?.community;
     const title = community
       ? `Join ${community.name} — Drocsid`
