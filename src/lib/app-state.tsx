@@ -101,6 +101,7 @@ type AppContextValue = {
   setModal: Dispatch<SetStateAction<ModalState>>;
   toast: string;
   notify: (message: string) => void;
+  previewNotificationSound: () => void;
   findPerson: (id: string) => Person;
   sendMessage: (
     conversation: string,
@@ -199,6 +200,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(""), 5000);
   }, []);
+  const previewNotificationSound = useCallback(() => {
+    void notificationSound.play();
+  }, [notificationSound]);
   const apply = useCallback((next: AppState) => {
     let communities = next.communities;
     if (next.messages !== current.current.messages) {
@@ -359,17 +363,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             shouldPlayIncomingMessageSound({
               message: frame.message,
               newMessage: frame.newMessage === true,
-              alreadyKnown: snapshot.messages.some(
-                (message) => message.id === frame.id,
-              ),
               notifications: snapshot.preferences.notifications,
               sounds: snapshot.preferences.sounds,
               muted: snapshot.muted,
-              pathname: window.location.pathname,
-              visibility: document.visibilityState,
             })
           )
-            notificationSound.play();
+            void notificationSound.play();
           receivedAt.current.set(frame.id, ++messageRevision.current);
           liveMessages.current.set(frame.id, frame);
           localMessages.current.delete(frame.id);
@@ -443,9 +442,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (document.visibilityState === "hidden") persistReads();
     };
     const unlockNotificationSound = () => {
-      window.removeEventListener("pointerdown", unlockNotificationSound);
-      window.removeEventListener("keydown", unlockNotificationSound);
-      notificationSound.unlock();
+      void notificationSound.unlock().then((unlocked) => {
+        if (!unlocked) return;
+        window.removeEventListener("pointerdown", unlockNotificationSound);
+        window.removeEventListener("keydown", unlockNotificationSound);
+      });
     };
     window.addEventListener("focus", focus);
     window.addEventListener("pagehide", persistReads);
@@ -924,6 +925,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setModal,
           toast,
           notify,
+          previewNotificationSound,
           findPerson,
           sendMessage,
           retryMessage,
