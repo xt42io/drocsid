@@ -38,6 +38,20 @@ import {
 } from "./primitives";
 import { ButtonLoader } from "../button-loader";
 import {
+  autoUpdate,
+  flip,
+  FloatingFocusManager,
+  offset,
+  shift,
+  size,
+  useClick,
+  useDismiss,
+  useFloating,
+  useInteractions,
+  useRole,
+} from "@floating-ui/react";
+import { WorkspacePortal } from "./floating-panel";
+import {
   externalTextLink,
   textLinkPatternSource,
 } from "../../lib/text-links";
@@ -759,6 +773,37 @@ export const MessageCard = memo(function MessageCard({
   }));
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(message.text);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const {
+    refs: menuRefs,
+    floatingStyles: menuStyles,
+    context: menuContext,
+  } = useFloating({
+    open: menuOpen,
+    onOpenChange: setMenuOpen,
+    placement: "top-end",
+    strategy: "fixed",
+    whileElementsMounted: autoUpdate,
+    middleware: [
+      offset(8),
+      flip({ padding: 12 }),
+      shift({ padding: 12 }),
+      size({
+        padding: 12,
+        apply({ availableHeight, elements }) {
+          elements.floating.style.maxHeight = `${availableHeight}px`;
+        },
+      }),
+    ],
+  });
+  const {
+    getReferenceProps: getMenuReferenceProps,
+    getFloatingProps: getMenuFloatingProps,
+  } = useInteractions([
+    useClick(menuContext),
+    useDismiss(menuContext),
+    useRole(menuContext, { role: "menu" }),
+  ]);
   async function copy() {
     try {
       await navigator.clipboard.writeText(message.text);
@@ -768,9 +813,6 @@ export const MessageCard = memo(function MessageCard({
         "Copy isn’t available in this browser. You can select the message text.",
       );
     }
-  }
-  function closeMenu(event: React.MouseEvent) {
-    (event.target as HTMLElement).closest("details")?.removeAttribute("open");
   }
   return (
     <article
@@ -963,7 +1005,7 @@ export const MessageCard = memo(function MessageCard({
       {!readOnly && !editing && !message.sending && !message.sendError && (
         <div
           data-ui="a-message-toolbar"
-          className="flex items-center absolute right-5.5 -top-3.75 p-0.75 bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] shadow-[0_3px_7px_#1d2c0907] opacity-0 pointer-events-none z-5 [&:has(details[open])]:z-40 [&:has(details[open])]:opacity-100 [&:has(details[open])]:pointer-events-auto **:data-[ui~=a-icon-button]:w-7 **:data-[ui~=a-icon-button]:h-6.75 [&_[data-ui~=a-icon-button]_svg]:w-4 max-[760px]:right-4.5 max-[760px]:-top-3 max-[760px]:**:data-[ui~=a-icon-button]:w-7.5 max-[760px]:**:data-[ui~=a-icon-button]:h-7.25 max-[480px]:shadow-none max-[480px]:self-end max-[480px]:absolute max-[480px]:top-2 max-[480px]:right-1.75 max-[480px]:flex max-[480px]:opacity-100 max-[480px]:pointer-events-auto max-[480px]:p-0 max-[480px]:border-0 max-[480px]:border-none max-[480px]:border-[currentColor] max-[480px]:bg-transparent max-[480px]:m-0 max-[480px]:*:data-[ui~=a-icon-button]:hidden max-[480px]:[&_[data-ui~=a-message-menu]>summary]:size-6 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:opacity-100 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:pointer-events-auto max-[480px]:*:data-[ui~=a-emoji-trigger]:flex"
+          className="flex items-center absolute right-5.5 -top-3.75 p-0.75 bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] shadow-[0_3px_7px_#1d2c0907] opacity-0 pointer-events-none z-5 [&:has([data-ui~=a-message-menu][aria-expanded='true'])]:z-40 [&:has([data-ui~=a-message-menu][aria-expanded='true'])]:opacity-100 [&:has([data-ui~=a-message-menu][aria-expanded='true'])]:pointer-events-auto **:data-[ui~=a-icon-button]:w-7 **:data-[ui~=a-icon-button]:h-6.75 [&_[data-ui~=a-icon-button]_svg]:w-4 max-[760px]:right-4.5 max-[760px]:-top-3 max-[760px]:**:data-[ui~=a-icon-button]:w-7.5 max-[760px]:**:data-[ui~=a-icon-button]:h-7.25 max-[480px]:shadow-none max-[480px]:self-end max-[480px]:absolute max-[480px]:top-2 max-[480px]:right-1.75 max-[480px]:flex max-[480px]:opacity-100 max-[480px]:pointer-events-auto max-[480px]:p-0 max-[480px]:border-0 max-[480px]:border-none max-[480px]:border-[currentColor] max-[480px]:bg-transparent max-[480px]:m-0 max-[480px]:*:data-[ui~=a-icon-button]:hidden max-[480px]:[&_[data-ui~=a-message-menu]]:flex max-[480px]:[&_[data-ui~=a-message-menu]]:size-6 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:opacity-100 [&:has([data-ui~=a-emoji-trigger][aria-expanded='true'])]:pointer-events-auto max-[480px]:*:data-[ui~=a-emoji-trigger]:flex"
         >
           <EmojiPanel reaction onSelect={(emoji) => react(message.id, emoji)} />
           {!compact && (
@@ -986,100 +1028,124 @@ export const MessageCard = memo(function MessageCard({
               );
             }}
           />
-          <details
-            data-ui="a-message-menu"
-            className="relative [&>summary]:flex [&>summary]:items-center [&>summary]:justify-center [&>summary]:w-7.25 [&>summary]:h-7 [&>summary]:text-(--a-muted) [&>summary]:rounded-[5px] [&>summary]:cursor-pointer [&>summary:hover]:bg-(--a-hover) [&>summary:hover]:text-(--a-green) **:data-[ui~=a-dropdown]:top-8.25 **:data-[ui~=a-dropdown]:right-0 max-[480px]:**:data-[ui~=a-dropdown]:top-7.25 max-[480px]:**:data-[ui~=a-dropdown]:bottom-auto"
+          <button
+            ref={menuRefs.setReference}
+            type="button"
+            data-ui="a-message-menu a-icon-button"
+            className="inline-flex items-center justify-center shrink-0 p-0 rounded-md text-(--a-muted) bg-transparent [transition:background_0.15s,color_0.15s] size-8 hover:bg-(--a-hover) hover:text-(--a-green) aria-expanded:bg-(--a-hover) aria-expanded:text-(--a-green)"
+            aria-label="More message options"
+            title="More message options"
+            {...getMenuReferenceProps()}
           >
-            <summary
-              aria-label="More message options"
-              title="More message options"
-            >
-              <AppIcon name="more" size={17} />
-            </summary>
-            <div
-              data-ui="a-dropdown"
-              className="absolute z-30 min-w-51.25 p-1.5 border border-solid border-(--a-border) bg-(--a-surface) rounded-[9px] shadow-[0_8px_28px_#17220720] text-left [&_button]:flex [&_button]:items-center [&_button]:gap-2.25 [&_button]:w-full [&_button]:rounded-[5px] [&_button]:bg-transparent [&_button]:p-2.5 [&_button]:text-(--a-text) [&_button]:text-[12px] [&_button]:whitespace-nowrap [&_a]:flex [&_a]:items-center [&_a]:gap-2.25 [&_a]:w-full [&_a]:rounded-[5px] [&_a]:bg-transparent [&_a]:p-2.5 [&_a]:text-(--a-text) [&_a]:text-[12px] [&_a]:whitespace-nowrap [&_button:hover]:bg-(--a-hover) [&_a:hover]:bg-(--a-hover)"
-              onClick={closeMenu}
-            >
-              <div
-                data-ui="a-mobile-message-options"
-                className="hidden max-[480px]:block"
+            <AppIcon name="more" size={17} />
+          </button>
+          {menuOpen && (
+            <WorkspacePortal>
+              <FloatingFocusManager
+                context={menuContext}
+                modal={false}
+                initialFocus={-1}
               >
-                {!compact && (
-                  <button onClick={() => onThread(message.id)}>
-                    <AppIcon name="reply" size={16} />
-                    Reply in thread
-                  </button>
-                )}
-                <button onClick={() => react(message.id, "🧡")}>
-                  <AppIcon name="heart" size={16} />
-                  React with a heart
-                </button>
-                <button
-                  onClick={() => {
-                    updateMessage(message.id, { saved: !message.saved });
-                    notify(
-                      message.saved
-                        ? "Removed from saved."
-                        : "Saved for later.",
-                    );
-                  }}
+                <div
+                  ref={menuRefs.setFloating}
+                  style={menuStyles}
+                  data-ui="a-dropdown"
+                  className="z-80 w-51.25 max-w-[calc(100vw-24px)] overflow-y-auto p-1.5 border border-solid border-(--a-border) bg-(--a-surface) rounded-[9px] shadow-[0_8px_28px_#17220720] text-left [&_button]:flex [&_button]:items-center [&_button]:gap-2.25 [&_button]:w-full [&_button]:rounded-[5px] [&_button]:bg-transparent [&_button]:p-2.5 [&_button]:text-(--a-text) [&_button]:text-[12px] [&_button]:whitespace-nowrap [&_a]:flex [&_a]:items-center [&_a]:gap-2.25 [&_a]:w-full [&_a]:rounded-[5px] [&_a]:bg-transparent [&_a]:p-2.5 [&_a]:text-(--a-text) [&_a]:text-[12px] [&_a]:whitespace-nowrap [&_button:hover]:bg-(--a-hover) [&_a:hover]:bg-(--a-hover)"
+                  {...getMenuFloatingProps({
+                    onClick: () => setMenuOpen(false),
+                  })}
                 >
-                  <AppIcon name="bookmark" size={16} />
-                  {message.saved ? "Remove from saved" : "Save for later"}
-                </button>
-              </div>
-              {canPin && (
-                <button
-                  onClick={() => {
-                    updateMessage(message.id, { pinned: !message.pinned });
-                    notify(
-                      message.pinned
-                        ? "Message unpinned."
-                        : "Pinned to this conversation.",
-                    );
-                  }}
-                >
-                  <AppIcon name="pin" size={16} />
-                  {message.pinned ? "Unpin message" : "Pin message"}
-                </button>
-              )}
-              <button onClick={copy}>
-                <AppIcon name="copy" size={16} />
-                Copy text
-              </button>
-              {message.author === "you" && (
-                <>
-                  <button
-                    onClick={() => {
-                      setText(message.text);
-                      setEditing(true);
-                    }}
+                  <div
+                    data-ui="a-mobile-message-options"
+                    className="hidden max-[480px]:block"
                   >
-                    <AppIcon name="edit" size={16} />
-                    Edit message
+                    {!compact && (
+                      <button
+                        role="menuitem"
+                        onClick={() => onThread(message.id)}
+                      >
+                        <AppIcon name="reply" size={16} />
+                        Reply in thread
+                      </button>
+                    )}
+                    <button
+                      role="menuitem"
+                      onClick={() => react(message.id, "🧡")}
+                    >
+                      <AppIcon name="heart" size={16} />
+                      React with a heart
+                    </button>
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        updateMessage(message.id, { saved: !message.saved });
+                        notify(
+                          message.saved
+                            ? "Removed from saved."
+                            : "Saved for later.",
+                        );
+                      }}
+                    >
+                      <AppIcon name="bookmark" size={16} />
+                      {message.saved ? "Remove from saved" : "Save for later"}
+                    </button>
+                  </div>
+                  {canPin && (
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        updateMessage(message.id, { pinned: !message.pinned });
+                        notify(
+                          message.pinned
+                            ? "Message unpinned."
+                            : "Pinned to this conversation.",
+                        );
+                      }}
+                    >
+                      <AppIcon name="pin" size={16} />
+                      {message.pinned ? "Unpin message" : "Pin message"}
+                    </button>
+                  )}
+                  <button role="menuitem" onClick={copy}>
+                    <AppIcon name="copy" size={16} />
+                    Copy text
                   </button>
-                  <button
-                    data-ui="danger-text"
-                    className="text-[#b8654b]!"
-                    onClick={() =>
-                      setModal({
-                        type: "confirm",
-                        title: "Delete this message?",
-                        description:
-                          "This message and its replies will be deleted for everyone.",
-                        label: "Delete message",
-                        action: () => deleteMessage(message.id),
-                      })
-                    }
-                  >
-                    <AppIcon name="trash" size={16} />
-                    Delete message
-                  </button>
-                </>
-              )}
-            </div>
-          </details>
+                  {message.author === "you" && (
+                    <>
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setText(message.text);
+                          setEditing(true);
+                        }}
+                      >
+                        <AppIcon name="edit" size={16} />
+                        Edit message
+                      </button>
+                      <button
+                        role="menuitem"
+                        data-ui="danger-text"
+                        className="text-[#b8654b]!"
+                        onClick={() =>
+                          setModal({
+                            type: "confirm",
+                            title: "Delete this message?",
+                            description:
+                              "This message and its replies will be deleted for everyone.",
+                            label: "Delete message",
+                            action: () => deleteMessage(message.id),
+                          })
+                        }
+                      >
+                        <AppIcon name="trash" size={16} />
+                        Delete message
+                      </button>
+                    </>
+                  )}
+                </div>
+              </FloatingFocusManager>
+            </WorkspacePortal>
+          )}
         </div>
       )}
     </article>

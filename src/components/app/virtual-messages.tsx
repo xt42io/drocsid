@@ -113,7 +113,7 @@ export const VirtualMessages = memo(function VirtualMessages({
           data-index={row.index}
           data-message-key={messages[row.index].id}
           ref={virtualizer.measureElement}
-          className="absolute top-0 left-0 z-0 w-full translate-y-(--row-offset) [&:has([data-ui~=a-message-menu][open])]:z-50"
+          className="absolute top-0 left-0 z-0 w-full translate-y-(--row-offset) [&:has([data-ui~=a-message-menu][aria-expanded='true'])]:z-50"
           style={{ "--row-offset": `${row.start - margin}px` } as CSSProperties}
         >
           <MessageCard
