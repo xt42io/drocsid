@@ -1,9 +1,9 @@
-import { hydrate, rowJson } from "./sql-json";
+import { hydrate, rowJson } from "./sql-json.ts";
 import { and, eq, inArray, or, sql, type SQL } from "drizzle-orm";
-import type { Database } from "./db";
-import * as s from "./db/schema";
-import { HttpError } from "./http";
-import { defaults } from "../lib/contracts";
+import type { Database } from "./db/index.ts";
+import * as s from "./db/schema.ts";
+import { HttpError } from "./http.ts";
+import { defaults } from "../lib/contracts.ts";
 
 export async function ensureProfile(
   db: Database,
