@@ -56,10 +56,20 @@ export async function mutate(db: Database, userId: string, action: Action) {
     }
     case "preferences": {
       const { type, ...values } = action;
-      await db
+      const updated = await db
         .update(s.profiles)
         .set(values)
-        .where(eq(s.profiles.userId, userId));
+        .where(
+          and(
+            eq(s.profiles.userId, userId),
+            values.onboardingComplete
+              ? sql`${s.profiles.handle} is not null and ${s.profiles.handle} !~ '^user_[a-z0-9]{19}$'`
+              : undefined,
+          ),
+        )
+        .returning({ userId: s.profiles.userId });
+      if (!updated.length)
+        throw new HttpError(400, "Choose a username before continuing.");
       break;
     }
     case "community.create": {
@@ -660,7 +670,7 @@ async function createMentions(
     )
       return [];
     const mentioned =
-      handles.has(profile.handle) ||
+      (!!profile.handle && handles.has(profile.handle)) ||
       (!!c.communityId &&
         (handles.has("everyone") ||
           (handles.has("admin") && ["Owner", "Admin"].includes(role))));
