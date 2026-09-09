@@ -377,7 +377,9 @@ export function InvitePage({ code }: { code: string }) {
             data-ui="a-form-footnote"
             className="text-(--a-muted) leading-[1.8] text-[11px]!"
           >
-            Join this community to see its channels and meet the people here.
+            Join this community to see its channels and meet the people here. By
+            joining, you agree to the <Link to="/terms">Terms</Link> and
+            {" "}<Link to="/acceptable-use">Acceptable Use Policy</Link>.
           </p>
         </div>
       </div>
