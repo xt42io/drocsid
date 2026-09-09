@@ -77,6 +77,7 @@ Better Auth stores its users, sessions, accounts, and verification records in Po
 - `INVITE_SHORT_URL`: origin used for short invite links, normally `https://drocsid.cc`.
 - `BETTER_AUTH_SECRET`: random secret, at least 32 characters.
 - `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`: optional GitHub login. Register the callback at `/api/auth/callback/github`.
+- `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`: optional Discord login. Register the callback at `/api/auth/callback/discord`.
 - `SENDBYTE_API_KEY`: server-only Sendbyte key with email sending permission.
 - `SENDBYTE_FROM`: sender on your verified domain, for example `Drocsid <hello@your-domain.com>`.
 
