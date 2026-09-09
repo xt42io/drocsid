@@ -11,7 +11,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { Preferences } from "../../types/app";
+import type { Preferences } from "../../types/app.ts";
 
 const time = (name: string) =>
   timestamp(name, { withTimezone: true }).notNull().defaultNow();
