@@ -5,6 +5,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, EmptyState, PageHeading } from "./primitives";
 import { ButtonLoader } from "../button-loader";
+import { Logo } from "../ui";
 import { usePostHog } from "@posthog/react";
 import { api, ApiError } from "../../lib/api-client";
 import type { AcceptedInvite, InvitePreview } from "../../types/invites";
@@ -263,8 +264,9 @@ export function InvitePage({ code }: { code: string }) {
     return (
       <div
         role="status"
-        className="flex min-h-screen items-center justify-center bg-(--a-sidebar) text-sm text-(--a-muted)"
+        className="flex min-h-svh flex-col items-center justify-center gap-6 bg-[#f2f1ec] text-sm text-(--a-muted)"
       >
+        <Logo />
         Opening your invitation…
       </div>
     );
@@ -272,8 +274,9 @@ export function InvitePage({ code }: { code: string }) {
     return (
       <div
         data-ui="a-invitation-page"
-        className="min-h-full py-7.5 px-5 flex items-center justify-center flex-col gap-6.25 bg-(--a-sidebar) max-[480px]:py-6.25 max-[480px]:px-4.5"
+        className="min-h-svh py-7.5 px-5 flex items-center justify-center flex-col gap-6.25 bg-[#f2f1ec] max-[480px]:py-6.25 max-[480px]:px-4.5"
       >
+        <Logo />
         <EmptyState
           icon="mail"
           title="This invitation wandered off."
@@ -293,28 +296,25 @@ export function InvitePage({ code }: { code: string }) {
   return (
     <div
       data-ui="a-invitation-page"
-      className="min-h-full py-7.5 px-5 flex items-center justify-center flex-col gap-6.25 bg-(--a-sidebar) max-[480px]:py-6.25 max-[480px]:px-4.5"
+      className="relative isolate min-h-svh overflow-hidden bg-[#f2f1ec] px-5 py-12 flex items-center justify-center flex-col gap-7 max-[480px]:py-7 max-[480px]:px-4.5"
     >
-      <Link
-        to="/"
-        data-ui="a-invitation-brand"
-        className="text-[28px] font-[750] tracking-[-1.5px] [&>span]:text-(--a-orange)"
-      >
-        drocsid<span>.</span>
-      </Link>
+      <Logo />
       <div
         data-ui="a-invitation-card"
-        className="max-w-110 w-full bg-(--a-bg) border border-solid border-(--a-border) rounded-[13px] overflow-hidden"
+        className="max-w-121 w-full overflow-hidden rounded-[24px] border border-solid border-[#d9d8d0] bg-(--a-bg)"
       >
         <div
           data-ui={`a-invitation-cover tone-${community.color}`}
-          className="data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] flex items-center justify-center p-7.5 [&>svg]:transform-[rotate(-10deg)]"
+          className="relative data-[ui~=tone-peach]:bg-[#f2bc95] data-[ui~=tone-peach]:text-[#885130] data-[ui~=tone-green]:bg-[#d4dfbd] data-[ui~=tone-green]:text-[#6b7d47] data-[ui~=tone-purple]:bg-[#e3dced] data-[ui~=tone-purple]:text-[#867296] data-[ui~=tone-blue]:bg-[#d6e4e7] data-[ui~=tone-blue]:text-[#64838d] data-[ui~=tone-yellow]:bg-[#eee1bb] data-[ui~=tone-yellow]:text-[#9b8249] flex min-h-46 items-center justify-center p-8 [&>svg]:transform-[rotate(-10deg)]"
         >
-          <CommunityIcon community={community} size={79} />
+          <span className="absolute top-5 left-5 inline-flex items-center gap-2 rounded-full bg-white/60 px-3 py-1.5 text-[10px] font-semibold text-current backdrop-blur-sm">
+            <AppIcon name="mail" size={15} /> Community invitation
+          </span>
+          <CommunityIcon community={community} size={92} />
         </div>
         <div
           data-ui="a-invitation-body"
-          className="text-center p-7.25 [&_h1]:text-[39px] [&_h1]:mb-4.25 [&_h2]:text-[19px] [&_h2]:mb-2.75 [&>p:not([data-ui~=a-form-footnote])]:text-(--a-muted) [&>p:not([data-ui~=a-form-footnote])]:text-[13px] [&>p:not([data-ui~=a-form-footnote])]:leading-[1.8] **:data-[ui~=a-form-footnote]:text-[10px]! **:data-[ui~=a-form-footnote]:mt-4 max-[480px]:py-6.75 max-[480px]:px-5.5 max-[480px]:[&_h1]:text-[38px] max-[480px]:[&_h2]:text-[20px] max-[480px]:[&>p:not([data-ui~=a-form-footnote])]:text-[13px]"
+          className="text-center px-8 pt-8 pb-7 [&_h1]:text-[43px] [&_h1]:leading-none [&_h1]:tracking-[-2px] [&_h1]:mb-5 [&_h2]:text-[21px] [&_h2]:mb-2.75 [&>p:not([data-ui~=a-form-footnote])]:text-(--a-muted) [&>p:not([data-ui~=a-form-footnote])]:text-[13px] [&>p:not([data-ui~=a-form-footnote])]:leading-[1.8] **:data-[ui~=a-form-footnote]:text-[10px]! **:data-[ui~=a-form-footnote]:mt-4 max-[480px]:py-6.75 max-[480px]:px-5.5 max-[480px]:[&_h1]:text-[38px] max-[480px]:[&_h2]:text-[20px] max-[480px]:[&>p:not([data-ui~=a-form-footnote])]:text-[13px]"
         >
           <h1>You’re invited.</h1>
           <h2>{community.name}</h2>
@@ -331,7 +331,7 @@ export function InvitePage({ code }: { code: string }) {
           </span>
           <button
             data-ui="a-button primary full"
-            className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] [transition:background_0.15s,border-color_0.15s] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=primary]:bg-(--a-orange) data-[ui~=primary]:text-[#462419] [&[data-ui~=primary]:hover:not(:disabled)]:bg-[#f37954] data-[ui~=full]:w-full"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2.25 rounded-lg border border-transparent bg-[#f3653f] px-4 py-3 text-[13px] leading-[1.4] font-semibold whitespace-nowrap text-[#3e2118] transition-[background,transform] hover:-translate-y-0.5 hover:bg-[#ed724d] active:translate-y-0 disabled:cursor-wait disabled:opacity-70 motion-reduce:hover:translate-y-0"
             disabled={joining}
             onClick={async () => {
               setJoining(true);
@@ -381,13 +381,6 @@ export function InvitePage({ code }: { code: string }) {
           </p>
         </div>
       </div>
-      <Link
-        to="/sign-in"
-        data-ui="a-text-link"
-        className="inline-flex items-center gap-1.75 text-[12px] font-[550] text-(--a-green) bg-transparent p-0 hover:text-(--a-orange)"
-      >
-        Already have a home here? Sign in <AppIcon name="external" size={16} />
-      </Link>
     </div>
   );
 }
