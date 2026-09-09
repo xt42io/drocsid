@@ -227,7 +227,10 @@ export async function snapshot(
     avatarUrl: p.avatarId ? `/api/avatars/${p.avatarId}` : undefined,
     handle: chosenUsername(p.profile.handle),
     bio: p.profile.bio,
-    gender: p.profile.gender ?? "",
+    gender:
+      p.profile.gender === "he/him" || p.profile.gender === "she/her"
+        ? p.profile.gender
+        : "",
     color: p.profile.color,
     activity: p.profile.preferences.activity ? p.profile.activity : "",
     status:

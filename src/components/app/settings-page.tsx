@@ -2,7 +2,7 @@ import { AvatarUpload } from "./avatar-upload";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useApp } from "../../lib/app-state";
-import type { Preferences } from "../../types/app";
+import type { Gender, Preferences } from "../../types/app";
 import { AppIcon, PageHeading, PersonAvatar, Toggle } from "./primitives";
 import type { IconName } from "./primitives";
 import { authClient } from "../../lib/auth-client";
@@ -28,7 +28,7 @@ export function SettingsPage({ section }: { section: string }) {
   const [name, setName] = useState(state.profile.name);
   const [handle, setHandle] = useState(state.profile.handle);
   const [bio, setBio] = useState(state.profile.bio);
-  const [gender, setGender] = useState(state.profile.gender ?? "");
+  const [gender, setGender] = useState<Gender>(state.profile.gender ?? "");
   const [activity, setActivity] = useState(state.profile.activity);
   const [color, setColor] = useState(state.profile.color);
   const [error, setError] = useState("");
@@ -176,7 +176,7 @@ export function SettingsPage({ section }: { section: string }) {
                       name: name.trim(),
                       handle,
                       bio: bio.trim(),
-                      gender: gender.trim(),
+                      gender,
                       activity: activity.trim(),
                       color,
                     },
@@ -221,12 +221,16 @@ export function SettingsPage({ section }: { section: string }) {
                   </label>
                   <label>
                     Gender
-                    <input
+                    <select
                       value={gender}
-                      maxLength={40}
-                      onChange={(event) => setGender(event.target.value)}
-                      placeholder="e.g. Woman, Man, Non-binary"
-                    />
+                      onChange={(event) =>
+                        setGender(event.target.value as Gender)
+                      }
+                    >
+                      <option value="">Prefer not to say</option>
+                      <option value="he/him">he/him</option>
+                      <option value="she/her">she/her</option>
+                    </select>
                   </label>
                   <label>
                     A little about you

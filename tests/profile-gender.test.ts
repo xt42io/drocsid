@@ -50,57 +50,70 @@ test("profile gender can be saved, updated, and queried in snapshots", async () 
     handle: "alice_wonder",
     color: "peach" as const,
     bio: "Curiouser and curiouser",
-    gender: "Woman",
+    gender: "she/her" as const,
     activity: "Exploring",
     status: "online" as const,
   };
 
   // 1. Action schema parses valid gender
   const parsed = actionSchema.parse(profileAction);
-  assert.equal(parsed.gender, "Woman");
+  assert.equal(parsed.gender, "she/her");
 
   // 2. Mutate saves gender to database
   await runAction(userA.id, profileAction);
 
   // 3. User snapshot returns gender for own profile
   const ownSnapshot = await snapshot(db, userA);
-  assert.equal(ownSnapshot.profile.gender, "Woman");
+  assert.equal(ownSnapshot.profile.gender, "she/her");
 
   // 4. Other user snapshot returns gender in people list
   const otherSnapshot = await snapshot(db, userB);
   const aliceInPeople = otherSnapshot.people.find((p) => p.id === userA.id);
   assert.ok(aliceInPeople);
-  assert.equal(aliceInPeople.gender, "Woman");
+  assert.equal(aliceInPeople.gender, "she/her");
 
-  // 5. Gender field trims whitespace
-  const trimmedAction = {
-    ...profileAction,
-    gender: "  Non-binary  ",
-  };
-  await runAction(userA.id, trimmedAction);
+  // 5. Gender can be updated to he/him
+  await runAction(userA.id, { ...profileAction, gender: "he/him" });
   const updatedSnapshot = await snapshot(db, userA);
-  assert.equal(updatedSnapshot.profile.gender, "Non-binary");
+  assert.equal(updatedSnapshot.profile.gender, "he/him");
 
-  // 6. Max length validation (<= 40 chars succeeds, > 40 chars fails)
+  // 6. Gender can be updated to empty string (prefer not to say)
+  await runAction(userA.id, { ...profileAction, gender: "" });
+  const clearedSnapshot = await snapshot(db, userA);
+  assert.equal(clearedSnapshot.profile.gender, "");
+
+  // 7. Rejects invalid gender values
   assert.equal(
-    actionSchema.safeParse({ ...profileAction, gender: "a".repeat(40) }).success,
+    actionSchema.safeParse({ ...profileAction, gender: "he/him" }).success,
     true,
   );
   assert.equal(
-    actionSchema.safeParse({ ...profileAction, gender: "a".repeat(41) }).success,
+    actionSchema.safeParse({ ...profileAction, gender: "she/her" }).success,
+    true,
+  );
+  assert.equal(
+    actionSchema.safeParse({ ...profileAction, gender: "" }).success,
+    true,
+  );
+  assert.equal(
+    actionSchema.safeParse({ ...profileAction, gender: "other" }).success,
+    false,
+  );
+  assert.equal(
+    actionSchema.safeParse({ ...profileAction, gender: "Woman" }).success,
     false,
   );
 
-  // 7. State actions generates profile action including gender
+  // 8. State actions generates profile action including gender
   const mockState: AppState = {
     ...ownSnapshot,
     profile: {
       ...ownSnapshot.profile,
-      gender: "She/Her",
+      gender: "he/him",
     },
   };
   const diffs = stateActions(ownSnapshot, mockState);
   assert.equal(diffs.length, 1);
   assert.equal(diffs[0].type, "profile");
-  assert.equal((diffs[0] as typeof profileAction).gender, "She/Her");
+  assert.equal((diffs[0] as typeof profileAction).gender, "he/him");
 });
