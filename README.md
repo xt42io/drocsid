@@ -61,6 +61,8 @@ The runner serves built assets, TanStack HTTP routes and WebSocket upgrades toge
 
 Set `INVITE_SHORT_URL=https://drocsid.cc` and attach `drocsid.cc` to the same service as the main app. New invites use a seven-character ASCII alphanumeric code. The production runner redirects those codes, plus previously issued URL-safe legacy codes, to the canonical invite page on `BETTER_AUTH_URL`. Every other `.cc` path returns 404 before assets or application routes are served. Invite creation, preview, acceptance, and revocation are backed by Postgres; accepting a revoked, expired, exhausted, or unknown code is rejected by the server.
 
+The landing page publishes a 1200×630 Open Graph image from `public/og.png`. Run `pnpm og:generate` after changing the logo or its artwork. Invite pages resolve their community during server rendering and publish a community-specific title, description, canonical URL, and generated PNG preview at `/api/og/invite/:code`; crawlers do not need to run JavaScript. Short `drocsid.cc` links inherit the same preview after redirecting to the canonical invite page.
+
 To check the already-running server against the configured database:
 
 ```sh
