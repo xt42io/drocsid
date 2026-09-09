@@ -150,7 +150,7 @@ export function FriendsPage() {
               <span>
                 <strong>
                   {person.name}
-                  <small>@{person.handle}</small>
+                  {person.handle && <small>@{person.handle}</small>}
                 </strong>
                 <span>
                   {tab === "pending"
