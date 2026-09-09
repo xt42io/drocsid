@@ -27,6 +27,7 @@ test("React keeps drafts local, windows long histories, and preserves failed sen
     "Node",
     "Event",
     "navigator",
+    "location",
   ])
     install(key, (dom.window as unknown as Record<string, unknown>)[key]);
   install(

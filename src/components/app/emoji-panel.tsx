@@ -1,5 +1,7 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import type { EmojiStyle, SuggestionMode, Theme } from "emoji-picker-react";
+import { CatchBoundary } from "@tanstack/react-router";
+import { usePostHog } from "@posthog/react";
 import {
   autoUpdate,
   flip,
@@ -17,7 +19,15 @@ import { AppIcon, IconButton } from "./primitives";
 import { WorkspacePortal } from "./floating-panel";
 import { useApp } from "../../lib/app-state";
 
-const EmojiPicker = lazy(() => import("emoji-picker-react"));
+async function loadEmojiPicker() {
+  try {
+    return await import("emoji-picker-react");
+  } catch {
+    // A stale chunk after a deploy usually loads on a second attempt.
+    return import("emoji-picker-react");
+  }
+}
+const sharedEmojiPicker = lazy(loadEmojiPicker);
 const quickReactions = ["🧡", "👍", "😂", "🎉", "👀"];
 
 export function EmojiPanel({
@@ -34,8 +44,16 @@ export function EmojiPanel({
   disabled?: boolean;
 }) {
   const { state } = useApp();
+  const posthog = usePostHog();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [pickerAttempt, setPickerAttempt] = useState(0);
+  // Reuse the shared, already-resolved picker on the common path; only build a
+  // fresh lazy after a failed load so "Try again" re-runs the dynamic import.
+  const EmojiPicker = useMemo(
+    () => (pickerAttempt === 0 ? sharedEmojiPicker : lazy(loadEmojiPicker)),
+    [pickerAttempt],
+  );
   function close() {
     setOpen(false);
     setExpanded(false);
@@ -150,43 +168,67 @@ export function EmojiPanel({
                       onClick={close}
                     />
                   </header>
-                  <Suspense
-                    fallback={
+                  <CatchBoundary
+                    getResetKey={() => pickerAttempt}
+                    onCatch={(error) => posthog.captureException(error)}
+                    errorComponent={() => (
                       <div
-                        data-ui="a-emoji-loading"
-                        className="min-h-62.5 grid place-items-center text-(--a-muted) text-[13px]"
-                        role="status"
+                        data-ui="a-emoji-error"
+                        className="min-h-62.5 grid place-content-center justify-items-center gap-3 p-4 text-center text-(--a-muted) text-[13px]"
+                        role="alert"
                       >
-                        Loading emoji…
+                        <p className="m-0">Emoji couldn’t load.</p>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPickerAttempt((attempt) => attempt + 1)
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-(--a-text) bg-(--a-hover) [transition:background_0.15s] hover:bg-(--a-selected)"
+                        >
+                          <AppIcon name="reset" size={15} />
+                          Try again
+                        </button>
                       </div>
-                    }
+                    )}
                   >
-                    <EmojiPicker
-                      theme={state.preferences.theme as Theme}
-                      emojiStyle={"native" as EmojiStyle}
-                      width="100%"
-                      height="var(--emoji-picker-height, 390px)"
-                      searchPlaceHolder="Search all emoji"
-                      autoFocusSearch
-                      suggestedEmojisMode={"recent" as SuggestionMode}
-                      previewConfig={{ showPreview: false }}
-                      categoryIcons={{
-                        suggested: <AppIcon name="reset" />,
-                        smileys_people: <AppIcon name="smile" />,
-                        animals_nature: <AppIcon name="leaf" />,
-                        food_drink: <AppIcon name="coffee" />,
-                        travel_places: <AppIcon name="discover" />,
-                        activities: <AppIcon name="game" />,
-                        objects: <AppIcon name="book" />,
-                        symbols: <AppIcon name="heart" />,
-                        flags: <AppIcon name="flag" />,
-                      }}
-                      onEmojiClick={(data) => {
-                        onSelect(data.emoji);
-                        close();
-                      }}
-                    />
-                  </Suspense>
+                    <Suspense
+                      fallback={
+                        <div
+                          data-ui="a-emoji-loading"
+                          className="min-h-62.5 grid place-items-center text-(--a-muted) text-[13px]"
+                          role="status"
+                        >
+                          Loading emoji…
+                        </div>
+                      }
+                    >
+                      <EmojiPicker
+                        theme={state.preferences.theme as Theme}
+                        emojiStyle={"native" as EmojiStyle}
+                        width="100%"
+                        height="var(--emoji-picker-height, 390px)"
+                        searchPlaceHolder="Search all emoji"
+                        autoFocusSearch
+                        suggestedEmojisMode={"recent" as SuggestionMode}
+                        previewConfig={{ showPreview: false }}
+                        categoryIcons={{
+                          suggested: <AppIcon name="reset" />,
+                          smileys_people: <AppIcon name="smile" />,
+                          animals_nature: <AppIcon name="leaf" />,
+                          food_drink: <AppIcon name="coffee" />,
+                          travel_places: <AppIcon name="discover" />,
+                          activities: <AppIcon name="game" />,
+                          objects: <AppIcon name="book" />,
+                          symbols: <AppIcon name="heart" />,
+                          flags: <AppIcon name="flag" />,
+                        }}
+                        onEmojiClick={(data) => {
+                          onSelect(data.emoji);
+                          close();
+                        }}
+                      />
+                    </Suspense>
+                  </CatchBoundary>
                 </>
               )}
             </div>
