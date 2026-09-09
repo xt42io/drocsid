@@ -122,7 +122,7 @@ export function DiscoverPage() {
               {community.category.toLowerCase() !== "your community" && (
                 <span>{community.category.toUpperCase()}</span>
               )}
-              <CommunityIcon community={community} size={74} />
+              <CommunityIcon community={community} size={74} cover />
               {!community.joined && <i>OPEN DOOR</i>}
             </div>
             <div
@@ -277,7 +277,7 @@ export function InvitePage({
           <span className="absolute top-5 left-5 inline-flex items-center gap-2 rounded-full bg-white/60 px-3 py-1.5 text-[10px] font-semibold text-current backdrop-blur-sm">
             <AppIcon name="mail" size={15} /> Community invitation
           </span>
-          <CommunityIcon community={community} size={92} />
+          <CommunityIcon community={community} size={92} cover />
         </div>
         <div
           data-ui="a-invitation-body"
