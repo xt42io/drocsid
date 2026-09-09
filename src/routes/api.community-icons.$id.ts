@@ -12,7 +12,7 @@ export const Route = createFileRoute("/api/community-icons/$id")({
             getDb(),
             params.id,
             undefined,
-            imageVariant(request, "avatar"),
+            imageVariant(request, "community"),
             request,
           );
         }),
