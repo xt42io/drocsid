@@ -4,12 +4,18 @@ import {
   ArrowUpRight01Icon,
   GithubIcon,
   HeartCheckIcon,
+  LaptopIcon,
+  SmartPhone01Icon,
   StarIcon,
 } from "@hugeicons/core-free-icons";
 import { ChatPreview } from "../components/chat-preview";
-import { Icon, Logo } from "../components/ui";
+import { Icon, Logo, LogoMark } from "../components/ui";
+import { hasAuthenticatedViewer } from "../lib/viewer";
 
-export const Route = createFileRoute("/")({ component: LandingPage });
+export const Route = createFileRoute("/")({
+  loader: () => hasAuthenticatedViewer(),
+  component: LandingPage,
+});
 
 const avatarRows = [
   [
@@ -107,6 +113,7 @@ function PeopleMarquee() {
 }
 
 function LandingPage() {
+  const authenticated = Route.useLoaderData();
   return (
     <div data-ui="landing-page">
       <header
@@ -116,22 +123,34 @@ function LandingPage() {
         <Logo />
         <div
           data-ui="header-actions"
-          className="flex items-center gap-6 max-[1100px]:gap-4.5 max-[800px]:ml-auto max-[580px]:gap-2 max-[580px]:**:data-[ui~=button]:hidden"
+          className="flex items-center gap-6 max-[1100px]:gap-4.5 max-[800px]:ml-auto max-[580px]:gap-2 max-[580px]:**:data-[ui~=button]:min-h-9.5 max-[580px]:**:data-[ui~=button]:gap-1.5 max-[580px]:**:data-[ui~=button]:px-3 max-[580px]:**:data-[ui~=button]:text-[11px] max-[380px]:[&_[data-ui~=login-link]]:hidden"
         >
-          <Link
-            to="/sign-in"
-            data-ui="login-link"
-            className="text-[13px] font-semibold transition-colors hover:text-[#cc4826]"
-          >
-            Log in
-          </Link>
-          <Link
-            to="/app"
-            data-ui="button button-dark button-small"
-            className="inline-flex min-h-10.5 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-4 py-2.5 text-[13px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
-          >
-            Open Drocsid <Icon icon={ArrowUpRight01Icon} size={17} />
-          </Link>
+          {authenticated ? (
+            <Link
+              to="/app"
+              data-ui="button button-dark button-small"
+              className="inline-flex min-h-10.5 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-4 py-2.5 text-[13px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
+            >
+              Open Drocsid <Icon icon={ArrowUpRight01Icon} size={17} />
+            </Link>
+          ) : (
+            <>
+              <Link
+                to="/sign-in"
+                data-ui="login-link"
+                className="text-[13px] font-semibold transition-colors hover:text-[#cc4826]"
+              >
+                Log in
+              </Link>
+              <Link
+                to="/sign-up"
+                data-ui="button button-dark button-small"
+                className="inline-flex min-h-10.5 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-4 py-2.5 text-[13px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
+              >
+                Join Drocsid <Icon icon={ArrowUpRight01Icon} size={17} />
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -198,11 +217,12 @@ function LandingPage() {
             className="relative z-1 mt-7 flex justify-center gap-3 max-[580px]:mt-6.25 max-[580px]:gap-2.25 max-[580px]:**:data-[ui~=button]:min-h-11.5 max-[580px]:**:data-[ui~=button]:gap-2 max-[580px]:**:data-[ui~=button]:px-3.25 max-[580px]:**:data-[ui~=button]:py-3 max-[580px]:**:data-[ui~=button]:text-[11px] max-[580px]:[&_svg]:w-4"
           >
             <Link
-              to="/sign-up"
+              to={authenticated ? "/app" : "/sign-up"}
               data-ui="button button-orange"
               className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-orange px-5.5 py-3.5 text-[14px] font-semibold text-[#3e2118] shadow-[0_2px_0_#d842201c] transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
-              Find your people <Icon icon={ArrowUpRight01Icon} size={20} />
+              {authenticated ? "Open Drocsid" : "Find your people"}{" "}
+              <Icon icon={ArrowUpRight01Icon} size={20} />
             </Link>
             <a
               href="https://github.com/xt42io/drocsid"
@@ -301,6 +321,155 @@ function LandingPage() {
         </section>
 
         <section
+          data-ui="apps-coming-soon content-width"
+          className="mx-auto w-[calc(100%-112px)] max-w-300 py-17 max-[1100px]:w-[calc(100%-72px)] max-[800px]:w-[calc(100%-48px)] max-[800px]:py-13.5 max-[580px]:w-[calc(100%-36px)] max-[580px]:py-11"
+        >
+          <div className="relative isolate grid min-h-127 grid-cols-[minmax(0,0.85fr)_minmax(460px,1.15fr)] items-center gap-12 overflow-hidden rounded-[34px] bg-[#292a26] px-12 py-11 text-white max-[1100px]:grid-cols-[minmax(0,0.9fr)_minmax(400px,1.1fr)] max-[1100px]:gap-7 max-[1100px]:px-9 max-[900px]:grid-cols-1 max-[900px]:gap-10 max-[900px]:px-10 max-[900px]:pt-12 max-[900px]:pb-0 max-[580px]:min-h-0 max-[580px]:gap-8 max-[580px]:rounded-[25px] max-[580px]:px-5 max-[580px]:pt-8 max-[580px]:pb-0"
+          >
+            <div className="relative z-1 max-w-130 max-[900px]:max-w-150">
+              <h2 className="mb-5 text-[clamp(40px,4.6vw,64px)] leading-[0.99] tracking-[-0.06em]">
+                Take your people with you.
+              </h2>
+              <p className="max-w-115 text-[15px] leading-[1.8] text-[#b8baaf] max-[580px]:text-[14px]">
+                Native Drocsid apps for mobile and desktop are coming soon. The
+                same conversations, with a home on every screen.
+              </p>
+              <div className="mt-8 grid grid-cols-2 gap-3 max-[440px]:grid-cols-1">
+                <div className="flex min-h-32 flex-col rounded-[18px] border border-white/12 bg-white/5 p-4.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="grid size-10 place-items-center rounded-[12px] bg-[#f3653f] text-[#3e2118]">
+                      <Icon
+                        icon={SmartPhone01Icon}
+                        size={22}
+                        strokeWidth={1.7}
+                      />
+                    </span>
+                    <span className="rounded-full border border-white/12 px-2.5 py-1 text-[9px] font-semibold tracking-[0.04em] text-[#d9dbd0]">
+                      COMING SOON
+                    </span>
+                  </div>
+                  <strong className="mt-auto block text-[16px]">Mobile</strong>
+                  <span className="mt-0.5 text-[11px] text-[#95988c]">
+                    iOS and Android
+                  </span>
+                </div>
+                <div className="flex min-h-32 flex-col rounded-[18px] border border-white/12 bg-white/5 p-4.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="grid size-10 place-items-center rounded-[12px] bg-[#dcd8ff] text-[#5144c8]">
+                      <Icon icon={LaptopIcon} size={23} strokeWidth={1.7} />
+                    </span>
+                    <span className="rounded-full border border-white/12 px-2.5 py-1 text-[9px] font-semibold tracking-[0.04em] text-[#d9dbd0]">
+                      COMING SOON
+                    </span>
+                  </div>
+                  <strong className="mt-auto block text-[16px]">Desktop</strong>
+                  <span className="mt-0.5 text-[11px] text-[#95988c]">
+                    macOS, Windows and Linux
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="relative min-h-105 max-[900px]:min-h-100 max-[580px]:min-h-74"
+              aria-hidden="true"
+            >
+              <div className="absolute top-2 left-0 w-[92%] overflow-hidden rounded-[18px] border border-white/18 bg-[#f8f7f4] text-[#292a26] shadow-[0_24px_70px_rgba(0,0,0,0.28)] max-[580px]:top-0 max-[580px]:w-full max-[580px]:rounded-[13px]">
+                <div className="flex h-10 items-center gap-1.5 border-b border-[#deded7] bg-[#efeee9] px-3.5 max-[580px]:h-7">
+                  <span className="size-2 rounded-full bg-[#f38464]" />
+                  <span className="size-2 rounded-full bg-[#e9c767]" />
+                  <span className="size-2 rounded-full bg-[#8bbd91]" />
+                  <span className="ml-auto text-[8px] font-semibold text-[#8c8e84] max-[580px]:hidden">
+                    Drocsid for desktop
+                  </span>
+                </div>
+                <div className="grid h-81 grid-cols-[28%_1fr] max-[580px]:h-57">
+                  <div className="border-r border-[#dde0d5] bg-[#e8eadf] p-3.5 max-[580px]:p-2">
+                    <div className="flex items-center gap-2 border-b border-[#d8dbcf] pb-3 max-[580px]:pb-2">
+                      <LogoMark />
+                      <span className="text-[10px] font-bold max-[580px]:hidden">
+                        The Makers
+                      </span>
+                    </div>
+                    <div className="mt-4 space-y-2 max-[580px]:mt-2 max-[580px]:space-y-1.5">
+                      <span className="block h-6 rounded-[6px] bg-[#d7ddc9] max-[580px]:h-4" />
+                      <span className="block h-6 rounded-[6px] border border-[#dde0d5] max-[580px]:h-4" />
+                      <span className="block h-6 rounded-[6px] border border-[#dde0d5] max-[580px]:h-4" />
+                    </div>
+                  </div>
+                  <div className="p-5 max-[580px]:p-3">
+                    <div className="flex items-center gap-2 border-b border-[#e5e4de] pb-3">
+                      <span className="text-[15px] text-[#8b8d83]">#</span>
+                      <strong className="text-[11px]">general</strong>
+                      <span className="text-[8px] text-[#a3a49b] max-[580px]:hidden">
+                        A little bit of everything.
+                      </span>
+                    </div>
+                    <div className="mt-5 space-y-4 max-[580px]:mt-3 max-[580px]:space-y-3">
+                      <div className="flex gap-2.5">
+                        <span className="grid size-7 shrink-0 place-items-center rounded-[8px] bg-[#e4dcf0] text-[9px] font-bold text-[#76628a]">
+                          J
+                        </span>
+                        <div className="flex-1 pt-0.5">
+                          <span className="block h-2 w-19 rounded-full bg-[#56584f]" />
+                          <span className="mt-2 block h-1.5 w-[86%] rounded-full bg-[#d6d5cf]" />
+                          <span className="mt-1.5 block h-1.5 w-[62%] rounded-full bg-[#e3e2dc]" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5">
+                        <span className="grid size-7 shrink-0 place-items-center rounded-[8px] bg-[#f4d8ca] text-[9px] font-bold text-[#9a5c43]">
+                          A
+                        </span>
+                        <div className="flex-1 pt-0.5">
+                          <span className="block h-2 w-15 rounded-full bg-[#56584f]" />
+                          <span className="mt-2 block h-1.5 w-[73%] rounded-full bg-[#d6d5cf]" />
+                          <span className="mt-1.5 block h-1.5 w-[48%] rounded-full bg-[#e3e2dc]" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute right-[8%] bottom-5 left-[31%] h-9 rounded-[9px] border border-[#ddded7] bg-[#f3f3ef] max-[580px]:bottom-3 max-[580px]:h-6" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute right-0 bottom-0 h-83 w-[33%] overflow-hidden rounded-[32px] border-[7px] border-[#1e1f1c] bg-[#f8f7f4] text-[#292a26] shadow-[0_22px_60px_rgba(0,0,0,0.34)] max-[580px]:h-57 max-[580px]:w-[38%] max-[580px]:rounded-[23px] max-[580px]:border-[5px]">
+                <span className="absolute top-2 left-1/2 h-1.5 w-12 -translate-x-1/2 rounded-full bg-[#1e1f1c]" />
+                <div className="border-b border-[#e3e2dc] px-4 pt-8 pb-3 max-[580px]:px-3 max-[580px]:pt-6 max-[580px]:pb-2">
+                  <div className="flex items-center gap-2">
+                    <LogoMark />
+                    <div>
+                      <strong className="block text-[10px]">The Makers</strong>
+                      <span className="block text-[7px] text-[#989a90]">
+                        12 people around
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4 px-4 py-5 max-[580px]:space-y-3 max-[580px]:px-3 max-[580px]:py-3">
+                  <div className="flex gap-2">
+                    <span className="size-6 shrink-0 rounded-[7px] bg-[#dcd8ff]" />
+                    <div className="flex-1">
+                      <span className="block h-1.5 w-12 rounded-full bg-[#696b63]" />
+                      <span className="mt-2 block h-1.5 w-full rounded-full bg-[#d8d8d1]" />
+                      <span className="mt-1.5 block h-1.5 w-3/4 rounded-full bg-[#e5e4df]" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="size-6 shrink-0 rounded-[7px] bg-[#cceedd]" />
+                    <div className="flex-1">
+                      <span className="block h-1.5 w-10 rounded-full bg-[#696b63]" />
+                      <span className="mt-2 block h-1.5 w-[88%] rounded-full bg-[#d8d8d1]" />
+                      <span className="mt-1.5 block h-1.5 w-2/3 rounded-full bg-[#e5e4df]" />
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute right-3 bottom-3 left-3 h-9 rounded-[10px] border border-[#dedfd8] bg-[#f1f1ed] max-[580px]:h-7" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
           data-ui="closing-section"
           className="flex flex-col items-center bg-[#eaece2] px-5 pt-16.25 pb-15.5 text-center [&_h2]:mt-4.75 [&_h2]:mb-7.25 [&_h2]:text-[46px] **:data-[ui~=button]:min-h-11.75 **:data-[ui~=little-asterisk]:text-[32px] **:data-[ui~=little-asterisk]:text-[#74815b] max-[800px]:[&_h2]:text-[39px] max-[580px]:py-11.5 max-[580px]:[&_h2]:mt-4 max-[580px]:[&_h2]:mb-6.25 max-[580px]:[&_h2]:text-[32px] max-[580px]:[&_h2]:leading-[1.16] max-[580px]:**:data-[ui~=button]:text-[12px]"
         >
@@ -317,11 +486,12 @@ function LandingPage() {
             Give them a place to land.
           </h2>
           <Link
-            to="/sign-up"
+            to={authenticated ? "/app" : "/sign-up"}
             data-ui="button button-dark"
             className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-5.5 py-3.5 text-[14px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
           >
-            Make yourself at home <Icon icon={ArrowRight01Icon} size={19} />
+            {authenticated ? "Open Drocsid" : "Make yourself at home"}{" "}
+            <Icon icon={ArrowRight01Icon} size={19} />
           </Link>
           <span
             data-ui="closing-footnote"
