@@ -8,6 +8,7 @@ import { Logo } from "../ui";
 import { AppIcon } from "./primitives";
 import { ButtonLoader } from "../button-loader";
 import { AvatarUpload } from "./avatar-upload";
+import { chosenUsername } from "../../lib/usernames";
 export function WelcomePage() {
   const { state, setState, notify, setModal } = useApp();
   const navigate = useNavigate();
@@ -20,9 +21,7 @@ export function WelcomePage() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState(state.profile.name);
   const [username, setUsername] = useState(
-    /^user_[a-z0-9]{19}$/.test(state.profile.handle)
-      ? ""
-      : state.profile.handle,
+    chosenUsername(state.profile.handle),
   );
   const [error, setError] = useState("");
   const availability = useUsernameAvailability(username);
