@@ -43,6 +43,10 @@ import { AttachmentPreviews } from "./attachment-previews";
 import { RealtimeClient } from "./realtime-client";
 import { applyLiveMessage, applyLiveRead } from "./live-state";
 import type { MessageUpdate, Room, TypingPerson } from "./realtime-protocol";
+import {
+  IncomingMessageSound,
+  shouldPlayIncomingMessageSound,
+} from "./notification-sound";
 
 export type ModalState =
   | { type: "create-community" | "new-message" | "add-friend" | "help" }
@@ -143,6 +147,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [drafts] = useState(() => new Drafts());
   const [state, renderState] = useState<AppState>(empty);
   const [attachmentPreviews] = useState(() => new AttachmentPreviews());
+  const [notificationSound] = useState(() => new IncomingMessageSound());
   useEffect(() => () => attachmentPreviews.clear(), [attachmentPreviews]);
   useEffect(() => {
     attachmentPreviews.prune(
@@ -349,6 +354,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const client = new RealtimeClient(
       (frame) => {
         if (frame.type === "message") {
+          const snapshot = current.current;
+          if (
+            shouldPlayIncomingMessageSound({
+              message: frame.message,
+              newMessage: frame.newMessage === true,
+              alreadyKnown: snapshot.messages.some(
+                (message) => message.id === frame.id,
+              ),
+              notifications: snapshot.preferences.notifications,
+              sounds: snapshot.preferences.sounds,
+              muted: snapshot.muted,
+              pathname: window.location.pathname,
+              visibility: document.visibilityState,
+            })
+          )
+            notificationSound.play();
           receivedAt.current.set(frame.id, ++messageRevision.current);
           liveMessages.current.set(frame.id, frame);
           localMessages.current.delete(frame.id);
@@ -421,8 +442,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const persistHiddenReads = () => {
       if (document.visibilityState === "hidden") persistReads();
     };
+    const unlockNotificationSound = () => {
+      window.removeEventListener("pointerdown", unlockNotificationSound);
+      window.removeEventListener("keydown", unlockNotificationSound);
+      notificationSound.unlock();
+    };
     window.addEventListener("focus", focus);
     window.addEventListener("pagehide", persistReads);
+    window.addEventListener("pointerdown", unlockNotificationSound);
+    window.addEventListener("keydown", unlockNotificationSound);
     document.addEventListener("visibilitychange", persistHiddenReads);
     return () => {
       active.current = false;
@@ -435,9 +463,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer.current);
       window.removeEventListener("focus", focus);
       window.removeEventListener("pagehide", persistReads);
+      window.removeEventListener("pointerdown", unlockNotificationSound);
+      window.removeEventListener("keydown", unlockNotificationSound);
       document.removeEventListener("visibilitychange", persistHiddenReads);
     };
-  }, [apply, refresh]);
+  }, [apply, notificationSound, refresh]);
   const observeRoom = useCallback(
     (room: Room) => realtime.current?.observe(room) ?? (() => {}),
     [],
