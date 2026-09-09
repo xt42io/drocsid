@@ -20,6 +20,7 @@ import type { Channel } from "../../types/app";
 import { useApp } from "../../lib/app-state";
 import { AppIcon, PersonAvatar } from "./primitives";
 import { WorkspacePortal } from "./floating-panel";
+import { AutoLinkText } from "./auto-link-text";
 
 export function Mention({ target }: { target: MentionTarget }) {
   const { setModal, profile } = useApp((app) => ({
@@ -97,7 +98,13 @@ export function Mention({ target }: { target: MentionTarget }) {
                       {person.role}
                     </span>
                   </div>
-                  <p>{person.bio || "A little introduction is on its way."}</p>
+                  <p className="whitespace-pre-wrap [&_a]:text-(--a-green) [&_a]:underline [&_a]:underline-offset-3">
+                    <AutoLinkText
+                      text={
+                        person.bio || "A little introduction is on its way."
+                      }
+                    />
+                  </p>
                   {person.activity && (
                     <small data-ui="a-mention-activity" className="">
                       {person.activity}
