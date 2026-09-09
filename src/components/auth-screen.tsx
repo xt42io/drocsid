@@ -7,7 +7,6 @@ import {
   ArrowRight01Icon,
   ArrowUpRight01Icon,
   AlertCircleIcon,
-  GithubIcon,
 } from "@hugeicons/core-free-icons";
 import { Avatar, Icon, Logo } from "./ui";
 import { authClient } from "../lib/auth-client";
@@ -16,6 +15,7 @@ import { ButtonLoader } from "./button-loader";
 import { formatPageTitle } from "../lib/page-title";
 
 type AuthMode = "sign-in" | "sign-up";
+type SocialProvider = "discord" | "github";
 type Errors = Partial<Record<"email", string>>;
 const copy = {
   "sign-in": {
@@ -47,10 +47,10 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
   const [codeStep, setCodeStep] = useState<{
     email: string;
   } | null>(null);
-  const [socialNotice, setSocialNotice] = useState(false);
-  const [busyAction, setBusyAction] = useState<"email" | "github" | null>(
-    null,
-  );
+  const [socialNotice, setSocialNotice] = useState<SocialProvider | null>(null);
+  const [busyAction, setBusyAction] = useState<
+    "email" | SocialProvider | null
+  >(null);
   const busy = busyAction !== null;
   const [serverError, setServerError] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
@@ -102,12 +102,9 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
     }
   }
 
-  function enterApp() {
+  function authDestination() {
     const next = new URLSearchParams(window.location.search).get("next");
-    if (signup) {
-      window.location.assign("/app/welcome");
-      return;
-    }
+    if (signup) return "/app/welcome";
     const safeNext =
       next &&
       !next.includes("\\") &&
@@ -116,7 +113,29 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
         next.startsWith("/invite/"))
         ? next
         : "/app";
-    window.location.assign(safeNext);
+    return safeNext;
+  }
+
+  function enterApp() {
+    window.location.assign(authDestination());
+  }
+
+  async function signInWith(provider: SocialProvider) {
+    if (busy) return;
+    setBusyAction(provider);
+    setSocialNotice(null);
+    posthog.capture(`${provider}_sign_in_clicked`, { mode });
+    try {
+      const result = await authClient.signIn.social({
+        provider,
+        callbackURL: authDestination(),
+      });
+      if (result.error) setSocialNotice(provider);
+    } catch {
+      setSocialNotice(provider);
+    } finally {
+      setBusyAction(null);
+    }
   }
 
   function clearError(field: keyof Errors) {
@@ -238,43 +257,59 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
               </div>
               {
                 <>
-                  <button
-                    type="button"
-                    data-ui="social-button"
-                    className="w-full min-h-12 flex items-center justify-center gap-2 border border-solid border-[#d9dbcf] bg-transparent rounded-md text-[14px] font-semibold [transition:background_0.2s,border-color_0.2s] hover:bg-[#eeefe7] hover:border-[#b7c0a7] max-[580px]:text-[13px] max-[580px]:min-h-12"
-                    disabled={busy}
-                    onClick={async () => {
-                      setBusyAction("github");
-                      posthog.capture("github_sign_in_clicked", { mode });
-                      try {
-                        const result = await authClient.signIn.social({
-                          provider: "github",
-                          callbackURL: "/app",
-                        });
-                        if (result.error) setSocialNotice(true);
-                      } catch {
-                        setSocialNotice(true);
-                      } finally {
-                        setBusyAction(null);
-                      }
-                    }}
-                  >
-                    {busyAction === "github" ? (
-                      <ButtonLoader label="Connecting to GitHub" />
-                    ) : (
-                      <>
-                        <Icon icon={GithubIcon} size={21} /> Continue with GitHub
-                      </>
-                    )}
-                  </button>
+                  <div className="flex flex-col gap-2.5">
+                    <button
+                      type="button"
+                      data-ui="social-button discord"
+                      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-solid border-[#5865f2] bg-[#5865f2] text-[14px] font-semibold text-white transition-[background,border-color] hover:border-[#4f5bd5] hover:bg-[#4f5bd5] max-[580px]:min-h-12 max-[580px]:text-[13px]"
+                      disabled={busy}
+                      onClick={() => void signInWith("discord")}
+                    >
+                      {busyAction === "discord" ? (
+                        <ButtonLoader label="Connecting to Discord" />
+                      ) : (
+                        <>
+                          <img
+                            src="/icons/discord.svg"
+                            alt=""
+                            aria-hidden="true"
+                            className="h-4.5 w-5.75 brightness-0 invert"
+                          />
+                          Continue with Discord
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      data-ui="social-button github"
+                      className="flex min-h-12 w-full items-center justify-center gap-2 rounded-md border border-solid border-[#d9dbcf] bg-transparent text-[14px] font-semibold transition-[background,border-color] hover:border-[#b7c0a7] hover:bg-[#eeefe7] max-[580px]:min-h-12 max-[580px]:text-[13px]"
+                      disabled={busy}
+                      onClick={() => void signInWith("github")}
+                    >
+                      {busyAction === "github" ? (
+                        <ButtonLoader label="Connecting to GitHub" />
+                      ) : (
+                        <>
+                          <img
+                            src="/icons/github.svg"
+                            alt=""
+                            aria-hidden="true"
+                            className="size-5"
+                          />
+                          Continue with GitHub
+                        </>
+                      )}
+                    </button>
+                  </div>
                   {socialNotice && (
                     <p
                       data-ui="social-notice"
                       className="flex items-start gap-2 rounded-md text-[#727d60] bg-[#eaf0df] p-2.5 text-[11px] leading-[1.6] mb-0 [&_svg]:shrink-0 [&_svg]:mt-px"
                       role="status"
                     >
-                      <Icon icon={AlertCircleIcon} size={17} /> GitHub sign-in
-                      is not configured on this server yet.
+                      <Icon icon={AlertCircleIcon} size={17} />
+                      {socialNotice === "discord" ? "Discord" : "GitHub"}
+                      {" sign-in is not configured on this server yet."}
                     </p>
                   )}
                   <div
