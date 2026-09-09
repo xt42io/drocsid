@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import * as schema from "../src/server/db/schema";
 import type { Database } from "../src/server/db";
 import { makeAuth } from "../src/server/auth";
@@ -43,6 +43,10 @@ before(async () => {
       .insert(schema.user)
       .values({ ...viewer, email: `${viewer.id}@example.test` });
     await ensureProfile(db, viewer);
+    await db
+      .update(schema.profiles)
+      .set({ handle: `user_${viewer.id}` })
+      .where(eq(schema.profiles.userId, viewer.id));
   }
 });
 after(async () => {
@@ -1781,6 +1785,38 @@ test("welcome usernames check global availability and profile saves enforce uniq
       });
     await ensureProfile(db, { id, name: "" });
   }
+  const createdProfiles = await db
+    .select({ handle: schema.profiles.handle })
+    .from(schema.profiles)
+    .where(inArray(schema.profiles.userId, [a, b]));
+  assert.deepEqual(
+    createdProfiles.map((row) => row.handle),
+    [null, null],
+  );
+  await assert.rejects(
+    () =>
+      action(b, {
+        type: "preferences",
+        preferences: defaults,
+        muted: [],
+        onboardingComplete: true,
+      }),
+    /Choose a username/,
+  );
+  await db
+    .update(schema.profiles)
+    .set({
+      handle: `user_${"b".repeat(19)}`,
+      onboardingComplete: true,
+    })
+    .where(eq(schema.profiles.userId, b));
+  const legacy = await snapshot(db, { id: b, name: "" });
+  assert.equal(legacy.profile.handle, "");
+  assert.equal(legacy.onboardingComplete, false);
+  await db
+    .update(schema.profiles)
+    .set({ handle: null, onboardingComplete: false })
+    .where(eq(schema.profiles.userId, b));
   const profile = {
     type: "profile",
     name: "New friend",
@@ -1809,7 +1845,14 @@ test("welcome usernames check global availability and profile saves enforce uniq
     .from(schema.user)
     .where(eq(schema.user.id, b));
   assert.equal(other.name, "");
-  for (const handle of ["admin", "everyone", "you", "A BAD NAME", "ab"]) {
+  for (const handle of [
+    "admin",
+    "everyone",
+    "you",
+    `user_${"a".repeat(19)}`,
+    "A BAD NAME",
+    "ab",
+  ]) {
     await assert.rejects(() => usernameAvailability(db, a, handle));
     assert.equal(actionSchema.safeParse({ ...profile, handle }).success, false);
   }
