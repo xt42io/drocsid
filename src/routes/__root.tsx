@@ -8,6 +8,10 @@ import {
 import { PostHogProvider } from "@posthog/react";
 import stylesheet from "../styles.css?url";
 
+const siteDescription =
+  "An open-source home for your community. Thoughtful text chat, shared interests, and a little more human connection.";
+const siteImage = "https://drocsid.app/og.png";
+
 const postHogHost =
   import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 const postHogUiHost = postHogHost.replace(
@@ -21,12 +25,36 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Drocsid — A place for your people." },
-      {
-        name: "description",
-        content:
-          "An open-source home for your community. Thoughtful text chat, shared interests, and a little more human connection.",
-      },
+      { name: "description", content: siteDescription },
       { name: "theme-color", content: "#f8f7f4" },
+      { property: "og:type", content: "website" },
+      { property: "og:locale", content: "en_US" },
+      { property: "og:site_name", content: "Drocsid" },
+      {
+        property: "og:title",
+        content: "Drocsid — A place for your people.",
+      },
+      { property: "og:description", content: siteDescription },
+      { property: "og:image", content: siteImage },
+      { property: "og:image:secure_url", content: siteImage },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      {
+        property: "og:image:alt",
+        content: "Drocsid — a place for your people",
+      },
+      { name: "twitter:card", content: "summary_large_image" },
+      {
+        name: "twitter:title",
+        content: "Drocsid — A place for your people.",
+      },
+      { name: "twitter:description", content: siteDescription },
+      { name: "twitter:image", content: siteImage },
+      {
+        name: "twitter:image:alt",
+        content: "Drocsid — a place for your people",
+      },
     ],
     links: [
       { rel: "stylesheet", href: stylesheet },
