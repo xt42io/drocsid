@@ -92,6 +92,13 @@
       "when": 1788874841000,
       "tag": "0012_community_discoverability",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788930000000,
+      "tag": "0013_notification_message_kind",
+      "breakpoints": true
     }
   ]
 }
