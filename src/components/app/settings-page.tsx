@@ -591,7 +591,7 @@ export function SettingsPage({ section }: { section: string }) {
                       <PersonAvatar person={person} />
                       <span>
                         <strong>{person.name}</strong>
-                        <small>@{person.handle}</small>
+                        {person.handle && <small>@{person.handle}</small>}
                       </span>
                       <button
                         data-ui="a-button secondary small"
