@@ -1,4 +1,4 @@
-# drocsid
+# Drocsid
 
 An open-source community chat app built with TanStack Start, React, Tailwind, Hugeicons, PostgreSQL, Drizzle, Better Auth, and Byteship.
 
@@ -167,7 +167,13 @@ Single `channel.put` actions use one database statement for manager permissions,
 - `src/components/app/`: workspace, conversations, uploads, settings, and dialogs.
 - `scripts/`: opt-in seeding, storage cleanup, and live smoke check.
 
-TanStack generates `src/routeTree.gen.ts`; do not edit it manually. The public repository URL and project license have not been chosen yet.
+TanStack generates `src/routeTree.gen.ts`; do not edit it manually.
+
+## Contributing and license
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request and follow the [Code of Conduct](CODE_OF_CONDUCT.md) in project spaces.
+
+Drocsid is free software licensed under the [GNU Affero General Public License version 3](LICENSE), SPDX identifier `AGPL-3.0-only`. If you run a modified version over a network, section 13 requires offering its corresponding source to users who interact with it remotely.
 
 ### Request cancellation compatibility
 
