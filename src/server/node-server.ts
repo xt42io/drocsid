@@ -44,7 +44,9 @@ async function handleShortInvite(
     return;
   }
   const pathname = new URL(req.url || "/", options.origin).pathname;
-  const match = pathname.match(/^\/([A-Za-z0-9_-]{10,24})$/);
+  const match = pathname.match(
+    /^\/([A-Za-z0-9]{7}|[A-Za-z0-9_-]{10,24})$/,
+  );
   if (!match || !(await options.resolve(match[1]))) {
     sendPlain(res, 404, "Invite not found");
     return;
