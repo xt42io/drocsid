@@ -108,9 +108,15 @@ export function AuthScreen({ mode }: { mode: AuthMode }) {
       window.location.assign("/app/welcome");
       return;
     }
-    window.location.assign(
-      next?.startsWith("/app/") && !next.includes("\\") ? next : "/app",
-    );
+    const safeNext =
+      next &&
+      !next.includes("\\") &&
+      (next === "/app" ||
+        next.startsWith("/app/") ||
+        next.startsWith("/invite/"))
+        ? next
+        : "/app";
+    window.location.assign(safeNext);
   }
 
   function clearError(field: keyof Errors) {
