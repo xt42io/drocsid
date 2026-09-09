@@ -13,10 +13,6 @@ export async function ensureProfile(
     .insert(s.profiles)
     .values({
       userId: viewer.id,
-      handle: `user_${viewer.id
-        .replace(/[^a-z0-9]/gi, "")
-        .toLowerCase()
-        .slice(0, 19)}`,
       preferences: defaults,
     })
     .onConflictDoNothing({ target: s.profiles.userId });
