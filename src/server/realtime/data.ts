@@ -1,17 +1,17 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { getAuth } from "../auth";
-import { getDb, type Database } from "../db";
-import * as s from "../db/schema";
+import { getAuth } from "../auth.ts";
+import { getDb, type Database } from "../db/index.ts";
+import * as s from "../db/schema.ts";
 import {
   conversationAccess,
   requireConversation,
   requireDmUnblocked,
   dmUnblocked,
-} from "../access";
-import { HttpError } from "../http";
-import { sendMessage } from "../send-message";
-import type { MessageUpdate, Room } from "../../lib/realtime-protocol";
-import type { Person, Message, DirectConversation } from "../../types/app";
+} from "../access.ts";
+import { HttpError } from "../http.ts";
+import { sendMessage } from "../send-message.ts";
+import type { MessageUpdate, Room } from "../../lib/realtime-protocol.ts";
+import type { Person, Message, DirectConversation } from "../../types/app.ts";
 
 export type Identity = {
   userId: string;
