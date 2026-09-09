@@ -83,15 +83,24 @@ export function makeAuth(
         }
       }),
     },
-    socialProviders:
-      process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+    socialProviders: {
+      ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
         ? {
             github: {
               clientId: process.env.GITHUB_CLIENT_ID,
               clientSecret: process.env.GITHUB_CLIENT_SECRET,
             },
           }
-        : {},
+        : {}),
+      ...(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET
+        ? {
+            discord: {
+              clientId: process.env.DISCORD_CLIENT_ID,
+              clientSecret: process.env.DISCORD_CLIENT_SECRET,
+            },
+          }
+        : {}),
+    },
     databaseHooks: {
       user: {
         create: {
