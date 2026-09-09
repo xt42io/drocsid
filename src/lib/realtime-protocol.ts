@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { actionSchema } from "./contracts";
+import { actionSchema } from "./contracts.ts";
 import type {
   Message,
   Person,
   Presence,
   DirectConversation,
-} from "../types/app";
+} from "../types/app.ts";
 
 export const TYPING_TTL = 5000;
 export const TYPING_INTERVAL = 2000;
