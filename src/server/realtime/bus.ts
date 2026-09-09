@@ -2,7 +2,12 @@ import { Client } from "pg";
 import type { Presence } from "../../types/app";
 
 export type BusEvent =
-  | { type: "message"; id: string; conversationId: string }
+  | {
+      type: "message";
+      id: string;
+      conversationId: string;
+      newMessage?: boolean;
+    }
   | { type: "invalidate"; userId: string }
   | {
       type: "access";
