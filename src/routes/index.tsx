@@ -13,6 +13,10 @@ import { hasAuthenticatedViewer } from "../lib/viewer";
 
 export const Route = createFileRoute("/")({
   loader: () => hasAuthenticatedViewer(),
+  head: () => ({
+    links: [{ rel: "canonical", href: "https://drocsid.app/" }],
+    meta: [{ property: "og:url", content: "https://drocsid.app/" }],
+  }),
   component: LandingPage,
 });
 
