@@ -26,7 +26,10 @@ export default defineConfig({
     }),
   ],
   // Preserve Better Auth's own dependency resolution in pnpm production builds.
-  ssr: { external: ["better-auth"], noExternal: ["@tanstack/history"] },
+  ssr: {
+    external: ["better-auth", "@resvg/resvg-js"],
+    noExternal: ["@tanstack/history"],
+  },
   server: {
     port: 1515,
     strictPort: true,
