@@ -136,9 +136,11 @@ export function MessageRequestsPage() {
                 >
                   {person.name}
                 </Link>
-                <p className="mt-1 text-xs text-(--a-muted)">
-                  @{person.handle}
-                </p>
+                {person.handle && (
+                  <p className="mt-1 text-xs text-(--a-muted)">
+                    @{person.handle}
+                  </p>
+                )}
                 <p className="my-3 line-clamp-2 wrap-anywhere text-sm text-(--a-muted)">
                   {lastMessage?.text ||
                     (lastMessage?.attachments?.length
