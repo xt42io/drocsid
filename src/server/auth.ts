@@ -1,4 +1,4 @@
-import { ensureProfile, takeLimit } from "./access";
+import { ensureProfile, takeLimit } from "./access.ts";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { emailOTP } from "better-auth/plugins/email-otp";
@@ -8,9 +8,9 @@ import {
   requireEmailConfiguration,
   sendAuthEmail,
   type SendAuthEmail,
-} from "./email";
-import { getDb, type Database } from "./db";
-import * as schema from "./db/schema";
+} from "./email.ts";
+import { getDb, type Database } from "./db/index.ts";
+import * as schema from "./db/schema.ts";
 
 export function makeAuth(
   db: Database,
