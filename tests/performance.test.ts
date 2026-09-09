@@ -50,6 +50,10 @@ before(async () => {
       .insert(schema.user)
       .values({ id, name: id, email: `${id}@performance.test` });
     await ensureProfile(db, { id, name: id });
+    await db
+      .update(schema.profiles)
+      .set({ handle: `user_${id}`, onboardingComplete: true })
+      .where(eq(schema.profiles.userId, id));
   }
   await db.insert(schema.communities).values({
     id: room,
