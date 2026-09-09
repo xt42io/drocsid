@@ -144,7 +144,7 @@ export function Mention({ target }: { target: MentionTarget }) {
                         <div key={member.id}>
                           <PersonAvatar person={member} />
                           <span>{member.name}</span>
-                          <small>@{member.handle}</small>
+                          {member.handle && <small>@{member.handle}</small>}
                         </div>
                       ))}
                     </div>
