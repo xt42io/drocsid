@@ -10,10 +10,10 @@ import {
   type Room,
   type ServerFrame,
   type TypingPerson,
-} from "../../lib/realtime-protocol";
-import type { Presence } from "../../types/app";
-import type { Identity, realtimeData } from "./data";
-import type { BusEvent, LiveBus } from "./bus";
+} from "../../lib/realtime-protocol.ts";
+import type { Presence } from "../../types/app.ts";
+import type { Identity, realtimeData } from "./data.ts";
+import type { BusEvent, LiveBus } from "./bus.ts";
 
 type Peer = {
   ws: WebSocket;
