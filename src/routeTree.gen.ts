@@ -47,6 +47,7 @@ import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
 import { Route as ApiCommunityIconsIdRouteImport } from './routes/api.community-icons.$id'
 import { Route as ApiInvitesCodeRouteImport } from './routes/api.invites.$code'
 import { Route as AppDmPersonIdRouteImport } from './routes/app.dm.$personId'
+import { Route as ApiOgInviteCodeRouteImport } from './routes/api.og.invite.$code'
 import { Route as AppCommunityCommunityIdChannelIdRouteImport } from './routes/app.community.$communityId.$channelId'
 import { Route as AppCommunityCommunityIdSettingsRouteImport } from './routes/app.community.$communityId.settings'
 
@@ -240,6 +241,11 @@ const AppDmPersonIdRoute = AppDmPersonIdRouteImport.update({
   path: '/dm/$personId',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiOgInviteCodeRoute = ApiOgInviteCodeRouteImport.update({
+  id: '/api/og/invite/$code',
+  path: '/api/og/invite/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppCommunityCommunityIdChannelIdRoute =
   AppCommunityCommunityIdChannelIdRouteImport.update({
     id: '/community/$communityId/$channelId',
@@ -292,6 +298,7 @@ export interface FileRoutesByFullPath {
   '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
   '/api/invites/$code': typeof ApiInvitesCodeRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
+  '/api/og/invite/$code': typeof ApiOgInviteCodeRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
   '/app/community/$communityId/settings': typeof AppCommunityCommunityIdSettingsRoute
 }
@@ -333,6 +340,7 @@ export interface FileRoutesByTo {
   '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
   '/api/invites/$code': typeof ApiInvitesCodeRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
+  '/api/og/invite/$code': typeof ApiOgInviteCodeRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
   '/app/community/$communityId/settings': typeof AppCommunityCommunityIdSettingsRoute
 }
@@ -376,6 +384,7 @@ export interface FileRoutesById {
   '/api/community-icons/$id': typeof ApiCommunityIconsIdRoute
   '/api/invites/$code': typeof ApiInvitesCodeRoute
   '/app/dm/$personId': typeof AppDmPersonIdRoute
+  '/api/og/invite/$code': typeof ApiOgInviteCodeRoute
   '/app/community/$communityId/$channelId': typeof AppCommunityCommunityIdChannelIdRoute
   '/app/community/$communityId/settings': typeof AppCommunityCommunityIdSettingsRoute
 }
@@ -420,6 +429,7 @@ export interface FileRouteTypes {
     | '/api/community-icons/$id'
     | '/api/invites/$code'
     | '/app/dm/$personId'
+    | '/api/og/invite/$code'
     | '/app/community/$communityId/$channelId'
     | '/app/community/$communityId/settings'
   fileRoutesByTo: FileRoutesByTo
@@ -461,6 +471,7 @@ export interface FileRouteTypes {
     | '/api/community-icons/$id'
     | '/api/invites/$code'
     | '/app/dm/$personId'
+    | '/api/og/invite/$code'
     | '/app/community/$communityId/$channelId'
     | '/app/community/$communityId/settings'
   id:
@@ -503,6 +514,7 @@ export interface FileRouteTypes {
     | '/api/community-icons/$id'
     | '/api/invites/$code'
     | '/app/dm/$personId'
+    | '/api/og/invite/$code'
     | '/app/community/$communityId/$channelId'
     | '/app/community/$communityId/settings'
   fileRoutesById: FileRoutesById
@@ -532,6 +544,7 @@ export interface RootRouteChildren {
   InviteCodeRoute: typeof InviteCodeRoute
   ApiAttachmentsIdRoute: typeof ApiAttachmentsIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiOgInviteCodeRoute: typeof ApiOgInviteCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -802,6 +815,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDmPersonIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/og/invite/$code': {
+      id: '/api/og/invite/$code'
+      path: '/api/og/invite/$code'
+      fullPath: '/api/og/invite/$code'
+      preLoaderRoute: typeof ApiOgInviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/community/$communityId/$channelId': {
       id: '/app/community/$communityId/$channelId'
       path: '/community/$communityId/$channelId'
@@ -922,6 +942,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteCodeRoute: InviteCodeRoute,
   ApiAttachmentsIdRoute: ApiAttachmentsIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiOgInviteCodeRoute: ApiOgInviteCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
