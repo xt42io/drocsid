@@ -12,6 +12,25 @@ import {
 import { getDb, type Database } from "./db/index.ts";
 import * as schema from "./db/schema.ts";
 
+// Discord first, then GitHub, to match the order of the sign-in buttons.
+const SOCIAL_PROVIDERS = ["discord", "github"] as const;
+export type SocialProviderId = (typeof SOCIAL_PROVIDERS)[number];
+
+const providerEnvKeys: Record<SocialProviderId, { id: string; secret: string }> =
+  {
+    discord: { id: "DISCORD_CLIENT_ID", secret: "DISCORD_CLIENT_SECRET" },
+    github: { id: "GITHUB_CLIENT_ID", secret: "GITHUB_CLIENT_SECRET" },
+  };
+
+// A provider only works when both its client id and secret are set. The client
+// reads this list so it never shows a button the server cannot serve.
+export function configuredSocialProviders(): SocialProviderId[] {
+  return SOCIAL_PROVIDERS.filter((provider) => {
+    const keys = providerEnvKeys[provider];
+    return Boolean(process.env[keys.id] && process.env[keys.secret]);
+  });
+}
+
 export function makeAuth(
   db: Database,
   deliverEmail: SendAuthEmail = sendAuthEmail,
@@ -83,24 +102,22 @@ export function makeAuth(
         }
       }),
     },
-    socialProviders: {
-      ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
-        ? {
-            github: {
-              clientId: process.env.GITHUB_CLIENT_ID,
-              clientSecret: process.env.GITHUB_CLIENT_SECRET,
-            },
-          }
-        : {}),
-      ...(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET
-        ? {
-            discord: {
-              clientId: process.env.DISCORD_CLIENT_ID,
-              clientSecret: process.env.DISCORD_CLIENT_SECRET,
-            },
-          }
-        : {}),
-    },
+    // Store the OAuth state in one encrypted 10-minute cookie. The database
+    // strategy also pins a signed cookie to just 5 minutes, and the callback
+    // rejects the flow as a state mismatch once that shorter cookie is gone.
+    account: { storeStateStrategy: "cookie" },
+    socialProviders: Object.fromEntries(
+      configuredSocialProviders().map((provider) => {
+        const keys = providerEnvKeys[provider];
+        return [
+          provider,
+          {
+            clientId: process.env[keys.id]!,
+            clientSecret: process.env[keys.secret]!,
+          },
+        ];
+      }),
+    ),
     databaseHooks: {
       user: {
         create: {

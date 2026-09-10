@@ -1,11 +1,16 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AuthScreen } from "../components/auth-screen";
-import { hasAuthenticatedViewer } from "../lib/viewer";
+import { hasAuthenticatedViewer, listSocialProviders } from "../lib/viewer";
 
 export const Route = createFileRoute("/sign-in")({
   beforeLoad: async () => {
     if (await hasAuthenticatedViewer()) throw redirect({ to: "/app" });
   },
+  loader: () => listSocialProviders(),
   head: () => ({ meta: [{ title: "Welcome back — Drocsid" }] }),
-  component: () => <AuthScreen mode="sign-in" />,
+  component: SignInRoute,
 });
+
+function SignInRoute() {
+  return <AuthScreen mode="sign-in" providers={Route.useLoaderData()} />;
+}
