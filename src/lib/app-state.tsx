@@ -72,6 +72,7 @@ const empty: AppState = {
     status: "offline",
     bio: "",
     activity: "",
+    gender: "",
     role: "Member",
   },
   people: [],
@@ -893,6 +894,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           status: "offline",
           bio: "",
           activity: "",
+          gender: "",
           role: "Member",
         });
   }

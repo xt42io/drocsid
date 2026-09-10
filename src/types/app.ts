@@ -1,4 +1,5 @@
 export type Presence = "online" | "away" | "offline";
+export type Gender = "he/him" | "she/her" | "";
 export type Person = {
   avatarUrl?: string;
   id: string;
@@ -8,6 +9,7 @@ export type Person = {
   status: Presence;
   bio: string;
   activity: string;
+  gender?: Gender;
   role: "Owner" | "Admin" | "Moderator" | "Member";
 };
 export type Channel = {

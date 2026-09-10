@@ -85,6 +85,7 @@ export const actionSchema = z.discriminatedUnion("type", [
     color: z.enum(["peach", "green", "purple", "yellow", "blue"]),
     bio: z.string().max(500),
     activity: z.string().max(140),
+    gender: z.enum(["", "he/him", "she/her"]).optional().default(""),
     status: z.enum(["online", "away", "offline"]),
   }),
   z.object({

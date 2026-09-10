@@ -22,6 +22,7 @@ import {
   requireConversation,
 } from "./access";
 import type { Community, AppState, Message, Person } from "../types/app";
+import { normalizeGender } from "../lib/people";
 import { HttpError } from "./http";
 import { hydrate, rowJson } from "./sql-json";
 import { chosenUsername } from "../lib/usernames";
@@ -227,6 +228,7 @@ export async function snapshot(
     avatarUrl: p.avatarId ? `/api/avatars/${p.avatarId}` : undefined,
     handle: chosenUsername(p.profile.handle),
     bio: p.profile.bio,
+    gender: normalizeGender(p.profile.gender),
     color: p.profile.color,
     activity: p.profile.preferences.activity ? p.profile.activity : "",
     status:

@@ -91,6 +91,7 @@ export const profiles = pgTable("profiles", {
   color: text("color").notNull().default("purple"),
   bio: text("bio").notNull().default(""),
   activity: text("activity").notNull().default(""),
+  gender: text("gender").notNull().default(""),
   status: text("status", { enum: ["online", "away", "offline"] })
     .notNull()
     .default("online"),

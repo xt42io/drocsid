@@ -12,6 +12,7 @@ import { HttpError } from "../http.ts";
 import { sendMessage } from "../send-message.ts";
 import type { MessageUpdate, Room } from "../../lib/realtime-protocol.ts";
 import type { Person, Message, DirectConversation } from "../../types/app.ts";
+import { normalizeGender } from "../../lib/people.ts";
 
 export type Identity = {
   userId: string;
@@ -76,7 +77,7 @@ export async function liveMessages(
       'attachments', coalesce((select json_agg(json_build_object('id', a.id, 'name', a.original_name, 'contentType', a.content_type, 'byteSize', a.byte_size, 'url', '/api/attachments/' || a.id)) from attachments a where a.message_id = m.id and a.status = 'ready'), '[]'::json)
     ) end as message,
     case when p.user_id is null then null else json_build_object('id', case when p.user_id = ${userId} then 'you' else p.user_id end,
-      'name', u.name, 'handle', case when p.handle ~ '^user_[a-z0-9]{19}$' then '' else coalesce(p.handle, '') end, 'color', p.color, 'bio', p.bio, 'activity', case when (p.preferences->>'activity')::boolean then p.activity else '' end,
+      'name', u.name, 'handle', case when p.handle ~ '^user_[a-z0-9]{19}$' then '' else coalesce(p.handle, '') end, 'color', p.color, 'bio', p.bio, 'gender', coalesce(p.gender, ''), 'activity', case when (p.preferences->>'activity')::boolean then p.activity else '' end,
       'status', case when p.last_seen_at < now() - interval '90 seconds' then 'offline' else p.status end,
       'role', 'Member', 'avatarUrl', (select '/api/avatars/' || a.id from avatars a where a.uploader_id = p.user_id and a.status = 'active' limit 1)) end as person,
     (select count(*)::int from messages unread where unread.conversation_id = ${s.conversations.id}
@@ -100,7 +101,14 @@ export async function liveMessages(
       ...(row.dmConversation
         ? { dmConversation: { ...row.dmConversation, unread: row.unread } }
         : {}),
-      ...(row.person ? { person: row.person } : {}),
+      ...(row.person
+        ? {
+            person: {
+              ...row.person,
+              gender: normalizeGender(row.person.gender),
+            },
+          }
+        : {}),
     };
     return { userId: row.userId, frame };
   });

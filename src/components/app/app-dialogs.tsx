@@ -879,7 +879,7 @@ function Profile({ personId }: { personId: string }) {
       </div>
       <div
         data-ui="a-profile-details"
-        className="pt-0 pb-px px-2 *:data-[ui~=a-avatar]:-mt-7.75 *:data-[ui~=a-avatar]:border-[5px] *:data-[ui~=a-avatar]:border-solid *:data-[ui~=a-avatar]:border-(--a-bg) *:data-[ui~=a-avatar]:rounded-[26px] *:data-[ui~=a-avatar]:mb-2.5 [&_h3]:text-[25px] [&_h3]:mb-1.25 [&_h3]:tracking-[-0.8px] [&>span:not([data-ui~=a-avatar])]:text-(--a-faint) [&>span:not([data-ui~=a-avatar])]:text-[12px] **:data-[ui~=a-role-tag]:ml-2 [&>p]:text-[14px] [&>p]:leading-[1.8] [&>p]:mt-4.75 [&>p]:text-(--a-muted) [&>p]:whitespace-pre-wrap [&>p]:wrap-anywhere [&>select]:w-full [&>select]:mt-2 [&>select]:mb-4.5 [&>select]:text-[12px] max-[480px]:[&_h3]:text-[25px] max-[480px]:[&>p]:text-[13px]"
+        className="pt-0 pb-px px-2 *:data-[ui~=a-avatar]:-mt-7.75 *:data-[ui~=a-avatar]:border-[5px] *:data-[ui~=a-avatar]:border-solid *:data-[ui~=a-avatar]:border-(--a-bg) *:data-[ui~=a-avatar]:rounded-[26px] *:data-[ui~=a-avatar]:mb-2.5 [&_h3]:text-[25px] [&_h3]:mb-1.25 [&_h3]:tracking-[-0.8px] [&>span:not([data-ui~=a-avatar])]:text-(--a-faint) [&>span:not([data-ui~=a-avatar])]:text-[12px] **:data-[ui~=a-role-tag]:ml-2 **:data-[ui~=a-gender-tag]:ml-1.5 [&>p]:text-[14px] [&>p]:leading-[1.8] [&>p]:mt-4.75 [&>p]:text-(--a-muted) [&>p]:whitespace-pre-wrap [&>p]:wrap-anywhere [&>select]:w-full [&>select]:mt-2 [&>select]:mb-4.5 [&>select]:text-[12px] max-[480px]:[&_h3]:text-[25px] max-[480px]:[&>p]:text-[13px]"
       >
         <PersonAvatar person={person} large presence />
         <h3>{person.name}</h3>
@@ -891,6 +891,14 @@ function Profile({ personId }: { personId: string }) {
           >
             {person.role}
           </span>
+          {person.gender && (
+            <span
+              data-ui="a-gender-tag"
+              className="inline-block py-0.75 px-1.75 border border-solid border-(--a-border) rounded-sm bg-(--a-soft) text-[9px] text-(--a-muted)"
+            >
+              {person.gender}
+            </span>
+          )}
         </span>
         <p className="[&_a]:text-(--a-green) [&_a]:underline [&_a]:underline-offset-3">
           <AutoLinkText
