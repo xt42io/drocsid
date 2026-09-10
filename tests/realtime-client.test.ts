@@ -119,3 +119,128 @@ test("client acknowledges concurrent sends, rejects uncertain sends and restores
   unobserve();
   assert.deepEqual(reconnected.frames.at(-1), { type: "watch", rooms: [] });
 });
+
+class AuthSocket {
+  static OPEN = 1;
+  static instances: AuthSocket[] = [];
+  readyState = 1;
+  onmessage?: (event: any) => void;
+  onclose?: (event: any) => void;
+  onerror?: (event: any) => void;
+  constructor(public url: URL) {
+    AuthSocket.instances.push(this);
+  }
+  send() {}
+  close(code = 1006) {
+    this.readyState = 3;
+    this.onclose?.({ code });
+  }
+  receive(frame: unknown) {
+    this.onmessage?.({ data: JSON.stringify(frame) });
+  }
+}
+
+function authEnvironment(t: any, sessionResponse: () => Response) {
+  const oldWindow = globalThis.window,
+    oldSocket = globalThis.WebSocket,
+    oldFetch = globalThis.fetch;
+  const assigned: string[] = [];
+  globalThis.window = {
+    location: {
+      href: "http://localhost:1515/app/community/home/general",
+      pathname: "/app/community/home/general",
+      assign: (url: string) => assigned.push(url),
+    },
+  } as any;
+  AuthSocket.instances = [];
+  globalThis.WebSocket = AuthSocket as any;
+  globalThis.fetch = (async (input: any) => {
+    assert.equal(String(input), "/api/session");
+    return sessionResponse();
+  }) as any;
+  const events: { event: string; properties?: Record<string, unknown> }[] = [];
+  const client = new RealtimeClient(
+    () => {},
+    () => {},
+    (event, properties) => events.push({ event, properties }),
+  );
+  t.after(() => {
+    client.close();
+    globalThis.window = oldWindow;
+    globalThis.WebSocket = oldSocket;
+    globalThis.fetch = oldFetch;
+  });
+  return { client, assigned, events };
+}
+
+const response = (status: number, body: unknown): Response =>
+  ({ ok: status < 400, status, json: async () => body }) as Response;
+
+test("a 4401 close that leaves the session valid reconnects instead of signing out", async (t) => {
+  const { client, assigned, events } = authEnvironment(t, () =>
+    response(200, { user: { id: "you" } }),
+  );
+  client.start();
+  AuthSocket.instances[0].receive({ type: "ready" });
+  AuthSocket.instances[0].close(4401);
+  const deadline = Date.now() + 2000;
+  while (AuthSocket.instances.length < 2) {
+    assert.ok(Date.now() < deadline, "expected a reconnect");
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.deepEqual(assigned, []);
+  assert.equal(
+    events.some((e) => e.event === "realtime_forced_sign_out"),
+    false,
+  );
+});
+
+test("a 4401 close on a gone session signs out and records the forced sign-out", async (t) => {
+  const { client, assigned, events } = authEnvironment(t, () =>
+    response(401, { error: "Please sign in to continue." }),
+  );
+  client.start();
+  AuthSocket.instances[0].receive({ type: "ready" });
+  AuthSocket.instances[0].close(4401);
+  const deadline = Date.now() + 2000;
+  while (assigned.length < 1) {
+    assert.ok(Date.now() < deadline, "expected a redirect to sign-in");
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  assert.equal(
+    assigned[0],
+    "/sign-in?next=%2Fapp%2Fcommunity%2Fhome%2Fgeneral",
+  );
+  assert.equal(AuthSocket.instances.length, 1);
+  assert.equal(
+    events.some((e) => e.event === "realtime_forced_sign_out"),
+    true,
+  );
+});
+
+test("a live connection that drops records the loss with its close code", async (t) => {
+  const { client, events } = authEnvironment(t, () =>
+    response(200, { user: { id: "you" } }),
+  );
+  client.start();
+  AuthSocket.instances[0].receive({ type: "ready" });
+  AuthSocket.instances[0].close(1006);
+  const drop = events.find((e) => e.event === "realtime_connection_lost");
+  assert.ok(drop, "expected a connection-lost event");
+  assert.equal(drop!.properties?.code, 1006);
+  client.close();
+});
+
+test("a failed initial handshake does not record a connection loss", async (t) => {
+  const { client, events } = authEnvironment(t, () =>
+    response(200, { user: { id: "you" } }),
+  );
+  client.start();
+  // Close before a "ready" frame ever arrives.
+  AuthSocket.instances[0].close(1006);
+  assert.equal(
+    events.some((e) => e.event === "realtime_connection_lost"),
+    false,
+  );
+  client.close();
+});
