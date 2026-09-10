@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/tanstackstart-react";
+import { currentAppOrigin, isInjectedException } from "./lib/exception-filter";
 
 const dsn =
   import.meta.env.VITE_SENTRY_DSN ||
@@ -24,4 +25,19 @@ Sentry.init({
   tracesSampleRate: 0.2,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1,
+  beforeSend(event) {
+    const values = event.exception?.values;
+    if (!values || values.length === 0) return event;
+    let unhandled = false;
+    const filenames: Array<string | undefined> = [];
+    for (const value of values) {
+      if (value.mechanism?.handled === false) unhandled = true;
+      for (const frame of value.stacktrace?.frames ?? []) {
+        filenames.push(frame.filename);
+      }
+    }
+    return isInjectedException(unhandled, filenames, currentAppOrigin())
+      ? null
+      : event;
+  },
 });

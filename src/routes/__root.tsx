@@ -6,6 +6,10 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { PostHogProvider } from "@posthog/react";
+import {
+  currentAppOrigin,
+  isInjectedException,
+} from "../lib/exception-filter";
 import stylesheet from "../styles.css?url";
 
 const siteDescription =
@@ -98,6 +102,22 @@ function Root() {
             debug: import.meta.env.DEV,
             tracing_headers:
               typeof window !== "undefined" ? [window.location.hostname] : [],
+            before_send: (event) => {
+              if (!event || event.event !== "$exception") return event;
+              const list = event.properties?.$exception_list;
+              if (!Array.isArray(list) || list.length === 0) return event;
+              let unhandled = false;
+              const filenames: Array<string | undefined> = [];
+              for (const item of list) {
+                if (item?.mechanism?.handled === false) unhandled = true;
+                for (const frame of item?.stacktrace?.frames ?? []) {
+                  filenames.push(frame?.filename);
+                }
+              }
+              return isInjectedException(unhandled, filenames, currentAppOrigin())
+                ? null
+                : event;
+            },
           }}
         >
           <a
