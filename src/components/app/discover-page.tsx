@@ -235,6 +235,8 @@ export function InvitePage({
   initialInvite: InvitePreview | null;
 }) {
   const invite = initialInvite;
+  const navigate = useNavigate();
+  const posthog = usePostHog();
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
   if (!invite)
@@ -308,14 +310,24 @@ export function InvitePage({
                   `/api/invites/${encodeURIComponent(code)}`,
                   {},
                 );
-                window.location.assign(
-                  `/app/community/${encodeURIComponent(accepted.communityId)}/${encodeURIComponent(accepted.channelId)}`,
-                );
+                posthog.capture("community_joined", {
+                  community_id: accepted.communityId,
+                  member_count: community.members,
+                  source: "invite",
+                });
+                void navigate({
+                  to: "/app/community/$communityId/$channelId",
+                  params: {
+                    communityId: accepted.communityId,
+                    channelId: accepted.channelId,
+                  },
+                });
               } catch (cause) {
                 if (cause instanceof ApiError && cause.status === 401) {
-                  window.location.assign(
-                    `/sign-in?next=${encodeURIComponent(`/invite/${code}`)}`,
-                  );
+                  void navigate({
+                    to: "/sign-in",
+                    search: { next: `/invite/${code}` },
+                  });
                   return;
                 }
                 setError(
