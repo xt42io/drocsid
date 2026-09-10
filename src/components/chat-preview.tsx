@@ -227,7 +227,7 @@ export function ChatPreview() {
           </div>
           <div
             data-ui="channel-list"
-            className="mt-3.75 flex flex-col gap-1 max-[580px]:flex-row max-[580px]:overflow-x-auto max-[580px]:gap-1 max-[580px]:p-0.5 max-[580px]:scrollbar-none max-[580px]:[&::-webkit-scrollbar]:hidden"
+            className="mt-3.75 flex flex-col gap-1 max-[580px]:flex-row max-[580px]:overflow-x-auto max-[580px]:gap-1 max-[580px]:p-0.5 max-[580px]:scrollbar-none"
             aria-label="Preview channels"
           >
             {(Object.keys(conversations) as Channel[]).map((item) => (

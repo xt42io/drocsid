@@ -131,6 +131,56 @@
   }
 }
 
+/* Scrollbars. macOS draws overlay scrollbars and only picks up the thumb colour,
+   but Windows and Linux draw classic scrollbars with a visible track and arrow
+   buttons, so every part has to be styled explicitly. Colour tokens are
+   overridden per surface (see workspace-theme.ts). */
+@layer base {
+  :root {
+    --scrollbar-size: 6px;
+    --scrollbar-thumb: #292a2626;
+    --scrollbar-thumb-hover: #292a2648;
+  }
+
+  /* WebKit/Blink: Chrome, Edge, Safari, Electron. */
+  ::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  /* Firefox has no scrollbar pseudo-elements, so use the standard properties
+     there. Scoped so Chromium (121+) keeps the rounded WebKit styling above
+     instead of switching to its flat `scrollbar-color` rendering. */
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+  }
+}
+
+/* Tailwind v4 ships no scrollbar utilities; components already use this one. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @keyframes attachment-loading {
   from {
     background-position: 200% 0;
