@@ -47,6 +47,11 @@ import {
   IncomingMessageSound,
   shouldPlayIncomingMessageSound,
 } from "./notification-sound";
+import { usePostHog } from "@posthog/react";
+
+// Hold the connection banner back until a handshake or reconnect has had time to
+// finish, so a healthy load never flashes a false "reconnecting" warning.
+const RECONNECT_NOTICE_DELAY = 5000;
 
 export type ModalState =
   | { type: "create-community" | "new-message" | "add-friend" | "help" }
@@ -173,7 +178,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [ready, state.preferences.theme]);
   const [error, setError] = useState("");
   const [connected, setConnected] = useState(false);
+  const [connectionTrouble, setConnectionTrouble] = useState(false);
   const [typingPeople, setTypingPeople] = useState<TypingPerson[]>([]);
+  const posthog = usePostHog();
+  const capture = useCallback(
+    (event: string, properties?: Record<string, unknown>) =>
+      posthog.capture(event, properties),
+    [posthog],
+  );
   const realtime = useRef<RealtimeClient | null>(null);
   const liveMessages = useRef(new Map<string, MessageUpdate>());
   const livePresence = useRef(new Map<string, Person["status"]>());
@@ -411,6 +423,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           livePresence.current.clear();
         }
       },
+      capture,
     );
     realtime.current = client;
     client.start();
@@ -468,7 +481,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("keydown", unlockNotificationSound);
       document.removeEventListener("visibilitychange", persistHiddenReads);
     };
-  }, [apply, notificationSound, refresh]);
+  }, [apply, notificationSound, refresh, capture]);
+  useEffect(() => {
+    if (connected) {
+      setConnectionTrouble(false);
+      return;
+    }
+    const timer = setTimeout(
+      () => setConnectionTrouble(true),
+      RECONNECT_NOTICE_DELAY,
+    );
+    return () => clearTimeout(timer);
+  }, [connected]);
+  const retryConnection = useCallback(() => {
+    setError("");
+    // A live socket already resyncs on reconnect, so only fetch directly when
+    // the banner is up for a snapshot error rather than a dropped connection.
+    if (realtime.current?.isConnected) void refresh();
+    else realtime.current?.reconnect();
+  }, [refresh]);
   const observeRoom = useCallback(
     (room: Room) => realtime.current?.observe(room) ?? (() => {}),
     [],
@@ -991,13 +1022,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
           },
         }}
       >
-        {(error || !connected) && (
+        {(error || connectionTrouble) && (
           <div
             role="status"
             data-ui="a-connection-status"
-            className="fixed z-100 top-2.5 left-1/2 transform-[translateX(-50%)] py-2.5 px-4.5 bg-[#f7b267] text-[#171717] rounded-lg text-[13px]"
+            className="fixed z-100 top-2.5 left-1/2 flex items-center gap-3 transform-[translateX(-50%)] py-2.5 px-4.5 bg-[#f7b267] text-[#171717] rounded-lg text-[13px]"
           >
-            Reconnecting to live chat…
+            <span>Reconnecting to live chat…</span>
+            <button
+              type="button"
+              onClick={retryConnection}
+              className="rounded-md bg-[#171717]/10 px-2 py-1 text-[12px] font-semibold hover:bg-[#171717]/20"
+            >
+              Retry
+            </button>
           </div>
         )}
         {children}

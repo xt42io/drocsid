@@ -1,5 +1,5 @@
 import type { Action } from "./contracts";
-import { ApiError } from "./api-client";
+import { api, ApiError } from "./api-client";
 import {
   roomKey,
   TYPING_INTERVAL,
@@ -31,6 +31,10 @@ export class RealtimeClient {
   constructor(
     private onFrame: (frame: ServerFrame) => void,
     private onConnection: (connected: boolean) => void,
+    private capture?: (
+      event: string,
+      properties?: Record<string, unknown>,
+    ) => void,
   ) {}
   start() {
     this.connect();
@@ -90,6 +94,7 @@ export class RealtimeClient {
     socket.onclose = (event) => {
       if (this.socket !== socket) return;
       clearTimeout(this.timeout);
+      const wasConnected = this.connected;
       this.connected = false;
       this.onConnection(false);
       for (const request of this.pending.values()) {
@@ -99,18 +104,52 @@ export class RealtimeClient {
       this.pending.clear();
       if (this.stopped) return;
       if (event.code === 4401) {
-        window.location.assign(
-          `/sign-in?next=${encodeURIComponent(window.location.pathname)}`,
-        );
+        // The server can close 4401 from a cached identity while the HTTP
+        // session is still valid. Confirm the session is gone before signing
+        // the viewer out; otherwise reconnect.
+        void this.verifySession(socket);
         return;
       }
-      const delay =
-        Math.min(10000, 500 * 2 ** this.attempts++) + Math.random() * 300;
-      this.retry = setTimeout(() => this.connect(), delay);
+      // A live connection dropped. Record it so the loss becomes measurable.
+      if (wasConnected)
+        this.capture?.("realtime_connection_lost", { code: event.code });
+      this.scheduleReconnect();
     };
     socket.onerror = () => {
       /* onclose owns retry and pending requests. */
     };
+  }
+  private scheduleReconnect() {
+    const delay =
+      Math.min(10000, 500 * 2 ** this.attempts++) + Math.random() * 300;
+    this.retry = setTimeout(() => this.connect(), delay);
+  }
+  private async verifySession(socket: WebSocket) {
+    let gone = false;
+    try {
+      await api("/api/session");
+    } catch (error) {
+      gone = error instanceof ApiError && error.status === 401;
+    }
+    if (this.stopped || this.socket !== socket) return;
+    if (gone) {
+      this.capture?.("realtime_forced_sign_out");
+      window.location.assign(
+        `/sign-in?next=${encodeURIComponent(window.location.pathname)}`,
+      );
+      return;
+    }
+    this.scheduleReconnect();
+  }
+  reconnect() {
+    if (this.stopped || this.connected) return;
+    clearTimeout(this.retry);
+    clearTimeout(this.timeout);
+    this.attempts = 0;
+    const stale = this.socket;
+    this.socket = undefined;
+    stale?.close();
+    this.connect();
   }
   private watch() {
     this.write({
