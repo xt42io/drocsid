@@ -390,7 +390,7 @@ export function Conversation({
         >
           <div
             data-ui="a-message-scroll"
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3.5 scroll-auto"
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-3.5 scroll-auto [overflow-anchor:none]"
             ref={scrollRef}
           >
             {hasMore && (
@@ -1607,7 +1607,7 @@ function ThreadPanel({
       </div>
       <div
         data-ui="a-thread-scroll"
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 px-0"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-4 px-0 [overflow-anchor:none]"
         ref={scroll}
       >
         {parent ? (

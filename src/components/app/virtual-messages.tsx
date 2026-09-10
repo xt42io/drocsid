@@ -1,8 +1,12 @@
 import { useVirtualizer, defaultRangeExtractor } from "@tanstack/react-virtual";
 import { memo, useCallback, useLayoutEffect, useRef, useState } from "react";
-import type { CSSProperties, RefObject } from "react";
+import type { RefObject } from "react";
 import type { Message } from "../../types/app";
 import { MessageCard } from "./conversation";
+
+function estimatedMessageSize(message: Message, compact: boolean) {
+  return message.attachments?.length ? 300 : compact ? 64 : 72;
+}
 
 export const VirtualMessages = memo(function VirtualMessages({
   messages,
@@ -20,6 +24,7 @@ export const VirtualMessages = memo(function VirtualMessages({
   const container = useRef<HTMLDivElement>(null);
   const [margin, setMargin] = useState(0);
   const [focused, setFocused] = useState<string>();
+  const [ready, setReady] = useState(false);
   const focusedIndex = focused
     ? messages.findIndex((message) => message.id === focused)
     : -1;
@@ -29,13 +34,23 @@ export const VirtualMessages = memo(function VirtualMessages({
   );
   const virtualizer = useVirtualizer({
     count: messages.length,
+    // Positions and container size are corrected synchronously in the DOM;
+    // React can update the rendered range without flushSync lifecycle warnings.
     useFlushSync: false,
+    directDomUpdates: true,
+    directDomUpdatesMode: "transform",
     // The parent's ref can attach after child layout effects on a cold mount.
     getScrollElement: () =>
       scrollRef.current ??
       (container.current?.parentElement as HTMLDivElement | null),
-    estimateSize: (index) =>
-      messages[index].attachments?.length ? 360 : compact ? 100 : 120,
+    estimateSize: (index) => estimatedMessageSize(messages[index], compact),
+    // Start on the newest messages before the first paint. The browser clamps
+    // this estimated content height to the real maximum scroll offset.
+    initialOffset: () =>
+      messages.reduce(
+        (height, message) => height + estimatedMessageSize(message, compact),
+        0,
+      ),
     getItemKey,
     overscan: 6,
     scrollMargin: margin,
@@ -71,30 +86,52 @@ export const VirtualMessages = memo(function VirtualMessages({
   const previousTarget = useRef<string | undefined>(undefined);
   useLayoutEffect(() => {
     if (!messages.length) return;
-    if (highlighted && highlighted !== previousTarget.current) {
+    if (initialized.current) {
+      if (!highlighted || highlighted === previousTarget.current) return;
       const index = messages.findIndex((message) => message.id === highlighted);
       if (index >= 0) {
         virtualizer.scrollToIndex(index, { align: "center" });
         previousTarget.current = highlighted;
-        initialized.current = true;
       }
-    } else if (!initialized.current) {
-      const frame = requestAnimationFrame(() => {
-        virtualizer.scrollToIndex(messages.length - 1, { align: "end" });
-        initialized.current = true;
-      });
-      return () => cancelAnimationFrame(frame);
+      return;
     }
+
+    // The list height and its scroll element settle after refs attach. Keep
+    // the rows hidden for that single setup frame instead of painting the
+    // oldest messages and visibly jumping to the newest ones.
+    let revealFrame = 0;
+    const positionFrame = requestAnimationFrame(() => {
+      const targetIndex = highlighted
+        ? messages.findIndex((message) => message.id === highlighted)
+        : -1;
+      if (targetIndex >= 0) {
+        virtualizer.scrollToIndex(targetIndex, { align: "center" });
+        previousTarget.current = highlighted;
+      } else {
+        virtualizer.scrollToEnd();
+      }
+      initialized.current = true;
+      revealFrame = requestAnimationFrame(() => setReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(positionFrame);
+      cancelAnimationFrame(revealFrame);
+    };
   }, [highlighted, messages, virtualizer, margin]);
+  const setContainer = useCallback(
+    (element: HTMLDivElement | null) => {
+      container.current = element;
+      virtualizer.containerRef(element);
+    },
+    [virtualizer],
+  );
   return (
     <div
-      ref={container}
+      ref={setContainer}
       data-ui="virtual-messages"
+      data-ready={ready}
       data-message-count={messages.length}
-      className="relative w-full h-(--list-height)"
-      style={
-        { "--list-height": `${virtualizer.getTotalSize()}px` } as CSSProperties
-      }
+      className="relative invisible w-full data-[ready=true]:visible"
       onFocusCapture={(event) =>
         setFocused(
           (event.target as HTMLElement).closest<HTMLElement>(
@@ -113,8 +150,7 @@ export const VirtualMessages = memo(function VirtualMessages({
           data-index={row.index}
           data-message-key={messages[row.index].id}
           ref={virtualizer.measureElement}
-          className="absolute top-0 left-0 z-0 w-full translate-y-(--row-offset) [&:has([data-ui~=a-message-menu][aria-expanded='true'])]:z-50"
-          style={{ "--row-offset": `${row.start - margin}px` } as CSSProperties}
+          className="absolute top-0 left-0 z-0 w-full [&:has([data-ui~=a-message-menu][aria-expanded='true'])]:z-50"
         >
           <MessageCard
             message={messages[row.index]}

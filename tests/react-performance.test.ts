@@ -111,16 +111,26 @@ test("React keeps drafts local, windows long histories, and preserves failed sen
         ? Number.parseFloat(
             this.querySelector<HTMLElement>(
               '[data-ui="virtual-messages"]',
-            )?.style.getPropertyValue("--list-height") ?? "0",
+            )?.style.height ?? "0",
           )
         : 0;
     },
   });
+  const virtualRowOffset = (element: HTMLElement) => {
+    const legacyOffset = Number.parseFloat(
+      element.style.getPropertyValue("--row-offset"),
+    );
+    if (Number.isFinite(legacyOffset)) return legacyOffset;
+    return Number.parseFloat(
+      element.style.transform.match(
+        /translate3d\([^,]+,\s*(-?[\d.]+)px/,
+      )?.[1] ?? "0",
+    );
+  };
   prototype.getBoundingClientRect = function () {
     const scroll = dom.window.document.getElementById("scroll");
     const top = this.hasAttribute("data-index")
-      ? parseFloat(this.style.getPropertyValue("--row-offset")) -
-        (scroll?.scrollTop ?? 0)
+      ? virtualRowOffset(this) - (scroll?.scrollTop ?? 0)
       : this.dataset.ui === "virtual-messages"
         ? -(scroll?.scrollTop ?? 0)
         : 0;
@@ -130,7 +140,7 @@ test("React keeps drafts local, windows long histories, and preserves failed sen
         : this.hasAttribute("data-index")
           ? 80
           : this.dataset.ui === "virtual-messages"
-            ? parseFloat(this.style.getPropertyValue("--list-height"))
+            ? Number.parseFloat(this.style.height)
             : 0;
     return {
       top,
