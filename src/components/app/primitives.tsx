@@ -206,12 +206,14 @@ export function Dialog({
   onClose,
   children,
   wide = false,
+  dismissable = true,
 }: {
   title: string;
   description?: string;
   onClose: () => void;
   children: ReactNode;
   wide?: boolean;
+  dismissable?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -233,10 +235,12 @@ export function Dialog({
       aria-describedby={description ? `${id}-description` : undefined}
       onCancel={(event) => {
         event.preventDefault();
-        onClose();
+        // Escape and backdrop clicks are easy to trigger by accident. Skip them
+        // while the dialog holds unsaved input; the close button still closes.
+        if (dismissable) onClose();
       }}
       onClick={(event) => {
-        if (event.target === dialog.current) {
+        if (dismissable && event.target === dialog.current) {
           const bounds = dialog.current.getBoundingClientRect();
           if (
             event.clientX < bounds.left ||
