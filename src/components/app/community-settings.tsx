@@ -538,6 +538,27 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                         })
                       }
                     />
+                    <IconButton
+                      name="shield"
+                      label={`Ban ${person.name}`}
+                      onClick={() =>
+                        setModal({
+                          type: "confirm",
+                          title: `Ban ${person.name}?`,
+                          description:
+                            "They will lose access and can't rejoin, even with an invite link. Use Remove for a temporary goodbye instead.",
+                          label: "Ban member",
+                          managedCommunityId: communityId,
+                          action: () => {
+                            void command({
+                              type: "member.ban",
+                              communityId,
+                              userId: person.id,
+                            });
+                          },
+                        })
+                      }
+                    />
                   </>
                 )}
                 <IconButton
@@ -549,6 +570,49 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 />
               </div>
             ))}
+          {(community.bannedIds?.length ?? 0) > 0 && (
+            <section aria-label="Banned members" className="mt-8">
+              <div className="mb-2">
+                <h2 className="text-[21px]">Banned.</h2>
+                <p className="text-[12px] text-(--a-muted) mt-1.75">
+                  These people can&apos;t rejoin, even with an invite link.
+                </p>
+              </div>
+              {(community.bannedIds ?? []).map((bannedId) => {
+                const banned =
+                  bannedId === "you"
+                    ? state.profile
+                    : state.people.find((p) => p.id === bannedId);
+                if (!banned) return null;
+                return (
+                  <div
+                    data-ui="a-community-member-row"
+                    className="flex items-center gap-3.25 py-4.5 px-1.25 [border-bottom-width:1px] [border-bottom-style:solid] border-b-(--a-border) [&>span:nth-child(2)]:flex-1 [&_strong]:block [&_strong]:text-[13px] [&_strong]:font-[550] [&_small]:block [&_small]:text-[11px] [&_small]:text-(--a-faint) [&_small]:mt-1.25"
+                    key={bannedId}
+                  >
+                    <PersonAvatar person={banned} />
+                    <span>
+                      <strong>{banned.name}</strong>
+                      {banned.handle && <small>@{banned.handle}</small>}
+                    </span>
+                    <button
+                      data-ui="a-button secondary"
+                      className="inline-flex justify-center items-center gap-2.25 min-h-10 py-2.5 px-4 rounded-md leading-[1.4] whitespace-nowrap border! border-solid! border-transparent! font-[550]! text-[12px]! data-[ui~=secondary]:bg-(--a-surface) data-[ui~=secondary]:text-(--a-text) data-[ui~=secondary]:border-(--a-border)!"
+                      onClick={() =>
+                        void command({
+                          type: "member.unban",
+                          communityId,
+                          userId: banned.id,
+                        })
+                      }
+                    >
+                      Unban
+                    </button>
+                  </div>
+                );
+              })}
+            </section>
+          )}
         </>
       )}
     </div>

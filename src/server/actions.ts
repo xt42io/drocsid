@@ -122,6 +122,18 @@ export async function mutate(db: Database, userId: string, action: Action) {
         .from(s.communities)
         .where(eq(s.communities.id, action.id));
       if (!community) throw new HttpError(404, "Community not found.");
+      const [banned] = await db
+        .select({ userId: s.communityBans.userId })
+        .from(s.communityBans)
+        .where(
+          and(
+            eq(s.communityBans.communityId, action.id),
+            eq(s.communityBans.userId, userId),
+          ),
+        )
+        .limit(1);
+      if (banned)
+        throw new HttpError(403, "You cannot join this community.");
       if (!community.discoverable)
         throw new HttpError(
           403,
@@ -239,18 +251,42 @@ export async function mutate(db: Database, userId: string, action: Action) {
       break;
     }
     case "member.role":
-    case "member.remove": {
+    case "member.remove":
+    case "member.ban":
+    case "member.unban": {
       const ownRole = await requireManager(db, userId, action.communityId);
       const targetRole = await roleFor(db, action.userId, action.communityId);
       if (
-        !targetRole ||
-        targetRole === "Owner" ||
         action.userId === userId ||
+        targetRole === "Owner" ||
         (ownRole !== "Owner" &&
           (targetRole === "Admin" ||
-            (action.type === "member.role" && action.role === "Admin")))
+            (action.type === "member.role" && action.role === "Admin") ||
+            action.type === "member.ban" ||
+            action.type === "member.unban"))
       )
         throw new HttpError(403, "You cannot change this member.");
+      if (action.type === "member.unban") {
+        await db
+          .delete(s.communityBans)
+          .where(
+            and(
+              eq(s.communityBans.communityId, action.communityId),
+              eq(s.communityBans.userId, action.userId),
+            ),
+          );
+        break;
+      }
+      if (action.type === "member.ban" && !targetRole) {
+        const [person] = await db
+          .select({ id: s.user.id })
+          .from(s.user)
+          .where(eq(s.user.id, action.userId))
+          .limit(1);
+        if (!person) throw new HttpError(404, "Person not found.");
+      } else if (!targetRole) {
+        throw new HttpError(403, "You cannot change this member.");
+      }
       const where = and(
         eq(s.members.communityId, action.communityId),
         eq(s.members.userId, action.userId),
@@ -273,6 +309,19 @@ export async function mutate(db: Database, userId: string, action: Action) {
               ),
             ),
           );
+        if (action.type === "member.ban")
+          await db
+            .insert(s.communityBans)
+            .values({
+              communityId: action.communityId,
+              userId: action.userId,
+              bannedBy: userId,
+              reason: action.reason ?? "",
+            })
+            .onConflictDoUpdate({
+              target: [s.communityBans.communityId, s.communityBans.userId],
+              set: { bannedBy: userId, reason: action.reason ?? "" },
+            });
       }
       break;
     }

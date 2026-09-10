@@ -177,6 +177,20 @@ export async function acceptInvite(
   code: string,
 ): Promise<AcceptedInvite> {
   if (!validInviteCode(code)) throw new HttpError(404, "Invite not found.");
+  const [banned] = await db
+    .select({ communityId: s.communityBans.communityId })
+    .from(s.communityBans)
+    .innerJoin(
+      s.communityInvites,
+      and(
+        eq(s.communityInvites.code, code),
+        eq(s.communityInvites.communityId, s.communityBans.communityId),
+      ),
+    )
+    .where(eq(s.communityBans.userId, userId))
+    .limit(1);
+  if (banned)
+    throw new HttpError(404, "This invitation is no longer available.");
   const result = await db.execute<{ communityId: string; channelId: string }>(sql`
     with invite as materialized (
       select * from community_invites where code = ${code}
