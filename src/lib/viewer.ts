@@ -1,4 +1,20 @@
 import { createServerFn } from "@tanstack/react-start";
+import type { SocialProviderId } from "../server/auth";
+
+export const listSocialProviders = createServerFn({ method: "GET" }).handler(
+  async (): Promise<SocialProviderId[]> => {
+    try {
+      const { configuredSocialProviders } = await import("../server/auth");
+      return configuredSocialProviders();
+    } catch (error) {
+      console.error(
+        "[Drocsid auth] could not resolve the configured social providers",
+        error instanceof Error ? error.name : "Unknown error",
+      );
+      return [];
+    }
+  },
+);
 
 export const hasAuthenticatedViewer = createServerFn({ method: "GET" }).handler(
   async () => {
