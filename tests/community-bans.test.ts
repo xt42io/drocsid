@@ -18,7 +18,7 @@ const communityId = "ban-corner";
 
 before(async () => {
   await migrate(database, { migrationsFolder: "./drizzle" });
-  for (const id of ["owner", "admin", "member", "outsider"]) {
+  for (const id of ["owner", "admin", "member", "watcher", "outsider"]) {
     await db
       .insert(schema.user)
       .values({ id, name: id, email: `${id}@bans.test` });
@@ -37,22 +37,15 @@ before(async () => {
     },
     channels: [{ id: "general", name: "general", description: "", group: "" }],
   });
+  await mutate(db, "admin", { type: "community.join", id: communityId });
   await mutate(db, "owner", {
     type: "member.role",
     communityId,
     userId: "admin",
     role: "Admin",
-  }).catch(async () => {
-    // admin must join before promotion
-    await mutate(db, "admin", { type: "community.join", id: communityId });
-    await mutate(db, "owner", {
-      type: "member.role",
-      communityId,
-      userId: "admin",
-      role: "Admin",
-    });
   });
   await mutate(db, "member", { type: "community.join", id: communityId });
+  await mutate(db, "watcher", { type: "community.join", id: communityId });
 });
 
 after(() => engine.close());
@@ -111,6 +104,19 @@ test("bans remove members and block rejoining, unbans restore it", async () => {
   assert.ok(bannedCommunity?.bannedIds?.includes("member"));
   assert.ok(!bannedCommunity?.memberIds?.includes("member"));
 
+  // Ban lists are manager-only: admins see them, plain members do not.
+  const adminSnap = await snapshot(db, { id: "admin", name: "admin" }, 0);
+  assert.ok(
+    adminSnap.communities
+      .find((c) => c.id === communityId)
+      ?.bannedIds?.includes("member"),
+  );
+  const watcherSnap = await snapshot(db, { id: "watcher", name: "watcher" }, 0);
+  assert.deepEqual(
+    watcherSnap.communities.find((c) => c.id === communityId)?.bannedIds,
+    [],
+  );
+
   // Banned user cannot rejoin directly (both paths) or via invite.
   await assert.rejects(
     () => mutate(db, "member", { type: "community.join", id: communityId }),
@@ -147,5 +153,37 @@ test("bans remove members and block rejoining, unbans restore it", async () => {
   const rejoined = await snapshot(db, { id: "member", name: "member" }, 0);
   assert.ok(
     rejoined.communities.some((c) => c.id === communityId && c.joined),
+  );
+
+  // Admins follow remove parity: they can ban/unban plain members but not
+  // other admins, and cannot touch the owner.
+  await mutate(db, "admin", {
+    type: "member.ban",
+    communityId,
+    userId: "member",
+  });
+  await assert.rejects(
+    () => mutate(db, "member", { type: "community.join", id: communityId }),
+    /cannot join this community/,
+  );
+  await assert.rejects(
+    () =>
+      mutate(db, "admin", {
+        type: "member.ban",
+        communityId,
+        userId: "owner",
+      }),
+    /cannot change this member/,
+  );
+  await mutate(db, "admin", {
+    type: "member.unban",
+    communityId,
+    userId: "member",
+  });
+  await mutate(db, "member", { type: "community.join", id: communityId });
+  assert.ok(
+    (await snapshot(db, { id: "member", name: "member" }, 0)).communities.some(
+      (c) => c.id === communityId && c.joined,
+    ),
   );
 });

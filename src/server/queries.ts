@@ -157,7 +157,7 @@ export async function snapshot(
     related as materialized (
       select ${userId}::text as id
       union select user_id from community_members where community_id in (select community_id from joined)
-      union select user_id from community_bans where community_id in (select community_id from joined)
+      union select user_id from community_bans where community_id in (select community_id from community_members where user_id = ${userId} and role in ('Owner', 'Admin'))
       union select case when sender_id = ${userId} then recipient_id else sender_id end from friendships where sender_id = ${userId} or recipient_id = ${userId}
       union select case when user_id = ${userId} then target_id else user_id end from blocked_users where user_id = ${userId} or target_id = ${userId}
       union select user_id from conversation_members where conversation_id in (select id from permitted where kind = 'dm')
@@ -246,6 +246,11 @@ export async function snapshot(
     communities: communityRows.map((c) => {
       const membership = allMembers.filter((m) => m.communityId === c.id);
       const joined = membership.some((m) => m.userId === userId);
+      // Ban lists are manager-only: regular members must not learn who was
+      // banned. Managers see them via the Banned section in settings.
+      const viewerRole = membership.find((m) => m.userId === userId)?.role;
+      const canSeeBans =
+        joined && (viewerRole === "Owner" || viewerRole === "Admin");
       return {
         ...c,
         icon: c.icon as Community["icon"],
@@ -263,7 +268,7 @@ export async function snapshot(
               ]),
             )
           : {},
-        bannedIds: joined
+        bannedIds: canSeeBans
           ? banned
               .filter((b) => b.communityId === c.id)
               .map((b) => (b.userId === userId ? "you" : b.userId))

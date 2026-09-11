@@ -582,8 +582,16 @@ export function CommunitySettings({ communityId }: { communityId: string }) {
                 const banned =
                   bannedId === "you"
                     ? state.profile
-                    : state.people.find((p) => p.id === bannedId);
-                if (!banned) return null;
+                    : (state.people.find((p) => p.id === bannedId) ?? {
+                        id: bannedId,
+                        name: "Banned member",
+                        handle: "",
+                        color: "peach",
+                        status: "offline",
+                        bio: "",
+                        activity: "",
+                        role: "Member",
+                      } as const);
                 return (
                   <div
                     data-ui="a-community-member-row"
