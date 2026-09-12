@@ -1,2 +1,6 @@
+allowBuilds:
+  '@sentry/cli': set this to true or false
+  core-js: set this to true or false
+  esbuild: set this to true or false
 patchedDependencies:
   '@tanstack/start-server-core@1.169.31': patches/@tanstack__start-server-core@1.169.31.patch
