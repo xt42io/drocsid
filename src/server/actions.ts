@@ -147,6 +147,24 @@ export async function mutate(db: Database, userId: string, action: Action) {
         .limit(1);
       if (banned)
         throw new HttpError(403, "You cannot join this community.");
+      if (!community.discoverable)
+        throw new HttpError(
+          403,
+          "This community can only be joined with an invite.",
+        );
+      // The insert wrote nothing but the community is joinable: this is an
+      // idempotent retry by an existing member.
+      const [existing] = await db
+        .select({ userId: s.members.userId })
+        .from(s.members)
+        .where(
+          and(
+            eq(s.members.communityId, action.id),
+            eq(s.members.userId, userId),
+          ),
+        )
+        .limit(1);
+      if (existing) break;
       throw new HttpError(
         403,
         "This community can only be joined with an invite.",
@@ -275,6 +293,25 @@ export async function mutate(db: Database, userId: string, action: Action) {
       )
         throw new HttpError(403, "You cannot change this member.");
       if (action.type === "member.unban") {
+        // The ban deleted the membership, so hierarchy comes from the stored
+        // former role: only Owners may unban ex-Admins (or ex-Owners, which
+        // cannot normally exist since Owners cannot be banned).
+        const [ban] = await db
+          .select({ role: s.communityBans.role })
+          .from(s.communityBans)
+          .where(
+            and(
+              eq(s.communityBans.communityId, action.communityId),
+              eq(s.communityBans.userId, action.userId),
+            ),
+          )
+          .limit(1);
+        if (
+          ban &&
+          (ban.role === "Admin" || ban.role === "Owner") &&
+          ownRole !== "Owner"
+        )
+          throw new HttpError(403, "You cannot change this member.");
         await db
           .delete(s.communityBans)
           .where(
@@ -314,13 +351,14 @@ export async function mutate(db: Database, userId: string, action: Action) {
             where community_id = ${action.communityId}
               and user_id = ${action.userId}
           )
-          insert into community_bans (community_id, user_id, banned_by, reason)
+          insert into community_bans (community_id, user_id, banned_by, role, reason)
           values (
             ${action.communityId}, ${action.userId}, ${userId},
-            ${action.reason ?? ""}
+            ${targetRole ?? "Member"}, ${action.reason ?? ""}
           )
           on conflict (community_id, user_id) do update set
-            banned_by = excluded.banned_by, reason = excluded.reason
+            banned_by = excluded.banned_by, role = excluded.role,
+            reason = excluded.reason
         `);
       } else {
         await db.delete(s.members).where(where);

@@ -140,6 +140,11 @@ export const communityBans = pgTable(
     bannedBy: text("banned_by").references(() => user.id, {
       onDelete: "set null",
     }),
+    // Former community role at ban time. Membership is deleted by the ban,
+    // so unban authorization reads this instead of the members table.
+    role: text("role", { enum: ["Owner", "Admin", "Moderator", "Member"] })
+      .notNull()
+      .default("Member"),
     reason: text("reason").notNull().default(""),
     createdAt: time("created_at"),
   },

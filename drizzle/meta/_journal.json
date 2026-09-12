@@ -113,6 +113,13 @@
       "when": 1788960000000,
       "tag": "0015_community_bans",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1788963600000,
+      "tag": "0016_community_ban_roles",
+      "breakpoints": true
     }
   ]
 }

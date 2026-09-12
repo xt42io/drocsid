@@ -186,4 +186,35 @@ test("bans remove members and block rejoining, unbans restore it", async () => {
       (c) => c.id === communityId && c.joined,
     ),
   );
+
+  // Rejoining while already a member succeeds idempotently.
+  await mutate(db, "member", { type: "community.join", id: communityId });
+
+  // Bans remember the former role: an Admin cannot lift an Owner's ban of an
+  // Admin, but the Owner can.
+  await mutate(db, "owner", {
+    type: "member.role",
+    communityId,
+    userId: "member",
+    role: "Admin",
+  });
+  await mutate(db, "owner", {
+    type: "member.ban",
+    communityId,
+    userId: "member",
+  });
+  await assert.rejects(
+    () =>
+      mutate(db, "admin", {
+        type: "member.unban",
+        communityId,
+        userId: "member",
+      }),
+    /cannot change this member/,
+  );
+  await mutate(db, "owner", {
+    type: "member.unban",
+    communityId,
+    userId: "member",
+  });
 });
