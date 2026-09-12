@@ -195,7 +195,7 @@ function LandingPage() {
               />
             </span>
           </div>
-          <h1>
+          <h1 className="animate-fade-up motion-reduce:animate-none">
             A place for
             <br />
             <span>your people.</span>
@@ -209,7 +209,7 @@ function LandingPage() {
           </h1>
           <p
             data-ui="hero-description"
-            className="relative z-1 m-0 text-[16px] leading-[1.65] tracking-[-0.15px] text-[#6c6e65] max-[800px]:text-[15px] max-[580px]:mx-auto max-[580px]:max-w-82.5 max-[580px]:text-[14px] max-[580px]:leading-[1.7]"
+            className="relative z-1 m-0 text-[16px] leading-[1.65] tracking-[-0.15px] text-[#6c6e65] animate-fade-up [animation-delay:120ms] motion-reduce:animate-none max-[800px]:text-[15px] max-[580px]:mx-auto max-[580px]:max-w-82.5 max-[580px]:text-[14px] max-[580px]:leading-[1.7]"
           >
             For the late-night ideas, the niche obsessions,
             <br data-ui="desktop-break" className="max-[580px]:hidden" /> and
@@ -217,7 +217,7 @@ function LandingPage() {
           </p>
           <div
             data-ui="hero-actions"
-            className="relative z-1 mt-7 flex justify-center gap-3 max-[580px]:mt-6.25 max-[580px]:gap-2.25 max-[580px]:**:data-[ui~=button]:min-h-11.5 max-[580px]:**:data-[ui~=button]:gap-2 max-[580px]:**:data-[ui~=button]:px-3.25 max-[580px]:**:data-[ui~=button]:py-3 max-[580px]:**:data-[ui~=button]:text-[11px] max-[580px]:[&_svg]:w-4"
+            className="relative z-1 mt-7 flex justify-center gap-3 animate-fade-up [animation-delay:220ms] motion-reduce:animate-none max-[580px]:mt-6.25 max-[580px]:gap-2.25 max-[580px]:**:data-[ui~=button]:min-h-11.5 max-[580px]:**:data-[ui~=button]:gap-2 max-[580px]:**:data-[ui~=button]:px-3.25 max-[580px]:**:data-[ui~=button]:py-3 max-[580px]:**:data-[ui~=button]:text-[11px] max-[580px]:[&_svg]:w-4"
           >
             <Link
               to={authenticated ? "/app" : "/sign-up"}
