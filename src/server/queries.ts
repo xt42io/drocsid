@@ -146,6 +146,7 @@ export async function snapshot(
       personId: string;
       hasMessages: boolean;
     }[];
+    banned: { communityId: string; userId: string }[];
     allowed: (typeof s.conversations.$inferSelect)[];
     messageRows: (typeof s.messages.$inferSelect)[];
     startedChannels: string[];
@@ -156,6 +157,7 @@ export async function snapshot(
     related as materialized (
       select ${userId}::text as id
       union select user_id from community_members where community_id in (select community_id from joined)
+      union select user_id from community_bans where community_id in (select community_id from community_members where user_id = ${userId} and role in ('Owner', 'Admin'))
       union select case when sender_id = ${userId} then recipient_id else sender_id end from friendships where sender_id = ${userId} or recipient_id = ${userId}
       union select case when user_id = ${userId} then target_id else user_id end from blocked_users where user_id = ${userId} or target_id = ${userId}
       union select user_id from conversation_members where conversation_id in (select id from permitted where kind = 'dm')
@@ -175,6 +177,7 @@ export async function snapshot(
       where ${s.profiles.userId} in (select id from related union select author_id from messages where id in (select id from history))), '[]') as "profileRows",
     coalesce((select jsonb_agg(${rowJson(s.communities)} || jsonb_build_object('iconUrl', (select '/api/community-icons/' || i.id from community_icons i where i.community_id = ${s.communities.id} and i.status = 'active'), 'memberCount', (select count(*)::int from community_members m where m.community_id = ${s.communities.id})) order by ${s.communities.createdAt}) from ${s.communities} where ${s.communities.id} in (select id from catalog)), '[]') as "communityRows",
     coalesce((select jsonb_agg(${rowJson(s.members)}) from ${s.members} where ${s.members.communityId} in (select community_id from joined)), '[]') as "allMembers",
+    coalesce((select jsonb_agg(jsonb_build_object('communityId', ${s.communityBans.communityId}, 'userId', ${s.communityBans.userId})) from ${s.communityBans} where ${s.communityBans.communityId} in (select community_id from joined)), '[]') as banned,
     coalesce((select jsonb_agg(${rowJson(s.categories)} order by ${s.categories.position}, ${s.categories.name}) from ${s.categories} where ${s.categories.communityId} in (select community_id from joined)), '[]') as "categoryRows",
     coalesce((select jsonb_agg(${rowJson(s.friendships)}) from ${s.friendships} where ${s.friendships.senderId} = ${userId} or ${s.friendships.recipientId} = ${userId}), '[]') as friendships,
     coalesce((select jsonb_agg(${rowJson(s.blocks)}) from ${s.blocks} where ${s.blocks.userId} = ${userId} or ${s.blocks.targetId} = ${userId}), '[]') as blocked,
@@ -197,6 +200,7 @@ export async function snapshot(
     profileRows,
     communityRows,
     allMembers,
+    banned,
     categoryRows,
     friendships,
     blocked,
@@ -242,6 +246,11 @@ export async function snapshot(
     communities: communityRows.map((c) => {
       const membership = allMembers.filter((m) => m.communityId === c.id);
       const joined = membership.some((m) => m.userId === userId);
+      // Ban lists are manager-only: regular members must not learn who was
+      // banned. Managers see them via the Banned section in settings.
+      const viewerRole = membership.find((m) => m.userId === userId)?.role;
+      const canSeeBans =
+        joined && (viewerRole === "Owner" || viewerRole === "Admin");
       return {
         ...c,
         icon: c.icon as Community["icon"],
@@ -259,6 +268,11 @@ export async function snapshot(
               ]),
             )
           : {},
+        bannedIds: canSeeBans
+          ? banned
+              .filter((b) => b.communityId === c.id)
+              .map((b) => (b.userId === userId ? "you" : b.userId))
+          : [],
         channelCategories: joined
           ? categoryRows
               .filter((g) => g.communityId === c.id)

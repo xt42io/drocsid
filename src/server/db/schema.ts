@@ -128,6 +128,31 @@ export const members = pgTable(
     index("membership_user_idx").on(t.userId),
   ],
 );
+export const communityBans = pgTable(
+  "community_bans",
+  {
+    communityId: text("community_id")
+      .notNull()
+      .references(() => communities.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    bannedBy: text("banned_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    // Former community role at ban time. Membership is deleted by the ban,
+    // so unban authorization reads this instead of the members table.
+    role: text("role", { enum: ["Owner", "Admin", "Moderator", "Member"] })
+      .notNull()
+      .default("Member"),
+    reason: text("reason").notNull().default(""),
+    createdAt: time("created_at"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.communityId, t.userId] }),
+    index("community_ban_user_idx").on(t.userId),
+  ],
+);
 export const communityInvites = pgTable(
   "community_invites",
   {

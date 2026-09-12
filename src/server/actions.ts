@@ -117,21 +117,58 @@ export async function mutate(db: Database, userId: string, action: Action) {
         .where(eq(s.communities.id, action.id));
       break;
     case "community.join": {
+      // Single statement decides membership, so a concurrent ban cannot slip
+      // between the checks and the insert. Reads below only pick the message.
+      const written = await db.execute<{ communityId: string }>(sql`
+        insert into community_members (community_id, user_id)
+        select id, ${userId} from communities
+        where id = ${action.id} and discoverable
+          and not exists (
+            select 1 from community_bans
+            where community_id = ${action.id} and user_id = ${userId}
+          )
+        on conflict do nothing returning community_id as "communityId"
+      `);
+      if (written.rows.length) break;
       const [community] = await db
         .select()
         .from(s.communities)
         .where(eq(s.communities.id, action.id));
       if (!community) throw new HttpError(404, "Community not found.");
+      const [banned] = await db
+        .select({ userId: s.communityBans.userId })
+        .from(s.communityBans)
+        .where(
+          and(
+            eq(s.communityBans.communityId, action.id),
+            eq(s.communityBans.userId, userId),
+          ),
+        )
+        .limit(1);
+      if (banned)
+        throw new HttpError(403, "You cannot join this community.");
       if (!community.discoverable)
         throw new HttpError(
           403,
           "This community can only be joined with an invite.",
         );
-      await db
-        .insert(s.members)
-        .values({ communityId: action.id, userId })
-        .onConflictDoNothing();
-      break;
+      // The insert wrote nothing but the community is joinable: this is an
+      // idempotent retry by an existing member.
+      const [existing] = await db
+        .select({ userId: s.members.userId })
+        .from(s.members)
+        .where(
+          and(
+            eq(s.members.communityId, action.id),
+            eq(s.members.userId, userId),
+          ),
+        )
+        .limit(1);
+      if (existing) break;
+      throw new HttpError(
+        403,
+        "This community can only be joined with an invite.",
+      );
     }
     case "community.leave":
       if ((await roleFor(db, userId, action.id)) === "Owner")
@@ -239,41 +276,108 @@ export async function mutate(db: Database, userId: string, action: Action) {
       break;
     }
     case "member.role":
-    case "member.remove": {
+    case "member.remove":
+    case "member.ban":
+    case "member.unban": {
       const ownRole = await requireManager(db, userId, action.communityId);
       const targetRole = await roleFor(db, action.userId, action.communityId);
+      // Bans delete the membership row, so re-bans and unbans authorize
+      // against the stored former role: a re-ban must not let an Admin
+      // downgrade an ex-Admin's stored role to Member and then lift it.
+      const [existingBan] =
+        action.type === "member.ban" || action.type === "member.unban"
+          ? await db
+              .select({ role: s.communityBans.role })
+              .from(s.communityBans)
+              .where(
+                and(
+                  eq(s.communityBans.communityId, action.communityId),
+                  eq(s.communityBans.userId, action.userId),
+                ),
+              )
+              .limit(1)
+          : [];
+      // Ban/unban follow the same hierarchy as remove: Admins may act on
+      // non-Admins, only Owners may touch Admins. (There is no role to
+      // promote to here, so the member.role Admin-promotion guard is enough.)
+      const effectiveRole = targetRole ?? existingBan?.role;
       if (
-        !targetRole ||
-        targetRole === "Owner" ||
         action.userId === userId ||
+        effectiveRole === "Owner" ||
         (ownRole !== "Owner" &&
-          (targetRole === "Admin" ||
+          (effectiveRole === "Admin" ||
             (action.type === "member.role" && action.role === "Admin")))
       )
         throw new HttpError(403, "You cannot change this member.");
+      if (action.type === "member.unban") {
+        await db
+          .delete(s.communityBans)
+          .where(
+            and(
+              eq(s.communityBans.communityId, action.communityId),
+              eq(s.communityBans.userId, action.userId),
+            ),
+          );
+        break;
+      }
+      if (action.type === "member.ban" && !targetRole && !existingBan) {
+        const [person] = await db
+          .select({ id: s.user.id })
+          .from(s.user)
+          .where(eq(s.user.id, action.userId))
+          .limit(1);
+        if (!person) throw new HttpError(404, "Person not found.");
+      } else if (!targetRole && !existingBan) {
+        throw new HttpError(403, "You cannot change this member.");
+      }
       const where = and(
         eq(s.members.communityId, action.communityId),
         eq(s.members.userId, action.userId),
       );
-      if (action.type === "member.role")
+      if (action.type === "member.role") {
         await db.update(s.members).set({ role: action.role }).where(where);
-      else {
-        await db.delete(s.members).where(where);
-        await db
-          .delete(s.participants)
-          .where(
-            and(
-              eq(s.participants.userId, action.userId),
-              inArray(
-                s.participants.conversationId,
-                db
-                  .select({ id: s.conversations.id })
-                  .from(s.conversations)
-                  .where(eq(s.conversations.communityId, action.communityId)),
-              ),
-            ),
-          );
+        break;
       }
+      if (action.type === "member.ban") {
+        // One statement removes membership and records the ban, so a join
+        // racing this ban resolves correctly whichever statement runs first:
+        // either the join sees the ban and inserts nothing, or the ban
+        // deletes the freshly inserted membership.
+        await db.execute(sql`
+          with deleted as (
+            delete from community_members
+            where community_id = ${action.communityId}
+              and user_id = ${action.userId}
+          )
+          insert into community_bans (community_id, user_id, banned_by, role, reason)
+          values (
+            ${action.communityId}, ${action.userId}, ${userId},
+            ${targetRole ?? existingBan?.role ?? "Member"},
+            ${action.reason ?? ""}
+          )
+          on conflict (community_id, user_id) do update set
+            banned_by = excluded.banned_by, role = excluded.role,
+            reason = excluded.reason
+        `);
+      } else {
+        await db.delete(s.members).where(where);
+      }
+      // Stale private-channel rows are harmless: private access still requires
+      // community membership, which bans and removals both delete.
+      await db
+        .delete(s.participants)
+        .where(
+          and(
+            eq(s.participants.userId, action.userId),
+            inArray(
+              s.participants.conversationId,
+              db
+                .select({ id: s.conversations.id })
+                .from(s.conversations)
+                .where(eq(s.conversations.communityId, action.communityId)),
+            ),
+          ),
+        );
       break;
     }
     case "channel.access": {

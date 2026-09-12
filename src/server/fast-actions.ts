@@ -12,14 +12,18 @@ export async function fastAction(db: Database, userId: string, action: Action) {
     const result = await db.execute<{
       allowed: boolean;
       requests: number | null;
+      banned: boolean;
     }>(sql`
       with allowed as materialized (select id from communities where id = ${action.id} and discoverable),
+      banned as materialized (select 1 from community_bans where community_id = ${action.id} and user_id = ${userId}),
       quota as (${quota(userId)}),
-      written as (insert into community_members (community_id, user_id) select id, ${userId} from allowed, quota where quota.count <= 120 on conflict do nothing returning community_id),
+      written as (insert into community_members (community_id, user_id) select id, ${userId} from allowed, quota where quota.count <= 120 and not exists(select 1 from banned) on conflict do nothing returning community_id),
       notified as (insert into app_events (id, user_id) select gen_random_uuid()::text, id from
         (select user_id as id from community_members where community_id = ${action.id} union select ${userId}::text) recipients where exists(select 1 from written))
-      select exists(select 1 from allowed) as allowed, (select count from quota) as requests
+      select exists(select 1 from allowed) as allowed, (select count from quota) as requests, exists(select 1 from banned) as banned
     `);
+    if (result.rows[0].banned)
+      throw new HttpError(403, "You cannot join this community.");
     check(result.rows[0], "This community can only be joined with an invite.");
     return true;
   }

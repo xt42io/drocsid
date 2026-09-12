@@ -177,6 +177,9 @@ export async function acceptInvite(
   code: string,
 ): Promise<AcceptedInvite> {
   if (!validInviteCode(code)) throw new HttpError(404, "Invite not found.");
+  // The ban exclusion lives in the same statement as the membership insert,
+  // so a ban committing concurrently still blocks the join. Banned users see
+  // the same message as a revoked invite, leaking nothing about ban status.
   const result = await db.execute<{ communityId: string; channelId: string }>(sql`
     with invite as materialized (
       select * from community_invites where code = ${code}
@@ -187,6 +190,11 @@ export async function acceptInvite(
     ), joined as (
       insert into community_members (community_id, user_id)
       select community_id, ${userId} from invite
+      where not exists (
+        select 1 from community_bans
+        where community_bans.community_id = invite.community_id
+          and community_bans.user_id = ${userId}
+      )
       on conflict do nothing returning community_id
     ), counted as (
       update community_invites set use_count = use_count + 1
@@ -198,6 +206,15 @@ export async function acceptInvite(
         'general'
       ) as "channelId"
     from invite i
+    where exists (select 1 from joined)
+      or exists (
+        select 1 from community_members m
+        where m.community_id = i.community_id and m.user_id = ${userId}
+          and not exists (
+            select 1 from community_bans b
+            where b.community_id = m.community_id and b.user_id = ${userId}
+          )
+      )
   `);
   const accepted = result.rows[0];
   if (!accepted) throw new HttpError(404, "This invitation is no longer available.");

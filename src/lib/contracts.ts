@@ -122,6 +122,13 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("member.remove"), communityId: id, userId: id }),
   z.object({
+    type: z.literal("member.ban"),
+    communityId: id,
+    userId: id,
+    reason: z.string().trim().max(500).optional(),
+  }),
+  z.object({ type: z.literal("member.unban"), communityId: id, userId: id }),
+  z.object({
     type: z.literal("channel.access"),
     conversation: key,
     userId: id,

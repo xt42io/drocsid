@@ -42,6 +42,7 @@ export type Community = {
   members: number;
   memberIds?: string[];
   memberRoles?: Record<string, Person["role"]>;
+  bannedIds?: string[];
   joined: boolean;
   channels: Channel[];
   channelCategories?: string[];
