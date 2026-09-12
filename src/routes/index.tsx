@@ -132,7 +132,7 @@ function LandingPage() {
             <Link
               to="/app"
               data-ui="button button-dark button-small"
-              className="inline-flex min-h-10.5 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-4 py-2.5 text-[13px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
+              className="inline-flex min-h-10.5 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-4 py-2.5 text-[13px] font-semibold text-white transition-[background,translate,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
               Open Drocsid <Icon icon={ArrowUpRight01Icon} size={17} />
             </Link>
@@ -148,7 +148,7 @@ function LandingPage() {
               <Link
                 to="/sign-up"
                 data-ui="button button-dark button-small"
-                className="inline-flex min-h-10.5 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-4 py-2.5 text-[13px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
+                className="inline-flex min-h-10.5 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-4 py-2.5 text-[13px] font-semibold text-white transition-[background,translate,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
               >
                 Join Drocsid <Icon icon={ArrowUpRight01Icon} size={17} />
               </Link>
@@ -222,7 +222,7 @@ function LandingPage() {
             <Link
               to={authenticated ? "/app" : "/sign-up"}
               data-ui="button button-orange"
-              className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-orange px-5.5 py-3.5 text-[14px] font-semibold text-[#3e2118] shadow-[0_2px_0_#d842201c] transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:translate-y-0 motion-reduce:hover:translate-y-0"
+              className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-orange px-5.5 py-3.5 text-[14px] font-semibold text-[#3e2118] shadow-[0_2px_0_#d842201c] transition-[background,translate,box-shadow] hover:-translate-y-0.5 hover:bg-[#ed724d] hover:shadow-[0_5px_12px_#ee58202a] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
               {authenticated ? "Open Drocsid" : "Find your people"}{" "}
               <Icon icon={ArrowUpRight01Icon} size={20} />
@@ -232,7 +232,7 @@ function LandingPage() {
               target="_blank"
               rel="noreferrer"
               data-ui="button button-outline"
-              className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-[#d9d8d0] bg-transparent px-5.5 py-3.5 text-[14px] font-semibold transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:border-[#b7b7af] hover:bg-[#efeee9] active:translate-y-0 motion-reduce:hover:translate-y-0"
+              className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-[#d9d8d0] bg-transparent px-5.5 py-3.5 text-[14px] font-semibold transition-[background,translate,box-shadow] hover:-translate-y-0.5 hover:border-[#b7b7af] hover:bg-[#efeee9] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
               Star on GitHub
               <img
@@ -312,7 +312,7 @@ function LandingPage() {
               target="_blank"
               rel="noreferrer"
               data-ui="button github-button"
-              className="mt-7 inline-flex min-h-12 items-center gap-3 rounded-[9px] bg-ink px-4.5 py-2.5 text-[13px] font-semibold text-white shadow-[0_5px_18px_rgba(41,42,38,0.16)] transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] hover:shadow-[0_8px_24px_rgba(41,42,38,0.22)] active:translate-y-0 motion-reduce:hover:translate-y-0"
+              className="mt-7 inline-flex min-h-12 items-center gap-3 rounded-[9px] bg-ink px-4.5 py-2.5 text-[13px] font-semibold text-white shadow-[0_5px_18px_rgba(41,42,38,0.16)] transition-[background,translate,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] hover:shadow-[0_8px_24px_rgba(41,42,38,0.22)] active:translate-y-0 motion-reduce:hover:translate-y-0"
             >
               <img
                 src="/icons/github.svg"
@@ -502,7 +502,7 @@ function LandingPage() {
           <Link
             to={authenticated ? "/app" : "/sign-up"}
             data-ui="button button-dark"
-            className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-5.5 py-3.5 text-[14px] font-semibold text-white transition-[background,transform,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
+            className="inline-flex min-h-13 items-center justify-center gap-3 whitespace-nowrap rounded-[7px] border border-transparent bg-ink px-5.5 py-3.5 text-[14px] font-semibold text-white transition-[background,translate,box-shadow] hover:-translate-y-0.5 hover:bg-[#42433d] active:translate-y-0 motion-reduce:hover:translate-y-0"
           >
             {authenticated ? "Open Drocsid" : "Make yourself at home"}{" "}
             <Icon icon={ArrowRight01Icon} size={19} />

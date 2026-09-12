@@ -185,6 +185,15 @@
   }
 }
 
+/* Lenis smooth-scroll base: let the library own wheel scrolling. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
 @keyframes pop-in {
   from {
     opacity: 0;

@@ -6,6 +6,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { PostHogProvider } from "@posthog/react";
+import { useEffect } from "react";
 import stylesheet from "../styles.css?url";
 
 const siteDescription =
@@ -82,6 +83,19 @@ export const Route = createRootRoute({
 });
 
 function Root() {
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let lenis: import("lenis").default | undefined;
+    let cancelled = false;
+    void import("lenis").then(({ default: Lenis }) => {
+      if (cancelled) return;
+      lenis = new Lenis({ autoRaf: true });
+    });
+    return () => {
+      cancelled = true;
+      lenis?.destroy();
+    };
+  }, []);
   return (
     <html lang="en">
       <head>
