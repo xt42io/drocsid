@@ -217,4 +217,42 @@ test("bans remove members and block rejoining, unbans restore it", async () => {
     communityId,
     userId: "member",
   });
+
+  // Re-banning an ex-Admin cannot downgrade the stored role: an Admin's
+  // re-ban is rejected, so the ban stays Owner-only to lift.
+  await mutate(db, "member", { type: "community.join", id: communityId });
+  await mutate(db, "owner", {
+    type: "member.role",
+    communityId,
+    userId: "member",
+    role: "Admin",
+  });
+  await mutate(db, "owner", {
+    type: "member.ban",
+    communityId,
+    userId: "member",
+  });
+  await assert.rejects(
+    () =>
+      mutate(db, "admin", {
+        type: "member.ban",
+        communityId,
+        userId: "member",
+      }),
+    /cannot change this member/,
+  );
+  await assert.rejects(
+    () =>
+      mutate(db, "admin", {
+        type: "member.unban",
+        communityId,
+        userId: "member",
+      }),
+    /cannot change this member/,
+  );
+  await mutate(db, "owner", {
+    type: "member.unban",
+    communityId,
+    userId: "member",
+  });
 });

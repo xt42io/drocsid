@@ -281,37 +281,35 @@ export async function mutate(db: Database, userId: string, action: Action) {
     case "member.unban": {
       const ownRole = await requireManager(db, userId, action.communityId);
       const targetRole = await roleFor(db, action.userId, action.communityId);
+      // Bans delete the membership row, so re-bans and unbans authorize
+      // against the stored former role: a re-ban must not let an Admin
+      // downgrade an ex-Admin's stored role to Member and then lift it.
+      const [existingBan] =
+        action.type === "member.ban" || action.type === "member.unban"
+          ? await db
+              .select({ role: s.communityBans.role })
+              .from(s.communityBans)
+              .where(
+                and(
+                  eq(s.communityBans.communityId, action.communityId),
+                  eq(s.communityBans.userId, action.userId),
+                ),
+              )
+              .limit(1)
+          : [];
       // Ban/unban follow the same hierarchy as remove: Admins may act on
       // non-Admins, only Owners may touch Admins. (There is no role to
       // promote to here, so the member.role Admin-promotion guard is enough.)
+      const effectiveRole = targetRole ?? existingBan?.role;
       if (
         action.userId === userId ||
-        targetRole === "Owner" ||
+        effectiveRole === "Owner" ||
         (ownRole !== "Owner" &&
-          (targetRole === "Admin" ||
+          (effectiveRole === "Admin" ||
             (action.type === "member.role" && action.role === "Admin")))
       )
         throw new HttpError(403, "You cannot change this member.");
       if (action.type === "member.unban") {
-        // The ban deleted the membership, so hierarchy comes from the stored
-        // former role: only Owners may unban ex-Admins (or ex-Owners, which
-        // cannot normally exist since Owners cannot be banned).
-        const [ban] = await db
-          .select({ role: s.communityBans.role })
-          .from(s.communityBans)
-          .where(
-            and(
-              eq(s.communityBans.communityId, action.communityId),
-              eq(s.communityBans.userId, action.userId),
-            ),
-          )
-          .limit(1);
-        if (
-          ban &&
-          (ban.role === "Admin" || ban.role === "Owner") &&
-          ownRole !== "Owner"
-        )
-          throw new HttpError(403, "You cannot change this member.");
         await db
           .delete(s.communityBans)
           .where(
@@ -322,14 +320,14 @@ export async function mutate(db: Database, userId: string, action: Action) {
           );
         break;
       }
-      if (action.type === "member.ban" && !targetRole) {
+      if (action.type === "member.ban" && !targetRole && !existingBan) {
         const [person] = await db
           .select({ id: s.user.id })
           .from(s.user)
           .where(eq(s.user.id, action.userId))
           .limit(1);
         if (!person) throw new HttpError(404, "Person not found.");
-      } else if (!targetRole) {
+      } else if (!targetRole && !existingBan) {
         throw new HttpError(403, "You cannot change this member.");
       }
       const where = and(
@@ -354,7 +352,8 @@ export async function mutate(db: Database, userId: string, action: Action) {
           insert into community_bans (community_id, user_id, banned_by, role, reason)
           values (
             ${action.communityId}, ${action.userId}, ${userId},
-            ${targetRole ?? "Member"}, ${action.reason ?? ""}
+            ${targetRole ?? existingBan?.role ?? "Member"},
+            ${action.reason ?? ""}
           )
           on conflict (community_id, user_id) do update set
             banned_by = excluded.banned_by, role = excluded.role,
