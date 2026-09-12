@@ -6,7 +6,7 @@ TanStack Start (React 19) + Drizzle/Postgres + Better Auth + Tailwind v4 chat ap
 
 - Setup: `pnpm install`, copy `.env.example` → `.env`, `docker compose up -d postgres`, `pnpm db:migrate`, `pnpm dev` (open http://localhost:1515).
 - Verify before PR: `pnpm typecheck`, `pnpm test`, `SENTRY_AUTH_TOKEN= pnpm build`.
-- Prod flow: `pnpm install --frozen-lockfile && pnpm db:migrate && pnpm build && pnpm start`.
+- Prod flow: `pnpm install && pnpm db:migrate && pnpm build && pnpm start` (no lockfile tracked — don't add `--frozen-lockfile`).
 - DB: `pnpm db:generate` (new migration per schema change — never edit released migration), `pnpm db:migrate`. Seed (opt-in only, needs `SEED_EMAIL` + real inbox): `pnpm db:seed`.
 - Tests: `pnpm test` = `tsx --test tests/*.test.ts` on isolated PGlite (applies committed migrations; Byteship mocked). Single file: `pnpm exec tsx --test tests/<name>.test.ts`.
 - Live checks (require build + real `.env`, create disposable fixtures then clean up): `node --env-file=.env --import tsx scripts/smoke-realtime.ts` (running dev server + DB); `pnpm exec tsx --env-file=.env scripts/smoke.ts` / `scripts/benchmark-*.ts` (no server start).
