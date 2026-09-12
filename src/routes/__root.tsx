@@ -4,10 +4,8 @@ import {
   Link,
   Outlet,
   Scripts,
-  useRouterState,
 } from "@tanstack/react-router";
 import { PostHogProvider } from "@posthog/react";
-import { useEffect } from "react";
 import stylesheet from "../styles.css?url";
 
 const siteDescription =
@@ -84,24 +82,6 @@ export const Route = createRootRoute({
 });
 
 function Root() {
-  // Lenis smooths document scroll (landing, auth, legal pages). The /app
-  // workspace scrolls inside nested overflow containers instead, so Lenis
-  // stays off there rather than intercepting its wheel events.
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  useEffect(() => {
-    if (pathname.startsWith("/app")) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    let lenis: import("lenis").default | undefined;
-    let cancelled = false;
-    void import("lenis").then(({ default: Lenis }) => {
-      if (cancelled) return;
-      lenis = new Lenis({ autoRaf: true });
-    });
-    return () => {
-      cancelled = true;
-      lenis?.destroy();
-    };
-  }, [pathname]);
   return (
     <html lang="en">
       <head>
