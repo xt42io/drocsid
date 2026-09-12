@@ -298,7 +298,7 @@ export function InvitePage({
           </span>
           <button
             data-ui="a-button primary full"
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2.25 rounded-lg border border-transparent bg-[#f3653f] px-4 py-3 text-[13px] leading-[1.4] font-semibold whitespace-nowrap text-[#3e2118] transition-[background,transform] hover:-translate-y-0.5 hover:bg-[#ed724d] active:translate-y-0 disabled:cursor-wait disabled:opacity-70 motion-reduce:hover:translate-y-0"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2.25 rounded-lg border border-transparent bg-[#f3653f] px-4 py-3 text-[13px] leading-[1.4] font-semibold whitespace-nowrap text-[#3e2118] transition-[background,translate] hover:-translate-y-0.5 hover:bg-[#ed724d] active:translate-y-0 disabled:cursor-wait disabled:opacity-70 motion-reduce:hover:translate-y-0"
             disabled={joining}
             onClick={async () => {
               setJoining(true);

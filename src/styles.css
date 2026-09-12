@@ -1,3 +1,4 @@
+@import "@fontsource-variable/inter";
 @import "@fontsource-variable/dm-sans";
 
 @import "@fontsource/dm-mono/400.css";
@@ -5,8 +6,13 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "DM Sans Variable", sans-serif;
-  --font-mono: "DM Mono", monospace;
+  --font-sans: "Inter Variable", "DM Sans Variable", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-pop-in: pop-in 0.22s var(--ease-out-quint) both;
+  --animate-fade-in: fade-in 0.18s var(--ease-out-quart) both;
+  --animate-fade-up: fade-up 0.35s var(--ease-out-quint) both;
   --color-paper: #f8f7f4;
   --color-ink: #292a26;
   --color-orange: #f45e38;
@@ -17,7 +23,7 @@
 /* Element defaults belong in the base layer so component utilities can override them. */
 @layer base {
   :root {
-    @apply font-sans text-ink bg-paper [font-synthesis:none] [text-rendering:optimizeLegibility] [-webkit-font-smoothing:antialiased];
+    @apply font-sans text-ink bg-paper [font-synthesis:none] [text-rendering:optimizeLegibility] [-webkit-font-smoothing:antialiased] [font-feature-settings:"cv01","ss03"];
   }
   * {
     @apply box-border;
@@ -92,13 +98,13 @@
     }
   }
   [data-ui~="workspace"] button {
-    @apply [font:inherit] border-0 border-none border-[currentColor] [-webkit-tap-highlight-color:transparent];
+    @apply [font:inherit] border-0 border-none border-[currentColor] [-webkit-tap-highlight-color:transparent] [transition:scale_0.12s_var(--ease-out-quart),background-color_0.15s,color_0.15s,border-color_0.15s] motion-safe:active:scale-[0.97];
   }
   [data-ui~="workspace"] input {
-    @apply [font:inherit] min-w-0 text-(--a-text) bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] [outline:none];
+    @apply [font:inherit] min-w-0 text-(--a-text) bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] [outline:none] [transition:border-color_0.2s_var(--ease-out-quart),box-shadow_0.2s_var(--ease-out-quart)];
   }
   [data-ui~="workspace"] textarea {
-    @apply [font:inherit] min-w-0 text-(--a-text) bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] [outline:none] resize-y;
+    @apply [font:inherit] min-w-0 text-(--a-text) bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] [outline:none] resize-y [transition:border-color_0.2s_var(--ease-out-quart),box-shadow_0.2s_var(--ease-out-quart)];
   }
   [data-ui~="workspace"] select {
     @apply [font:inherit] min-w-0 text-(--a-text) bg-(--a-surface) border border-solid border-(--a-border) rounded-[7px] [outline:none] pt-2.75 pr-3 pb-2.75 pl-3;
@@ -167,5 +173,36 @@
   }
   50% {
     translate: 0 -8px;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
